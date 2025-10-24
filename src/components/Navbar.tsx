@@ -11,7 +11,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
           <HeartHandshake className="h-6 w-6" />
-          FoodShare
+          Annadataconnect
         </Link>
         
         <div className="flex items-center gap-4">

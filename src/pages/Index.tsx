@@ -44,7 +44,7 @@ const Index = () => {
       <section className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How FoodShare Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How Annadataconnect Works</h2>
             <p className="text-muted-foreground text-lg">Simple, effective, and community-driven</p>
           </div>
           
@@ -56,7 +56,7 @@ const Index = () => {
                 </div>
                 <CardTitle>Donate Food</CardTitle>
                 <CardDescription>
-                  Have surplus food? List it on FoodShare and help those in need
+                  Have surplus food? List it on Annadataconnect and help those in need
                 </CardDescription>
               </CardHeader>
             </Card>
