@@ -69,6 +69,7 @@ export type Database = {
       }
       food_requests: {
         Row: {
+          accepted_at: string | null
           created_at: string
           donation_id: string
           id: string
@@ -78,6 +79,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
           created_at?: string
           donation_id: string
           id?: string
@@ -87,6 +89,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
           created_at?: string
           donation_id?: string
           id?: string
