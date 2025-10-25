@@ -1,10 +1,53 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { HeartHandshake, LogOut } from 'lucide-react';
+import { HeartHandshake, LogOut, User, History } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const [donations, setDonations] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      // Fetch profile
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => setProfile(data));
+
+      // Fetch user's donations
+      supabase
+        .from('food_donations')
+        .select('*')
+        .eq('donor_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .then(({ data }) => setDonations(data || []));
+
+      // Fetch user's requests
+      supabase
+        .from('food_requests')
+        .select('*, food_donations(*)')
+        .eq('requester_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .then(({ data }) => setRequests(data || []));
+    }
+  }, [user]);
 
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -23,9 +66,62 @@ export default function Navbar() {
               <Link to="/donate">
                 <Button variant="default">Donate Food</Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={signOut}>
-                <LogOut className="h-5 w-5" />
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 bg-background border-border z-50">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuLabel className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    My Donations
+                  </DropdownMenuLabel>
+                  {donations.length > 0 ? (
+                    donations.map((donation) => (
+                      <DropdownMenuItem key={donation.id} className="flex flex-col items-start">
+                        <span className="font-medium text-sm">{donation.title}</span>
+                        <span className="text-xs text-muted-foreground">Status: {donation.status}</span>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>No donations yet</DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuLabel className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    My Requests
+                  </DropdownMenuLabel>
+                  {requests.length > 0 ? (
+                    requests.map((request) => (
+                      <DropdownMenuItem key={request.id} className="flex flex-col items-start">
+                        <span className="font-medium text-sm">{request.food_donations?.title}</span>
+                        <span className="text-xs text-muted-foreground">Status: {request.status}</span>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>No requests yet</DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut} className="text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Link to="/auth">

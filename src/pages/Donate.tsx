@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import Map from '@/components/Map';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -152,8 +153,15 @@ export default function Donate() {
                   required
                   value={formData.pickup_location}
                   onChange={(e) => setFormData({ ...formData, pickup_location: e.target.value })}
-                  placeholder="e.g., 123 Main St, City"
+                  placeholder="Click on map or enter: latitude, longitude"
                 />
+                <p className="text-sm text-muted-foreground">Click on the map to select a location</p>
+                <div className="mt-2">
+                  <Map 
+                    editable 
+                    onLocationSelect={(location) => setFormData({ ...formData, pickup_location: location })} 
+                  />
+                </div>
               </div>
 
               <Button type="submit" className="w-full" disabled={submitting}>
