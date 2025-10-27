@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { HeartHandshake, LogOut, User, History } from 'lucide-react';
+import { HeartHandshake, LogOut, User, History, FolderClock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,12 +83,21 @@ export default function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
+                  <Link to="/history">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <FolderClock className="h-4 w-4 mr-2" />
+                      History
+                    </DropdownMenuItem>
+                  </Link>
+                  
+                  <DropdownMenuSeparator />
+                  
                   <DropdownMenuLabel className="flex items-center gap-2">
                     <History className="h-4 w-4" />
-                    My Donations
+                    Recent Donations
                   </DropdownMenuLabel>
                   {donations.length > 0 ? (
-                    donations.map((donation) => (
+                    donations.slice(0, 3).map((donation) => (
                       <DropdownMenuItem key={donation.id} className="flex flex-col items-start">
                         <span className="font-medium text-sm">{donation.title}</span>
                         <span className="text-xs text-muted-foreground">Status: {donation.status}</span>
@@ -102,10 +111,10 @@ export default function Navbar() {
                   
                   <DropdownMenuLabel className="flex items-center gap-2">
                     <History className="h-4 w-4" />
-                    My Requests
+                    Recent Requests
                   </DropdownMenuLabel>
                   {requests.length > 0 ? (
-                    requests.map((request) => (
+                    requests.slice(0, 3).map((request) => (
                       <DropdownMenuItem key={request.id} className="flex flex-col items-start">
                         <span className="font-medium text-sm">{request.food_donations?.title}</span>
                         <span className="text-xs text-muted-foreground">Status: {request.status}</span>
