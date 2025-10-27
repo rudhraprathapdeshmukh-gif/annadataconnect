@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { HeartHandshake, LogOut, User, History, FolderClock } from 'lucide-react';
+import { HeartHandshake, LogOut, User, FolderClock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,37 +15,16 @@ import { supabase } from '@/integrations/supabase/client';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const [donations, setDonations] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
-      // Fetch profile
       supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
         .then(({ data }) => setProfile(data));
-
-      // Fetch user's donations
-      supabase
-        .from('food_donations')
-        .select('*')
-        .eq('donor_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-        .then(({ data }) => setDonations(data || []));
-
-      // Fetch user's requests
-      supabase
-        .from('food_requests')
-        .select('*, food_donations(*)')
-        .eq('requester_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-        .then(({ data }) => setRequests(data || []));
     }
   }, [user]);
 
@@ -89,40 +68,6 @@ export default function Navbar() {
                       History
                     </DropdownMenuItem>
                   </Link>
-                  
-                  <DropdownMenuSeparator />
-                  
-                  <DropdownMenuLabel className="flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    Recent Donations
-                  </DropdownMenuLabel>
-                  {donations.length > 0 ? (
-                    donations.slice(0, 3).map((donation) => (
-                      <DropdownMenuItem key={donation.id} className="flex flex-col items-start">
-                        <span className="font-medium text-sm">{donation.title}</span>
-                        <span className="text-xs text-muted-foreground">Status: {donation.status}</span>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>No donations yet</DropdownMenuItem>
-                  )}
-                  
-                  <DropdownMenuSeparator />
-                  
-                  <DropdownMenuLabel className="flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    Recent Requests
-                  </DropdownMenuLabel>
-                  {requests.length > 0 ? (
-                    requests.slice(0, 3).map((request) => (
-                      <DropdownMenuItem key={request.id} className="flex flex-col items-start">
-                        <span className="font-medium text-sm">{request.food_donations?.title}</span>
-                        <span className="text-xs text-muted-foreground">Status: {request.status}</span>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>No requests yet</DropdownMenuItem>
-                  )}
                   
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive">
