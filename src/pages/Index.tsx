@@ -26,13 +26,13 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Link to="/auth">
-                <Button size="lg" className="gap-2">
-                  Get Started <ArrowRight className="h-5 w-5" />
+                <Button size="lg" variant="outline">
+                  Sign In
                 </Button>
               </Link>
-              <Link to="/dashboard">
-                <Button size="lg" variant="outline">
-                  Browse Donations
+              <Link to="/auth">
+                <Button size="lg">
+                  Sign Up
                 </Button>
               </Link>
             </div>
