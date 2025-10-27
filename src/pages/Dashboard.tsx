@@ -24,6 +24,7 @@ interface FoodDonation {
   pickup_location: string;
   status: string;
   created_at: string;
+  donor_id: string;
 }
 
 interface FoodRequest {
@@ -132,6 +133,13 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
+      // Check if user is trying to request their own donation
+      const donation = donations.find(d => d.id === donationId);
+      if (donation && donation.donor_id === user.id) {
+        toast.error('You cannot request your own donation');
+        return;
+      }
+
       const { error } = await supabase
         .from('food_requests')
         .insert({
@@ -153,8 +161,7 @@ export default function Dashboard() {
       const updateData: any = { status: action };
       
       if (action === 'accepted') {
-        const acceptedAt = new Date();
-        updateData.accepted_at = acceptedAt.toISOString();
+        updateData.accepted_at = new Date().toISOString();
       }
 
       const { error } = await supabase
@@ -162,12 +169,17 @@ export default function Dashboard() {
         .update(updateData)
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating request:', error);
+        throw error;
+      }
       
       toast.success(`Request ${action} successfully!`);
       fetchRequests();
-    } catch (error) {
-      toast.error(`Failed to ${action} request`);
+      fetchMyRequests();
+    } catch (error: any) {
+      console.error('Failed to update request:', error);
+      toast.error(error.message || `Failed to ${action} request`);
     }
   };
 
@@ -234,7 +246,7 @@ export default function Dashboard() {
                         </Badge>
                       </div>
                       <CardDescription>
-                        Requested by: {request.profiles.full_name}
+                        Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
