@@ -24,13 +24,8 @@ const Index = () => {
             <p className="text-xl text-muted-foreground">
               Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link to="/auth">
-                <Button size="lg" variant="outline">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/auth">
+            <div className="flex justify-center pt-4">
+              <Link to="/auth?mode=signup">
                 <Button size="lg">
                   Sign Up
                 </Button>
@@ -99,7 +94,7 @@ const Index = () => {
               <p className="text-lg opacity-90">
                 Whether you're donating or receiving, every action makes a difference
               </p>
-              <Link to="/auth">
+              <Link to="/auth?mode=signup">
                 <Button size="lg" variant="secondary" className="mt-4">
                   Sign Up Now
                 </Button>
