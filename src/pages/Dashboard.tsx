@@ -19,12 +19,14 @@ interface FoodDonation {
   title: string;
   description: string;
   quantity: string;
+  quantity_unit: string;
   food_type: string;
   expiry_date: string;
   pickup_location: string;
   status: string;
   created_at: string;
   donor_id: string;
+  rating: number | null;
 }
 
 interface FoodRequest {
@@ -175,11 +177,11 @@ export default function Dashboard() {
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'accepted' | 'rejected') => {
+  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     try {
       const updateData: any = { status: action };
       
-      if (action === 'accepted') {
+      if (action === 'approved') {
         updateData.accepted_at = new Date().toISOString();
       }
 
@@ -261,7 +263,7 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
                         <Badge variant={
-                          request.status === 'accepted' ? 'default' :
+                          request.status === 'approved' ? 'default' :
                           request.status === 'rejected' ? 'destructive' :
                           'secondary'
                         }>
@@ -272,22 +274,28 @@ export default function Dashboard() {
                         Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="text-sm text-muted-foreground">{request.message}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Package className="h-4 w-4" />
-                        <span>{request.food_donations.quantity}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </CardContent>
+                      <CardContent className="space-y-2">
+                        <p className="text-sm text-muted-foreground">{request.message}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Package className="h-4 w-4" />
+                          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
+                        </div>
+                        {request.food_donations.rating && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+                            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </CardContent>
                     {request.status === 'pending' && (
                       <CardFooter className="gap-2">
                         <Button
                           className="flex-1"
-                          onClick={() => handleRequestAction(request.id, 'accepted')}
+                          onClick={() => handleRequestAction(request.id, 'approved')}
                         >
                           <Check className="h-4 w-4 mr-2" />
                           Accept
@@ -366,8 +374,14 @@ export default function Dashboard() {
                       <CardContent className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Package className="h-4 w-4" />
-                          <span>{donation.quantity}</span>
+                          <span>{donation.quantity} {donation.quantity_unit}</span>
                         </div>
+                        {donation.rating && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                            <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
                           <span>{donation.pickup_location}</span>

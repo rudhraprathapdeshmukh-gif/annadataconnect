@@ -8,7 +8,9 @@ interface FoodDonation {
   title: string;
   description: string;
   quantity: string;
+  quantity_unit: string;
   food_type: string;
+  rating: number | null;
 }
 
 interface FoodRequest {
@@ -34,7 +36,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         <div className="flex items-start justify-between">
           <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
           <Badge variant={
-            request.status === 'accepted' ? 'default' :
+            request.status === 'approved' ? 'default' :
             request.status === 'rejected' ? 'destructive' :
             'secondary'
           }>
@@ -48,13 +50,19 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       <CardContent className="space-y-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{request.food_donations.quantity}</span>
+          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
+        {request.food_donations.rating && (
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
         </div>
-        {request.status === 'accepted' && expiryTime && (
+        {request.status === 'approved' && expiryTime && (
           <div className={`flex items-center gap-2 text-sm font-semibold ${
             countdown.expired ? 'text-destructive' : 'text-primary'
           }`}>

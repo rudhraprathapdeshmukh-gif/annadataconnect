@@ -25,6 +25,8 @@ export type Database = {
           image_url: string | null
           pickup_location: string
           quantity: string
+          quantity_unit: string
+          rating: number | null
           status: string | null
           title: string
           updated_at: string
@@ -39,6 +41,8 @@ export type Database = {
           image_url?: string | null
           pickup_location: string
           quantity: string
+          quantity_unit?: string
+          rating?: number | null
           status?: string | null
           title: string
           updated_at?: string
@@ -53,6 +57,8 @@ export type Database = {
           image_url?: string | null
           pickup_location?: string
           quantity?: string
+          quantity_unit?: string
+          rating?: number | null
           status?: string | null
           title?: string
           updated_at?: string

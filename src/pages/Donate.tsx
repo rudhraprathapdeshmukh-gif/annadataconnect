@@ -17,9 +17,11 @@ const donationSchema = z.object({
   title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
   description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
+  quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings', 'plates', 'boxes', 'bags'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
   pickup_location: z.string().trim().min(1, { message: "Pickup location is required" }).max(200, { message: "Location must be less than 200 characters" }),
   expiry_date: z.string().optional(),
+  rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
 });
 
 export default function Donate() {
@@ -31,9 +33,11 @@ export default function Donate() {
     title: '',
     description: '',
     quantity: '',
+    quantity_unit: 'kg',
     food_type: '',
     expiry_date: '',
     pickup_location: '',
+    rating: 0,
   });
 
   useEffect(() => {
@@ -64,9 +68,11 @@ export default function Donate() {
           title: validation.data.title,
           description: validation.data.description || '',
           quantity: validation.data.quantity,
+          quantity_unit: validation.data.quantity_unit,
           food_type: validation.data.food_type,
           pickup_location: validation.data.pickup_location,
           expiry_date: validation.data.expiry_date || null,
+          rating: validation.data.rating,
         }]);
 
       if (error) throw error;
@@ -130,13 +136,34 @@ export default function Donate() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    required
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder="e.g., 5 kg, 10 servings"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="quantity"
+                      required
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      placeholder="e.g., 5"
+                      className="flex-1"
+                    />
+                    <Select
+                      value={formData.quantity_unit}
+                      onValueChange={(value) => setFormData({ ...formData, quantity_unit: value })}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">Kilograms</SelectItem>
+                        <SelectItem value="grams">Grams</SelectItem>
+                        <SelectItem value="liters">Liters</SelectItem>
+                        <SelectItem value="pieces">Pieces</SelectItem>
+                        <SelectItem value="servings">Servings</SelectItem>
+                        <SelectItem value="plates">Plates</SelectItem>
+                        <SelectItem value="boxes">Boxes</SelectItem>
+                        <SelectItem value="bags">Bags</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -158,6 +185,25 @@ export default function Donate() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Food Quality Rating *</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, rating: star })}
+                      className="text-3xl transition-colors hover:scale-110"
+                    >
+                      <span className={formData.rating >= star ? 'text-yellow-500' : 'text-muted-foreground'}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">Rate the quality of food (1-5 stars)</p>
               </div>
 
               <div className="space-y-2">
