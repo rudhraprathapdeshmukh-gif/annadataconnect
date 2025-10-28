@@ -7,6 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const authSchema = z.object({
+  email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }).max(128, { message: "Password too long" }),
+  fullName: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name too long" }).optional(),
+});
 
 export default function Auth() {
   const { user, signUp, signIn } = useAuth();
@@ -30,12 +37,21 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Validate input
+      const validationData: any = { email, password };
       if (isSignUp) {
-        if (!fullName.trim()) {
-          toast.error('Please enter your name');
-          setLoading(false);
-          return;
-        }
+        validationData.fullName = fullName;
+      }
+      
+      const validation = authSchema.safeParse(validationData);
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (isSignUp) {
         const { error } = await signUp(email, password, fullName, userType);
         if (error) {
           toast.error(error.message);

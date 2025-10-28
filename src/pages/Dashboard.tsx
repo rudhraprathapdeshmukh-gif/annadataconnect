@@ -104,7 +104,10 @@ export default function Dashboard() {
       if (error) throw error;
       setRequests(data || []);
     } catch (error) {
-      console.error('Failed to load requests:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load requests:', error);
+      }
+      toast.error('Failed to load requests');
     }
   };
 
@@ -125,7 +128,10 @@ export default function Dashboard() {
       if (error) throw error;
       setMyRequests(data || []);
     } catch (error) {
-      console.error('Failed to load my requests:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load my requests:', error);
+      }
+      toast.error('Failed to load requests');
     }
   };
 
@@ -137,6 +143,19 @@ export default function Dashboard() {
       const donation = donations.find(d => d.id === donationId);
       if (donation && donation.donor_id === user.id) {
         toast.error('You cannot request your own donation');
+        return;
+      }
+
+      // Check for existing pending request
+      const { data: existing } = await supabase
+        .from('food_requests')
+        .select('id')
+        .eq('donation_id', donationId)
+        .eq('requester_id', user.id)
+        .eq('status', 'pending');
+      
+      if (existing && existing.length > 0) {
+        toast.error('You already have a pending request for this donation');
         return;
       }
 
@@ -170,7 +189,9 @@ export default function Dashboard() {
         .eq('id', requestId);
 
       if (error) {
-        console.error('Error updating request:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error updating request:', error);
+        }
         throw error;
       }
       
@@ -178,8 +199,10 @@ export default function Dashboard() {
       fetchRequests();
       fetchMyRequests();
     } catch (error: any) {
-      console.error('Failed to update request:', error);
-      toast.error(error.message || `Failed to ${action} request`);
+      if (import.meta.env.DEV) {
+        console.error('Failed to update request:', error);
+      }
+      toast.error(`Failed to ${action} request`);
     }
   };
 

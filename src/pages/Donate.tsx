@@ -11,6 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const donationSchema = z.object({
+  title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
+  description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
+  quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
+  food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
+  pickup_location: z.string().trim().min(1, { message: "Pickup location is required" }).max(200, { message: "Location must be less than 200 characters" }),
+  expiry_date: z.string().optional(),
+});
 
 export default function Donate() {
   const { user, loading } = useAuth();
@@ -38,12 +48,26 @@ export default function Donate() {
 
     setSubmitting(true);
     try {
+      // Validate input
+      const validation = donationSchema.safeParse(formData);
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('food_donations')
-        .insert({
+        .insert([{
           donor_id: user.id,
-          ...formData,
-        });
+          title: validation.data.title,
+          description: validation.data.description || '',
+          quantity: validation.data.quantity,
+          food_type: validation.data.food_type,
+          pickup_location: validation.data.pickup_location,
+          expiry_date: validation.data.expiry_date || null,
+        }]);
 
       if (error) throw error;
 
