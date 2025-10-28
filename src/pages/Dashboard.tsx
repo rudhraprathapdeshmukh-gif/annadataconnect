@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Package, Check, X } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCountdown } from '@/hooks/useCountdown';
 
 interface FoodDonation {
   id: string;
@@ -248,7 +249,7 @@ export default function Dashboard() {
 
 {isDonorView ? (
           <div className="space-y-4">
-            {requests.length === 0 ? (
+            {requests.filter(r => r.status !== 'rejected').length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -257,63 +258,23 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {requests.map((request) => (
-                  <Card key={request.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
-                        <Badge variant={
-                          request.status === 'approved' ? 'default' :
-                          request.status === 'rejected' ? 'destructive' :
-                          'secondary'
-                        }>
-                          {request.status}
-                        </Badge>
-                      </div>
-                      <CardDescription>
-                        Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
-                      </CardDescription>
-                    </CardHeader>
-                      <CardContent className="space-y-2">
-                        <p className="text-sm text-muted-foreground">{request.message}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
-                        </div>
-                        {request.food_donations.rating && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-                            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </CardContent>
-                    {request.status === 'pending' && (
-                      <CardFooter className="gap-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => handleRequestAction(request.id, 'approved')}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          Accept
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          className="flex-1"
-                          onClick={() => handleRequestAction(request.id, 'rejected')}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                      </CardFooter>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            )}
+                {requests.filter(r => r.status !== 'rejected').map((request) => {
+                  const expiryTime = request.accepted_at 
+                    ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
+                    : null;
+                  
+                  return (
+                  <DonorRequestCard 
+                    key={request.id} 
+                    request={request} 
+                    expiryTime={expiryTime}
+                    onAccept={() => handleRequestAction(request.id, 'approved')}
+                    onReject={() => handleRequestAction(request.id, 'rejected')}
+                  />
+                  );
+                })}
+                </div>
+              )}
           </div>
         ) : (
           <Tabs defaultValue="list" className="space-y-6">
@@ -339,7 +300,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myRequests.map((request) => {
                     const expiryTime = request.accepted_at 
-                      ? new Date(new Date(request.accepted_at).getTime() + 30 * 60 * 1000)
+                      ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
                       : null;
                     
                     return (
@@ -410,5 +371,86 @@ export default function Dashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+interface DonorRequestCardProps {
+  request: FoodRequest;
+  expiryTime: Date | null;
+  onAccept: () => void;
+  onReject: () => void;
+}
+
+function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequestCardProps) {
+  const countdown = useCountdown(expiryTime);
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
+          <Badge variant={
+            request.status === 'approved' ? 'default' :
+            request.status === 'rejected' ? 'destructive' :
+            'secondary'
+          }>
+            {request.status}
+          </Badge>
+        </div>
+        <CardDescription>
+          Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-sm text-muted-foreground">{request.message}</p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Package className="h-4 w-4" />
+          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
+        </div>
+        {request.food_donations.rating && (
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
+        </div>
+        {request.status === 'approved' && expiryTime && (
+          <div className={`flex items-center gap-2 text-sm font-semibold ${
+            countdown.expired ? 'text-destructive' : 'text-primary'
+          }`}>
+            <Clock className="h-4 w-4" />
+            {countdown.expired ? (
+              <span>Time Expired</span>
+            ) : (
+              <span>
+                Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}
+              </span>
+            )}
+          </div>
+        )}
+      </CardContent>
+      {request.status === 'pending' && (
+        <CardFooter className="gap-2">
+          <Button
+            className="flex-1"
+            onClick={onAccept}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            Accept
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1"
+            onClick={onReject}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Reject
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
   );
 }
