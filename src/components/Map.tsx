@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useState, useCallback } from 'react';
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Button } from './ui/button';
 
 interface MapProps {
   donations?: Array<{
@@ -17,104 +17,127 @@ interface MapProps {
 }
 
 const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState('');
-  const [tokenLoaded, setTokenLoaded] = useState(false);
+  const [googleMapsKey, setGoogleMapsKey] = useState('');
+  const [keyLoaded, setKeyLoaded] = useState(false);
+  const [manualKey, setManualKey] = useState('');
+  const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 }); // Center of India
 
-  useEffect(() => {
-    const loadToken = async () => {
-      const { data } = await supabase.functions.invoke('get-mapbox-token');
-      if (data?.token) {
-        setMapboxToken(data.token);
-        setTokenLoaded(true);
+  React.useEffect(() => {
+    const loadKey = async () => {
+      const { data } = await supabase.functions.invoke('get-google-maps-key');
+      if (data?.key) {
+        setGoogleMapsKey(data.key);
+        setKeyLoaded(true);
       }
     };
-    loadToken();
+    loadKey();
   }, []);
 
-  useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) return;
-
-    mapboxgl.accessToken = mapboxToken;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [78.9629, 20.5937], // Center of India
-      zoom: 4,
-    });
-
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    if (editable) {
-      map.current.on('click', (e) => {
-        const { lng, lat } = e.lngLat;
-        const locationString = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        if (onLocationSelect) {
-          onLocationSelect(locationString);
-        }
-        
-        // Add marker
-        new mapboxgl.Marker()
-          .setLngLat([lng, lat])
-          .addTo(map.current!);
-      });
+  const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (editable && e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      const locationString = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      if (onLocationSelect) {
+        onLocationSelect(locationString);
+      }
     }
+  }, [editable, onLocationSelect]);
 
-    // Add markers for donations
-    if (donations) {
-      donations.forEach((donation) => {
-        // Simple geocoding - in production you'd want to use proper geocoding
-        const coords = donation.pickup_location.split(',').map(c => parseFloat(c.trim()));
-        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-            `<h3 class="font-semibold">${donation.title}</h3>
-             <p class="text-sm">Status: ${donation.status}</p>`
-          );
+  const mapContainerStyle = {
+    width: '100%',
+    height: '400px',
+    borderRadius: '0.5rem'
+  };
 
-          new mapboxgl.Marker({ color: donation.status === 'available' ? '#22c55e' : '#gray' })
-            .setLngLat([coords[1], coords[0]])
-            .setPopup(popup)
-            .addTo(map.current!);
-        }
-      });
-    }
+  const mapOptions = {
+    disableDefaultUI: false,
+    zoomControl: true,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: true,
+  };
 
-    return () => {
-      map.current?.remove();
-    };
-  }, [mapboxToken, donations, editable, onLocationSelect]);
-
-  if (!tokenLoaded) {
+  if (!keyLoaded) {
     return (
       <div className="w-full h-[400px] rounded-lg bg-muted flex flex-col items-center justify-center p-4">
-        <Label htmlFor="mapbox-token" className="mb-2">Enter your Mapbox Public Token:</Label>
+        <Label htmlFor="google-maps-key" className="mb-2">Enter your Google Maps API Key:</Label>
         <Input
-          id="mapbox-token"
+          id="google-maps-key"
           type="text"
-          placeholder="pk.eyJ1..."
-          value={mapboxToken}
-          onChange={(e) => setMapboxToken(e.target.value)}
+          placeholder="AIza..."
+          value={manualKey}
+          onChange={(e) => setManualKey(e.target.value)}
           className="max-w-md mb-2"
         />
         <p className="text-sm text-muted-foreground text-center">
-          Get your token from <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a>
+          Get your API key from <a href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Cloud Console</a>
         </p>
-        <button 
-          onClick={() => setTokenLoaded(true)}
-          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
+        <Button 
+          onClick={() => {
+            setGoogleMapsKey(manualKey);
+            setKeyLoaded(true);
+          }}
+          className="mt-4"
         >
           Load Map
-        </button>
+        </Button>
       </div>
     );
   }
 
+  const markers = donations?.map((donation) => {
+    const coords = donation.pickup_location.split(',').map(c => parseFloat(c.trim()));
+    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+      return {
+        id: donation.id,
+        position: { lat: coords[0], lng: coords[1] },
+        title: donation.title,
+        status: donation.status
+      };
+    }
+    return null;
+  }).filter(Boolean) as Array<{ id: string; position: { lat: number; lng: number }; title: string; status: string }>;
+
   return (
-    <div className="relative w-full h-[400px]">
-      <div ref={mapContainer} className="absolute inset-0 rounded-lg shadow-lg" />
-    </div>
+    <LoadScript googleMapsApiKey={googleMapsKey}>
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={mapCenter}
+        zoom={5}
+        onClick={handleMapClick}
+        options={mapOptions}
+      >
+        {markers?.map((marker) => (
+          <Marker
+            key={marker.id}
+            position={marker.position}
+            onClick={() => setSelectedMarker(marker.id)}
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: marker.status === 'available' ? '#22c55e' : '#gray',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            }}
+          />
+        ))}
+
+        {selectedMarker && markers && (
+          <InfoWindow
+            position={markers.find(m => m.id === selectedMarker)?.position}
+            onCloseClick={() => setSelectedMarker(null)}
+          >
+            <div className="p-2">
+              <h3 className="font-semibold">{markers.find(m => m.id === selectedMarker)?.title}</h3>
+              <p className="text-sm">Status: {markers.find(m => m.id === selectedMarker)?.status}</p>
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+    </LoadScript>
   );
 };
 
