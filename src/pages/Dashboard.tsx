@@ -68,6 +68,35 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Real-time subscription for food_requests updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('food_requests_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'food_requests'
+        },
+        (payload) => {
+          if (import.meta.env.DEV) {
+            console.log('Real-time update:', payload);
+          }
+          // Refresh requests when any change occurs
+          fetchRequests();
+          fetchMyRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const fetchDonations = async () => {
     try {
       const { data, error } = await supabase
