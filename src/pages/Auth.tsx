@@ -10,9 +10,17 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Eye, EyeOff } from 'lucide-react';
 
+const passwordSchema = z.string()
+  .min(8, { message: "Password must be at least 8 characters" })
+  .max(128, { message: "Password too long" })
+  .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+  .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+  .regex(/[0-9]/, { message: "Password must contain at least one number" })
+  .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" });
+
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }).max(128, { message: "Password too long" }),
+  password: passwordSchema,
   fullName: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name too long" }).optional(),
 });
 
@@ -27,6 +35,15 @@ export default function Auth() {
   const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('both');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Password strength indicators
+  const passwordRequirements = [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'One number', met: /[0-9]/.test(password) },
+    { label: 'One special character', met: /[^A-Za-z0-9]/.test(password) },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -121,7 +138,7 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   className="pr-10"
                 />
                 <Button
@@ -138,6 +155,23 @@ export default function Auth() {
                   )}
                 </Button>
               </div>
+              {isSignUp && password && (
+                <div className="space-y-2 mt-3 p-3 rounded-md bg-muted/50">
+                  <p className="text-xs font-medium text-muted-foreground">Password must contain:</p>
+                  <ul className="space-y-1">
+                    {passwordRequirements.map((req, index) => (
+                      <li key={index} className="flex items-center gap-2 text-xs">
+                        <span className={req.met ? 'text-green-600' : 'text-muted-foreground'}>
+                          {req.met ? '✓' : '○'}
+                        </span>
+                        <span className={req.met ? 'text-green-600' : 'text-muted-foreground'}>
+                          {req.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             {isSignUp && (
               <div className="space-y-4">

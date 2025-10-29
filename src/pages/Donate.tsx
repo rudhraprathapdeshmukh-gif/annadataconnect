@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { Upload, X } from 'lucide-react';
 
 const donationSchema = z.object({
   title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
@@ -22,6 +23,7 @@ const donationSchema = z.object({
   pickup_location: z.string().trim().min(1, { message: "Pickup location is required" }).max(200, { message: "Location must be less than 200 characters" }),
   expiry_date: z.string().optional(),
   rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
+  image: z.instanceof(File, { message: "Food image is required" }),
 });
 
 export default function Donate() {
@@ -39,6 +41,8 @@ export default function Donate() {
     pickup_location: '',
     rating: 0,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -46,14 +50,41 @@ export default function Donate() {
     }
   }, [user, loading, navigate]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setSubmitting(true);
     try {
-      // Validate input
-      const validation = donationSchema.safeParse(formData);
+      // Validate input including image
+      const validation = donationSchema.safeParse({ ...formData, image: imageFile });
       if (!validation.success) {
         const firstError = validation.error.errors[0];
         toast.error(firstError.message);
@@ -61,6 +92,21 @@ export default function Donate() {
         return;
       }
 
+      // Upload image to storage
+      const fileExt = imageFile!.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('food-images')
+        .upload(fileName, imageFile!);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL for the image
+      const { data: { publicUrl } } = supabase.storage
+        .from('food-images')
+        .getPublicUrl(fileName);
+
+      // Insert donation with image URL
       const { error } = await supabase
         .from('food_donations')
         .insert([{
@@ -73,6 +119,7 @@ export default function Donate() {
           pickup_location: validation.data.pickup_location,
           expiry_date: validation.data.expiry_date || null,
           rating: validation.data.rating,
+          image_url: publicUrl,
         }]);
 
       if (error) throw error;
@@ -81,6 +128,7 @@ export default function Donate() {
       navigate('/dashboard');
     } catch (error) {
       toast.error('Failed to create donation');
+      console.error(error);
     } finally {
       setSubmitting(false);
     }
@@ -111,6 +159,47 @@ export default function Donate() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="image">Food Image *</Label>
+                <div className="flex flex-col gap-4">
+                  {imagePreview ? (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+                      <img
+                        src={imagePreview}
+                        alt="Food preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="image"
+                      className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                    >
+                      <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Click to upload food image</span>
+                      <span className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP (Max 5MB)</span>
+                    </label>
+                  )}
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
