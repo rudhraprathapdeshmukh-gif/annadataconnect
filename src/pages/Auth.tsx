@@ -18,10 +18,14 @@ const passwordSchema = z.string()
   .regex(/[0-9]/, { message: "Password must contain at least one number" })
   .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" });
 
+const phoneSchema = z.string()
+  .regex(/^\+91[6-9]\d{9}$/, { message: "Enter valid Indian mobile number (e.g., +919876543210)" });
+
 const signUpSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
   password: passwordSchema,
   fullName: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name too long" }).optional(),
+  phoneNumber: phoneSchema,
 });
 
 const signInSchema = z.object({

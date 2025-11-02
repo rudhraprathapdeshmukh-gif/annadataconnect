@@ -42,6 +42,7 @@ interface FoodRequest {
   profiles: {
     full_name: string;
     email: string;
+    phone_number?: string;
   };
 }
 
@@ -123,7 +124,7 @@ export default function Dashboard() {
         .select(`
           *,
           food_donations(*),
-          profiles(full_name, email)
+          profiles(full_name, email, phone_number)
         `)
         .in('donation_id', (
           await supabase
@@ -152,7 +153,7 @@ export default function Dashboard() {
         .select(`
           *,
           food_donations(*),
-          profiles(full_name, email)
+          profiles(full_name, email, phone_number)
         `)
         .eq('requester_id', user.id)
         .order('created_at', { ascending: false });
@@ -429,6 +430,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
         <CardDescription>
           Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
         </CardDescription>
+        {request.profiles && (
+          <div className="text-sm text-muted-foreground space-y-1 mt-2">
+            {request.profiles.email && <div>Email: {request.profiles.email}</div>}
+            {request.profiles.phone_number && <div>Phone: {request.profiles.phone_number}</div>}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm text-muted-foreground">{request.message}</p>
