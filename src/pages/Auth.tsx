@@ -18,10 +18,15 @@ const passwordSchema = z.string()
   .regex(/[0-9]/, { message: "Password must contain at least one number" })
   .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" });
 
-const authSchema = z.object({
+const signUpSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
   password: passwordSchema,
   fullName: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name too long" }).optional(),
+});
+
+const signInSchema = z.object({
+  email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
+  password: z.string().min(1, { message: "Password is required" }),
 });
 
 export default function Auth() {
@@ -56,18 +61,25 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      // Validate input
-      const validationData: any = { email, password };
+      // Validate input based on mode
       if (isSignUp) {
-        validationData.fullName = fullName;
-      }
-      
-      const validation = authSchema.safeParse(validationData);
-      if (!validation.success) {
-        const firstError = validation.error.errors[0];
-        toast.error(firstError.message);
-        setLoading(false);
-        return;
+        const validationData = { email, password, fullName };
+        const validation = signUpSchema.safeParse(validationData);
+        if (!validation.success) {
+          const firstError = validation.error.errors[0];
+          toast.error(firstError.message);
+          setLoading(false);
+          return;
+        }
+      } else {
+        const validationData = { email, password };
+        const validation = signInSchema.safeParse(validationData);
+        if (!validation.success) {
+          const firstError = validation.error.errors[0];
+          toast.error(firstError.message);
+          setLoading(false);
+          return;
+        }
       }
 
       if (isSignUp) {
