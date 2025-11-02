@@ -37,6 +37,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('+91');
   const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('both');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +64,7 @@ export default function Auth() {
     try {
       // Validate input based on mode
       if (isSignUp) {
-        const validationData = { email, password, fullName };
+        const validationData = { email, password, fullName, phoneNumber };
         const validation = signUpSchema.safeParse(validationData);
         if (!validation.success) {
           const firstError = validation.error.errors[0];
@@ -83,7 +84,7 @@ export default function Auth() {
       }
 
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName, userType);
+        const { error } = await signUp(email, password, fullName, phoneNumber, userType);
         if (error) {
           toast.error(error.message);
         } else {
@@ -117,17 +118,31 @@ export default function Auth() {
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="+919876543210"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Format: +91 followed by 10 digits</p>
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
