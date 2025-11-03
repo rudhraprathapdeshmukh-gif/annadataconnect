@@ -28,6 +28,8 @@ interface FoodDonation {
   created_at: string;
   donor_id: string;
   rating: number | null;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface FoodRequest {
@@ -73,7 +75,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
+    const requestsChannel = supabase
       .channel('food_requests_changes')
       .on(
         'postgres_changes',
@@ -84,7 +86,7 @@ export default function Dashboard() {
         },
         (payload) => {
           if (import.meta.env.DEV) {
-            console.log('Real-time update:', payload);
+            console.log('Real-time request update:', payload);
           }
           // Refresh requests when any change occurs
           fetchRequests();
@@ -94,7 +96,36 @@ export default function Dashboard() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(requestsChannel);
+    };
+  }, [user]);
+
+  // Real-time subscription for food_donations updates (for map)
+  useEffect(() => {
+    if (!user) return;
+
+    const donationsChannel = supabase
+      .channel('food_donations_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'food_donations',
+          filter: 'status=eq.available'
+        },
+        (payload) => {
+          if (import.meta.env.DEV) {
+            console.log('Real-time donation update:', payload);
+          }
+          // Refresh donations when any change occurs
+          fetchDonations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(donationsChannel);
     };
   }, [user]);
 
@@ -102,7 +133,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('*')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating')
         .eq('status', 'available')
         .order('created_at', { ascending: false });
 

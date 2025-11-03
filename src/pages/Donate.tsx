@@ -102,6 +102,18 @@ export default function Donate() {
         return;
       }
 
+      // Geocode the address to get coordinates
+      const fullAddress = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}, India`;
+      const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-address', {
+        body: { address: fullAddress }
+      });
+
+      if (geocodeError || !geocodeData) {
+        toast.error('Could not find location coordinates. Please check the address.');
+        setSubmitting(false);
+        return;
+      }
+
       // Upload image to storage
       const fileExt = imageFile!.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -119,7 +131,7 @@ export default function Donate() {
       // Combine address fields into pickup_location
       const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
 
-      // Insert donation with image URL
+      // Insert donation with image URL and coordinates
       const { error } = await supabase
         .from('food_donations')
         .insert([{
@@ -131,6 +143,8 @@ export default function Donate() {
           food_type: validation.data.food_type,
           phone_number: validation.data.phone_number,
           pickup_location: pickupLocation,
+          latitude: geocodeData.latitude,
+          longitude: geocodeData.longitude,
           expiry_date: validation.data.expiry_date || null,
           rating: validation.data.rating,
           image_url: publicUrl,

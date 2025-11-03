@@ -23,6 +23,8 @@ export type Database = {
           food_type: string
           id: string
           image_url: string | null
+          latitude: number | null
+          longitude: number | null
           phone_number: string | null
           pickup_location: string
           quantity: string
@@ -40,6 +42,8 @@ export type Database = {
           food_type: string
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           phone_number?: string | null
           pickup_location: string
           quantity: string
@@ -57,6 +61,8 @@ export type Database = {
           food_type?: string
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           phone_number?: string | null
           pickup_location?: string
           quantity?: string

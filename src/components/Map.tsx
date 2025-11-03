@@ -11,6 +11,11 @@ interface MapProps {
     title: string;
     pickup_location: string;
     status: string;
+    latitude?: number;
+    longitude?: number;
+    quantity?: string;
+    quantity_unit?: string;
+    food_type?: string;
   }>;
   onLocationSelect?: (location: string) => void;
   editable?: boolean;
@@ -88,17 +93,30 @@ const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
   }
 
   const markers = donations?.map((donation) => {
-    const coords = donation.pickup_location.split(',').map(c => parseFloat(c.trim()));
-    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+    // Use latitude and longitude if available
+    if (donation.latitude && donation.longitude) {
       return {
         id: donation.id,
-        position: { lat: coords[0], lng: coords[1] },
+        position: { lat: donation.latitude, lng: donation.longitude },
         title: donation.title,
-        status: donation.status
+        status: donation.status,
+        location: donation.pickup_location,
+        quantity: donation.quantity,
+        quantity_unit: donation.quantity_unit,
+        food_type: donation.food_type
       };
     }
     return null;
-  }).filter(Boolean) as Array<{ id: string; position: { lat: number; lng: number }; title: string; status: string }>;
+  }).filter(Boolean) as Array<{ 
+    id: string; 
+    position: { lat: number; lng: number }; 
+    title: string; 
+    status: string;
+    location: string;
+    quantity?: string;
+    quantity_unit?: string;
+    food_type?: string;
+  }>;
 
   return (
     <LoadScript googleMapsApiKey={googleMapsKey}>
@@ -125,17 +143,35 @@ const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
           />
         ))}
 
-        {selectedMarker && markers && (
-          <InfoWindow
-            position={markers.find(m => m.id === selectedMarker)?.position}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div className="p-2">
-              <h3 className="font-semibold">{markers.find(m => m.id === selectedMarker)?.title}</h3>
-              <p className="text-sm">Status: {markers.find(m => m.id === selectedMarker)?.status}</p>
-            </div>
-          </InfoWindow>
-        )}
+        {selectedMarker && markers && (() => {
+          const marker = markers.find(m => m.id === selectedMarker);
+          return marker ? (
+            <InfoWindow
+              position={marker.position}
+              onCloseClick={() => setSelectedMarker(null)}
+            >
+              <div className="p-3 min-w-[200px]">
+                <h3 className="font-semibold text-base mb-2">{marker.title}</h3>
+                {marker.food_type && (
+                  <p className="text-sm text-gray-600 mb-1">
+                    <span className="font-medium">Type:</span> {marker.food_type}
+                  </p>
+                )}
+                {marker.quantity && marker.quantity_unit && (
+                  <p className="text-sm text-gray-600 mb-1">
+                    <span className="font-medium">Quantity:</span> {marker.quantity} {marker.quantity_unit}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 mb-1">
+                  <span className="font-medium">Location:</span> {marker.location}
+                </p>
+                <p className={`text-sm font-medium ${marker.status === 'available' ? 'text-green-600' : 'text-gray-500'}`}>
+                  Status: {marker.status}
+                </p>
+              </div>
+            </InfoWindow>
+          ) : null;
+        })()}
       </GoogleMap>
     </LoadScript>
   );
