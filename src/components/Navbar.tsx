@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { HeartHandshake, LogOut, User, FolderClock } from 'lucide-react';
+import { HeartHandshake, LogOut, User, FolderClock, LayoutDashboard, Plus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,14 +36,20 @@ export default function Navbar() {
           Annadataconnect
         </Link>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {user ? (
             <>
               <Link to="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </Button>
               </Link>
               <Link to="/donate">
-                <Button variant="default">Donate Food</Button>
+                <Button variant="default" size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Donate Food</span>
+                </Button>
               </Link>
               
               <DropdownMenu>
