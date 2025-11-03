@@ -14,13 +14,20 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Upload, X } from 'lucide-react';
 
+const phoneSchema = z.string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit Indian mobile number" });
+
 const donationSchema = z.object({
   title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
   description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
   quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings', 'plates', 'boxes', 'bags'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
-  pickup_location: z.string().trim().min(1, { message: "Pickup location is required" }).max(200, { message: "Location must be less than 200 characters" }),
+  phone_number: phoneSchema,
+  city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
+  area: z.string().trim().min(1, { message: "Area is required" }).max(100, { message: "Area name must be less than 100 characters" }),
+  complete_address: z.string().trim().min(1, { message: "Complete address is required" }).max(300, { message: "Address must be less than 300 characters" }),
   expiry_date: z.string().optional(),
   rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
   image: z.instanceof(File, { message: "Food image is required" }),
@@ -38,7 +45,10 @@ export default function Donate() {
     quantity_unit: 'kg',
     food_type: '',
     expiry_date: '',
-    pickup_location: '',
+    phone_number: '',
+    city: '',
+    area: '',
+    complete_address: '',
     rating: 0,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -106,6 +116,9 @@ export default function Donate() {
         .from('food-images')
         .getPublicUrl(fileName);
 
+      // Combine address fields into pickup_location
+      const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
+
       // Insert donation with image URL
       const { error } = await supabase
         .from('food_donations')
@@ -116,7 +129,8 @@ export default function Donate() {
           quantity: validation.data.quantity,
           quantity_unit: validation.data.quantity_unit,
           food_type: validation.data.food_type,
-          pickup_location: validation.data.pickup_location,
+          phone_number: validation.data.phone_number,
+          pickup_location: pickupLocation,
           expiry_date: validation.data.expiry_date || null,
           rating: validation.data.rating,
           image_url: publicUrl,
@@ -306,19 +320,53 @@ export default function Donate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pickup_location">Pickup Location *</Label>
+                <Label htmlFor="phone_number">Contact Phone Number *</Label>
                 <Input
-                  id="pickup_location"
+                  id="phone_number"
+                  type="tel"
                   required
-                  value={formData.pickup_location}
-                  onChange={(e) => setFormData({ ...formData, pickup_location: e.target.value })}
-                  placeholder="Click on map or enter: latitude, longitude"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                  placeholder="e.g., 9876543210"
+                  maxLength={10}
                 />
-                <p className="text-sm text-muted-foreground">Click on the map to select a location</p>
-                <div className="mt-2">
-                  <Map 
-                    editable 
-                    onLocationSelect={(location) => setFormData({ ...formData, pickup_location: location })} 
+                <p className="text-sm text-muted-foreground">Enter 10-digit mobile number without country code</p>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Pickup Location *</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="e.g., Mumbai"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="area">Area/Locality *</Label>
+                  <Input
+                    id="area"
+                    required
+                    value={formData.area}
+                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                    placeholder="e.g., Andheri West"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="complete_address">Complete Address *</Label>
+                  <Textarea
+                    id="complete_address"
+                    required
+                    value={formData.complete_address}
+                    onChange={(e) => setFormData({ ...formData, complete_address: e.target.value })}
+                    placeholder="Enter house/flat number, building name, street, landmark..."
+                    rows={3}
                   />
                 </div>
               </div>
