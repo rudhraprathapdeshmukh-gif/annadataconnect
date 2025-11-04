@@ -55,8 +55,10 @@ export default function Dashboard() {
   const [donations, setDonations] = useState<FoodDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
+  const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [isDonorView, setIsDonorView] = useState(true);
+  const [canToggle, setCanToggle] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -67,10 +69,27 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDonations();
     if (user) {
+      fetchMyDonations();
       fetchRequests();
       fetchMyRequests();
     }
   }, [user]);
+
+  // Determine user role and toggle availability
+  useEffect(() => {
+    const isDonor = myDonations.length > 0;
+    const isReceiver = myRequests.length > 0 || myDonations.length === 0;
+    
+    // User can toggle if they have both donated and requested
+    setCanToggle(isDonor && myRequests.length > 0);
+    
+    // Set default view based on role
+    if (isDonor && !isReceiver) {
+      setIsDonorView(true);
+    } else if (isReceiver && !isDonor) {
+      setIsDonorView(false);
+    }
+  }, [myDonations, myRequests]);
 
   // Real-time subscription for food_requests updates
   useEffect(() => {
@@ -144,6 +163,25 @@ export default function Dashboard() {
       toast.error('Failed to load donations');
     } finally {
       setLoadingDonations(false);
+    }
+  };
+
+  const fetchMyDonations = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('food_donations')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url')
+        .eq('donor_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMyDonations(data || []);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load my donations:', error);
+      }
     }
   };
 
@@ -287,7 +325,7 @@ export default function Dashboard() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">
               {isDonorView ? 'Donation Requests' : 'Available Food Donations'}
@@ -298,15 +336,17 @@ export default function Dashboard() {
                 : 'Browse and request food from generous donors in your community'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="view-toggle">Receiver View</Label>
-            <Switch
-              id="view-toggle"
-              checked={isDonorView}
-              onCheckedChange={setIsDonorView}
-            />
-            <Label htmlFor="view-toggle">Donor View</Label>
-          </div>
+          {canToggle && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="view-toggle" className="text-sm">Receiver</Label>
+              <Switch
+                id="view-toggle"
+                checked={isDonorView}
+                onCheckedChange={setIsDonorView}
+              />
+              <Label htmlFor="view-toggle" className="text-sm">Donor</Label>
+            </div>
+          )}
         </div>
 
 {isDonorView ? (
