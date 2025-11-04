@@ -104,15 +104,28 @@ export default function Donate() {
 
       // Geocode the address to get coordinates
       const fullAddress = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}, India`;
+      console.log('Attempting to geocode:', fullAddress);
+      
       const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-address', {
         body: { address: fullAddress }
       });
 
-      if (geocodeError || !geocodeData) {
-        toast.error('Could not find location coordinates. Please check the address.');
+      if (geocodeError) {
+        console.error('Geocode error:', geocodeError);
+        toast.error(`Geocoding failed: ${geocodeError.message}`);
         setSubmitting(false);
         return;
       }
+
+      if (!geocodeData || !geocodeData.latitude || !geocodeData.longitude) {
+        console.error('Invalid geocode response:', geocodeData);
+        const errorMsg = geocodeData?.error || 'Could not find location coordinates. Please check the address and try again.';
+        toast.error(errorMsg);
+        setSubmitting(false);
+        return;
+      }
+
+      console.log('Successfully geocoded to:', geocodeData);
 
       // Upload image to storage
       const fileExt = imageFile!.name.split('.').pop();
