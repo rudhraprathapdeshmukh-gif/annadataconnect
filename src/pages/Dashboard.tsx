@@ -30,6 +30,7 @@ interface FoodDonation {
   rating: number | null;
   latitude?: number;
   longitude?: number;
+  image_url?: string | null;
 }
 
 interface FoodRequest {
@@ -133,7 +134,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url')
         .eq('status', 'available')
         .order('created_at', { ascending: false });
 
@@ -384,6 +385,15 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {donations.map((donation) => (
                     <Card key={donation.id} className="flex flex-col">
+                      {donation.image_url && (
+                        <div className="w-full h-48 overflow-hidden">
+                          <img
+                            src={donation.image_url}
+                            alt={donation.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <CardTitle className="text-xl">{donation.title}</CardTitle>

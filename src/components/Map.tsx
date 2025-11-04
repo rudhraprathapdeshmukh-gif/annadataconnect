@@ -16,6 +16,7 @@ interface MapProps {
     quantity?: string;
     quantity_unit?: string;
     food_type?: string;
+    image_url?: string | null;
   }>;
   onLocationSelect?: (location: string) => void;
   editable?: boolean;
@@ -103,7 +104,8 @@ const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
         location: donation.pickup_location,
         quantity: donation.quantity,
         quantity_unit: donation.quantity_unit,
-        food_type: donation.food_type
+        food_type: donation.food_type,
+        image_url: donation.image_url
       };
     }
     return null;
@@ -116,6 +118,7 @@ const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
     quantity?: string;
     quantity_unit?: string;
     food_type?: string;
+    image_url?: string | null;
   }>;
 
   return (
@@ -150,7 +153,14 @@ const Map = ({ donations, onLocationSelect, editable = false }: MapProps) => {
               position={marker.position}
               onCloseClick={() => setSelectedMarker(null)}
             >
-              <div className="p-3 min-w-[200px]">
+              <div className="p-3 min-w-[250px] max-w-[300px]">
+                {marker.image_url && (
+                  <img
+                    src={marker.image_url}
+                    alt={marker.title}
+                    className="w-full h-32 object-cover rounded-lg mb-2"
+                  />
+                )}
                 <h3 className="font-semibold text-base mb-2">{marker.title}</h3>
                 {marker.food_type && (
                   <p className="text-sm text-gray-600 mb-1">

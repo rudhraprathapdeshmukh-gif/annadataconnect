@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import Map from '@/components/Map';
+import LocationAutocomplete from '@/components/LocationAutocomplete';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -349,26 +349,27 @@ export default function Donate() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Pickup Location *</h3>
+                <p className="text-sm text-muted-foreground">Start typing and select from suggestions</p>
                 
                 <div className="space-y-2">
                   <Label htmlFor="city">City *</Label>
-                  <Input
+                  <LocationAutocomplete
                     id="city"
-                    required
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, city: value })}
                     placeholder="e.g., Mumbai"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="area">Area/Locality *</Label>
-                  <Input
+                  <LocationAutocomplete
                     id="area"
-                    required
                     value={formData.area}
-                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                    placeholder="e.g., Andheri West"
+                    onChange={(value) => setFormData({ ...formData, area: value })}
+                    placeholder="e.g., Andheri West, Mumbai"
+                    required
                   />
                 </div>
 
