@@ -497,6 +497,15 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
   
   return (
     <Card>
+      {request.food_donations.image_url && (
+        <div className="w-full h-48 overflow-hidden">
+          <img
+            src={request.food_donations.image_url}
+            alt={request.food_donations.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between">
           <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>

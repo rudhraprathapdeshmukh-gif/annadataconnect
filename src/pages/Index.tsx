@@ -1,11 +1,28 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, Heart, Users, Leaf } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import heroImage from '@/assets/hero-food-sharing.jpg';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to dashboard if user is already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
+  // Show nothing while checking auth or if user is logged in
+  if (loading || user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
