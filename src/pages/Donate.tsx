@@ -10,9 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, CalendarIcon, Clock } from 'lucide-react';
+import { format, addYears, isAfter, isBefore } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const phoneSchema = z.string()
   .trim()
@@ -28,7 +32,13 @@ const donationSchema = z.object({
   city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
   area: z.string().trim().min(1, { message: "Area is required" }).max(100, { message: "Area name must be less than 100 characters" }),
   complete_address: z.string().trim().min(1, { message: "Complete address is required" }).max(300, { message: "Address must be less than 300 characters" }),
-  expiry_date: z.string().optional(),
+  expiry_datetime: z.date({
+    required_error: "Expiry date and time are required",
+  }).refine((date) => {
+    const now = new Date();
+    const twoYearsFromNow = addYears(now, 2);
+    return isAfter(date, now) && isBefore(date, twoYearsFromNow);
+  }, { message: "Expiry date must be between now and 2 years from today" }),
   rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
   image: z.instanceof(File, { message: "Food image is required" }),
 });
@@ -44,13 +54,14 @@ export default function Donate() {
     quantity: '',
     quantity_unit: 'kg',
     food_type: '',
-    expiry_date: '',
     phone_number: '',
     city: '',
     area: '',
     complete_address: '',
     rating: 0,
   });
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
+  const [expiryTime, setExpiryTime] = useState('12:00');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -93,8 +104,24 @@ export default function Donate() {
 
     setSubmitting(true);
     try {
-      // Validate input including image
-      const validation = donationSchema.safeParse({ ...formData, image: imageFile });
+      // Combine date and time into a single Date object
+      if (!expiryDate) {
+        toast.error('Please select an expiry date');
+        setSubmitting(false);
+        return;
+      }
+
+      const [hours, minutes] = expiryTime.split(':').map(Number);
+      const expiryDateTime = new Date(expiryDate);
+      expiryDateTime.setHours(hours, minutes, 0, 0);
+
+      // Validate input including image and expiry datetime
+      const validation = donationSchema.safeParse({ 
+        ...formData, 
+        image: imageFile,
+        expiry_datetime: expiryDateTime
+      });
+      
       if (!validation.success) {
         const firstError = validation.error.errors[0];
         toast.error(firstError.message);
@@ -158,7 +185,7 @@ export default function Donate() {
           pickup_location: pickupLocation,
           latitude: geocodeData.latitude,
           longitude: geocodeData.longitude,
-          expiry_date: validation.data.expiry_date || null,
+          expiry_date: validation.data.expiry_datetime.toISOString(),
           rating: validation.data.rating,
           image_url: publicUrl,
         }]);
@@ -337,13 +364,51 @@ export default function Donate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="expiry_date">Expiry Date</Label>
-                <Input
-                  id="expiry_date"
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                />
+                <Label>Expiry Date & Time *</Label>
+                <div className="grid gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !expiryDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={expiryDate}
+                        onSelect={setExpiryDate}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const twoYearsFromNow = addYears(today, 2);
+                          return date < today || date > twoYearsFromNow;
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      value={expiryTime}
+                      onChange={(e) => setExpiryTime(e.target.value)}
+                      required
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Food expires between now and up to 2 years from today
+                </p>
               </div>
 
               <div className="space-y-2">
