@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import Map from '@/components/Map';
 import RequestCard from '@/components/RequestCard';
+import ChatDialog from '@/components/ChatDialog';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -558,7 +559,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           </div>
         )}
       </CardContent>
-      {request.status === 'pending' && (
+      {request.status === 'pending' ? (
         <CardFooter className="gap-2">
           <Button
             className="flex-1"
@@ -576,7 +577,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
             Reject
           </Button>
         </CardFooter>
-      )}
+      ) : request.status === 'approved' ? (
+        <CardFooter>
+          <ChatDialog
+            donationId={request.food_donations.id}
+            otherUserId={request.requester_id}
+            otherUserName={request.profiles?.full_name || request.profiles?.email || 'Receiver'}
+            donationTitle={request.food_donations.title}
+            buttonVariant="outline"
+            buttonText="Message Receiver"
+          />
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }

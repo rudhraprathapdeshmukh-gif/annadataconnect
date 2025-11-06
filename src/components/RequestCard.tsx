@@ -1,8 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Package } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import DonorContactCard from './DonorContactCard';
+import ChatDialog from './ChatDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FoodDonation {
   id: string;
@@ -32,6 +34,7 @@ interface RequestCardProps {
 
 export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const countdown = useCountdown(expiryTime);
+  const { user } = useAuth();
 
   return (
     <>
@@ -90,6 +93,18 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </div>
           )}
         </CardContent>
+        {request.status === 'approved' && user && (
+          <CardFooter>
+            <ChatDialog
+              donationId={request.food_donations.id}
+              otherUserId={request.food_donations.donor_id}
+              otherUserName="Donor"
+              donationTitle={request.food_donations.title}
+              buttonVariant="outline"
+              buttonText="Message Donor"
+            />
+          </CardFooter>
+        )}
       </Card>
       <DonorContactCard 
         donorId={request.food_donations.donor_id} 
