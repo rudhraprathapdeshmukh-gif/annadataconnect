@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import LocationAutocomplete from '@/components/LocationAutocomplete';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -129,30 +129,6 @@ export default function Donate() {
         return;
       }
 
-      // Geocode the address to get coordinates
-      const fullAddress = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}, India`;
-      console.log('Attempting to geocode:', fullAddress);
-      
-      const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-address', {
-        body: { address: fullAddress }
-      });
-
-      if (geocodeError) {
-        console.error('Geocode error:', geocodeError);
-        toast.error(`Geocoding failed: ${geocodeError.message}`);
-        setSubmitting(false);
-        return;
-      }
-
-      if (!geocodeData || !geocodeData.latitude || !geocodeData.longitude) {
-        console.error('Invalid geocode response:', geocodeData);
-        const errorMsg = geocodeData?.error || 'Could not find location coordinates. Please check the address and try again.';
-        toast.error(errorMsg);
-        setSubmitting(false);
-        return;
-      }
-
-      console.log('Successfully geocoded to:', geocodeData);
 
       // Upload image to storage
       const fileExt = imageFile!.name.split('.').pop();
@@ -183,8 +159,8 @@ export default function Donate() {
           food_type: validation.data.food_type,
           phone_number: validation.data.phone_number,
           pickup_location: pickupLocation,
-          latitude: geocodeData.latitude,
-          longitude: geocodeData.longitude,
+          latitude: null,
+          longitude: null,
           expiry_date: validation.data.expiry_datetime.toISOString(),
           rating: validation.data.rating,
           image_url: publicUrl,
@@ -427,14 +403,13 @@ export default function Donate() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Pickup Location *</h3>
-                <p className="text-sm text-muted-foreground">Start typing and select from suggestions</p>
                 
                 <div className="space-y-2">
                   <Label htmlFor="city">City *</Label>
-                  <LocationAutocomplete
+                  <Input
                     id="city"
                     value={formData.city}
-                    onChange={(value) => setFormData({ ...formData, city: value })}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="e.g., Mumbai"
                     required
                   />
@@ -442,11 +417,11 @@ export default function Donate() {
 
                 <div className="space-y-2">
                   <Label htmlFor="area">Area/Locality *</Label>
-                  <LocationAutocomplete
+                  <Input
                     id="area"
                     value={formData.area}
-                    onChange={(value) => setFormData({ ...formData, area: value })}
-                    placeholder="e.g., Andheri West, Mumbai"
+                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                    placeholder="e.g., Andheri West"
                     required
                   />
                 </div>
