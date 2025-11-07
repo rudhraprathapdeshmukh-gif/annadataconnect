@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
@@ -719,26 +719,35 @@ export default function Dashboard() {
                         )}
                         
                         {donation.profiles && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-xs font-semibold text-muted-foreground mb-2">Donor Contact:</p>
-                            <div className="space-y-1.5">
+                          <div className="mt-3 pt-3 border-t border-primary/20 bg-primary/5 -mx-6 px-6 py-3 rounded-b-lg">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">Donor Information</p>
+                                <p className="text-xs text-muted-foreground">Contact details for pickup</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2 bg-background/50 rounded-md p-3">
                               {donation.profiles.full_name && (
                                 <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium">{donation.profiles.full_name}</span>
+                                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <span className="font-medium text-foreground">{donation.profiles.full_name}</span>
                                 </div>
                               )}
                               {donation.profiles.phone_number && (
                                 <div className="flex items-center gap-2 text-sm">
-                                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <a href={`tel:${donation.profiles.phone_number}`} className="text-primary hover:underline">
+                                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <a href={`tel:${donation.profiles.phone_number}`} className="text-primary hover:underline font-medium">
                                     {donation.profiles.phone_number}
                                   </a>
                                 </div>
                               )}
                               {donation.profiles.email && (
                                 <div className="flex items-center gap-2 text-sm">
-                                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline text-xs">
+                                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline break-all">
                                     {donation.profiles.email}
                                   </a>
                                 </div>
