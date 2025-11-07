@@ -1,25 +1,15 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Heart, Users, Leaf } from 'lucide-react';
+import { Heart, Users, Leaf, Package } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import heroImage from '@/assets/hero-food-sharing.jpg';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
 
-  // Redirect to dashboard if user is already logged in
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
-  }, [user, loading, navigate]);
-
-  // Show nothing while checking auth or if user is logged in
-  if (loading || user) {
+  if (loading) {
     return null;
   }
 
@@ -41,12 +31,28 @@ const Index = () => {
             <p className="text-xl text-muted-foreground">
               Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
             </p>
-            <div className="flex justify-center pt-4">
-              <Link to="/auth?mode=signup">
-                <Button size="lg">
-                  Sign Up
-                </Button>
-              </Link>
+            <div className="flex justify-center gap-4 pt-4">
+              {user ? (
+                <>
+                  <Link to="/dashboard">
+                    <Button size="lg" variant="default">
+                      <Package className="mr-2 h-5 w-5" />
+                      Your Donations
+                    </Button>
+                  </Link>
+                  <Link to="/donate">
+                    <Button size="lg" variant="secondary">
+                      Donate Food
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/auth?mode=signup">
+                  <Button size="lg">
+                    Sign Up
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
