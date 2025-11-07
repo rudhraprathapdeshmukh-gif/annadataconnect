@@ -11,7 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 
@@ -64,6 +68,14 @@ export default function Dashboard() {
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [isDonorView, setIsDonorView] = useState(true);
   const [userProfile, setUserProfile] = useState<{ full_name: string; user_type: string } | null>(null);
+  const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
+  const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    quantity: '',
+    pickup_location: '',
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -330,6 +342,61 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditDonation = (donation: FoodDonation) => {
+    setEditingDonation(donation);
+    setEditForm({
+      title: donation.title,
+      description: donation.description,
+      quantity: donation.quantity,
+      pickup_location: donation.pickup_location,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDonation) return;
+
+    try {
+      const { error } = await supabase
+        .from('food_donations')
+        .update({
+          title: editForm.title,
+          description: editForm.description,
+          quantity: editForm.quantity,
+          pickup_location: editForm.pickup_location,
+        })
+        .eq('id', editingDonation.id);
+
+      if (error) throw error;
+
+      toast.success('Donation updated successfully!');
+      setEditingDonation(null);
+      fetchMyDonations();
+    } catch (error) {
+      console.error('Error updating donation:', error);
+      toast.error('Failed to update donation');
+    }
+  };
+
+  const handleDeleteDonation = async () => {
+    if (!deletingDonationId) return;
+
+    try {
+      const { error } = await supabase
+        .from('food_donations')
+        .delete()
+        .eq('id', deletingDonationId);
+
+      if (error) throw error;
+
+      toast.success('Donation deleted successfully!');
+      setDeletingDonationId(null);
+      fetchMyDonations();
+    } catch (error) {
+      console.error('Error deleting donation:', error);
+      toast.error('Failed to delete donation');
+    }
+  };
+
   if (loading || loadingDonations) {
     return (
       <div className="min-h-screen bg-background">
@@ -438,6 +505,26 @@ export default function Dashboard() {
                           </div>
                         )}
                       </CardContent>
+                      <CardFooter className="flex gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEditDonation(donation)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDeletingDonationId(donation.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </CardFooter>
                     </Card>
                   ))}
                 </div>
@@ -600,6 +687,83 @@ export default function Dashboard() {
           </Tabs>
         )}
       </div>
+
+      {/* Edit Donation Dialog */}
+      <Dialog open={!!editingDonation} onOpenChange={(open) => !open && setEditingDonation(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Donation</DialogTitle>
+            <DialogDescription>
+              Make changes to your donation details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                placeholder="Food item name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Describe the food"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-quantity">Quantity</Label>
+              <Input
+                id="edit-quantity"
+                value={editForm.quantity}
+                onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                placeholder="e.g., 5"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Pickup Location</Label>
+              <Input
+                id="edit-location"
+                value={editForm.pickup_location}
+                onChange={(e) => setEditForm({ ...editForm, pickup_location: e.target.value })}
+                placeholder="Where to pick up"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDonation(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingDonationId} onOpenChange={(open) => !open && setDeletingDonationId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your donation and all associated requests.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDonation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
