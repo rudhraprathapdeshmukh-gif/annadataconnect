@@ -303,11 +303,20 @@ export default function Dashboard() {
           message: 'I would like to request this food donation.',
         });
 
-      if (error) throw error;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('Insert error:', error);
+        }
+        toast.error((error as any)?.message ?? 'Failed to send request');
+        return;
+      }
       toast.success('Food request sent successfully!');
       fetchMyRequests();
-    } catch (error) {
-      toast.error('Failed to send request');
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to send request:', error);
+      }
+      toast.error(error?.message ?? 'Failed to send request');
     }
   };
 
@@ -341,6 +350,7 @@ export default function Dashboard() {
       toast.error(`Failed to ${action} request`);
     }
   };
+
 
   const handleEditDonation = (donation: FoodDonation) => {
     setEditingDonation(donation);
@@ -505,20 +515,11 @@ export default function Dashboard() {
                           </div>
                         )}
                       </CardContent>
-                      <CardFooter className="flex gap-2 pt-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => handleEditDonation(donation)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
+                      <CardFooter className="flex pt-4">
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="flex-1"
+                          className="w-full"
                           onClick={() => setDeletingDonationId(donation.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
