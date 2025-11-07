@@ -207,6 +207,11 @@ export type Database = {
     }
     Functions: {
       get_user_display_name: { Args: { user_id: string }; Returns: string }
+      has_completed_request: {
+        Args: { _donation_id: string }
+        Returns: boolean
+      }
+      is_donation_claimed: { Args: { _donation_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
