@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import Map from '@/components/Map';
 import RequestCard from '@/components/RequestCard';
 import ChatDialog from '@/components/ChatDialog';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -383,13 +382,8 @@ export default function Dashboard() {
           <Tabs defaultValue="list" className="space-y-6">
             <TabsList>
               <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="map">Map View</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="map" className="space-y-4">
-              <Map donations={donations} />
-            </TabsContent>
             
             <TabsContent value="my-requests" className="space-y-4">
               {myRequests.length === 0 ? (
