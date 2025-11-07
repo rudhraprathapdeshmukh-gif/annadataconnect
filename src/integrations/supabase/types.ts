@@ -17,6 +17,7 @@ export type Database = {
       food_donations: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           donor_id: string
           expiry_date: string | null
@@ -36,6 +37,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           donor_id: string
           expiry_date?: string | null
@@ -55,6 +57,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           donor_id?: string
           expiry_date?: string | null

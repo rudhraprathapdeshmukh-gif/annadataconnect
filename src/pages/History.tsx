@@ -22,6 +22,7 @@ interface FoodDonation {
   rating: number | null;
   image_url?: string | null;
   donor_id: string;
+  deleted_at?: string | null;
 }
 
 interface FoodRequest {
@@ -86,12 +87,12 @@ export default function History() {
     if (!user) return;
 
     try {
-      // Fetch only COMPLETED user's donations (status = 'claimed')
+      // Fetch ALL user's donations including soft-deleted ones (claimed + deleted)
       const { data: donationsData, error: donationsError } = await supabase
         .from('food_donations')
         .select('*')
         .eq('donor_id', user.id)
-        .eq('status', 'claimed')
+        .or('status.eq.claimed,deleted_at.not.is.null')
         .order('created_at', { ascending: false });
 
       if (donationsError) throw donationsError;
@@ -156,7 +157,9 @@ export default function History() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Completed History</h1>
           <p className="text-muted-foreground">
-            View your completed donations and received food
+            {userType === 'donor' 
+              ? 'View your complete donation history including completed and deleted donations'
+              : 'View your completed donations and received food'}
           </p>
         </div>
 
@@ -165,7 +168,9 @@ export default function History() {
             {userType !== 'receiver' && (
               <TabsTrigger value="donated">Donated Food ({donations.length})</TabsTrigger>
             )}
-            <TabsTrigger value="received">Received Food ({requests.length})</TabsTrigger>
+            {userType !== 'donor' && (
+              <TabsTrigger value="received">Received Food ({requests.length})</TabsTrigger>
+            )}
           </TabsList>
           
           {userType !== 'receiver' && (
@@ -193,7 +198,9 @@ export default function History() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-xl">{donation.title}</CardTitle>
-                        <Badge variant="secondary">Completed</Badge>
+                        <Badge variant={donation.deleted_at ? "destructive" : "secondary"}>
+                          {donation.deleted_at ? "Deleted" : "Completed"}
+                        </Badge>
                       </div>
                       <CardDescription className="line-clamp-2">
                         {donation.description}
@@ -226,7 +233,8 @@ export default function History() {
             </TabsContent>
           )}
           
-          <TabsContent value="received" className="space-y-4">
+          {userType !== 'donor' && (
+            <TabsContent value="received" className="space-y-4">
             {requests.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
@@ -289,7 +297,8 @@ export default function History() {
                 ))}
               </div>
             )}
-          </TabsContent>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

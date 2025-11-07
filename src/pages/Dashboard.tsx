@@ -188,6 +188,7 @@ export default function Dashboard() {
           profiles (full_name, email, phone_number)
         `)
         .eq('status', 'available')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -208,6 +209,7 @@ export default function Dashboard() {
         .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url')
         .eq('donor_id', user.id)
         .neq('status', 'claimed')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -432,9 +434,10 @@ export default function Dashboard() {
     if (!deletingDonationId) return;
 
     try {
+      // Soft delete: set deleted_at timestamp instead of actually deleting
       const { error } = await supabase
         .from('food_donations')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', deletingDonationId);
 
       if (error) throw error;
@@ -795,7 +798,7 @@ export default function Dashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your donation and all associated requests.
+              This will hide your donation from the active list. You can still view it in your history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
