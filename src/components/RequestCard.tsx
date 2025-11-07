@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { getFreshnessLabel } from '@/lib/freshnessLabels';
 
 interface FoodDonation {
   id: string;
@@ -102,9 +103,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
           </div>
           {request.food_donations.rating && (
-            <div className="flex items-center gap-1 text-sm">
-              <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-              <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+            <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+                <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+              </div>
+              <span className="text-muted-foreground">• {getFreshnessLabel(request.food_donations.rating)}</span>
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

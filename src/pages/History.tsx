@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MapPin, Package, Star, User } from 'lucide-react';
+import { getFreshnessLabel } from '@/lib/freshnessLabels';
 
 interface FoodDonation {
   id: string;
@@ -222,7 +223,9 @@ export default function History() {
                       {donation.rating && (
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">Rating: {donation.rating}/5</span>
+                          <span className="text-sm font-medium">
+                            {getFreshnessLabel(donation.rating)} ({donation.rating}/5)
+                          </span>
                         </div>
                       )}
                     </CardContent>
@@ -289,7 +292,9 @@ export default function History() {
                       {request.food_donations?.rating && (
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">Rating: {request.food_donations.rating}/5</span>
+                          <span className="text-sm font-medium">
+                            {getFreshnessLabel(request.food_donations.rating)} ({request.food_donations.rating}/5)
+                          </span>
                         </div>
                       )}
                     </CardContent>

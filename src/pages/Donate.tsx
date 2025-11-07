@@ -321,22 +321,45 @@ export default function Donate() {
               </div>
 
               <div className="space-y-2">
-                <Label>Food Quality Rating *</Label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, rating: star })}
-                      className="text-3xl transition-colors hover:scale-110"
-                    >
-                      <span className={formData.rating >= star ? 'text-yellow-500' : 'text-muted-foreground'}>
-                        ★
-                      </span>
-                    </button>
-                  ))}
+                <Label>Food Quality Rating (Freshness Scale) *</Label>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, rating: star })}
+                        className="text-3xl transition-colors hover:scale-110"
+                      >
+                        <span className={formData.rating >= star ? 'text-yellow-500' : 'text-muted-foreground'}>
+                          ★
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">★</span>
+                      <span>Aged</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">★★</span>
+                      <span>Poor</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">★★★</span>
+                      <span>Okay</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">★★★★</span>
+                      <span>Fresh</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">★★★★★</span>
+                      <span>Just-Made</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Rate the quality of food (1-5 stars)</p>
               </div>
 
               <div className="space-y-2">

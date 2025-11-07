@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
+import { getFreshnessLabel } from '@/lib/freshnessLabels';
 
 interface FoodDonation {
   id: string;
@@ -553,9 +554,12 @@ export default function Dashboard() {
                           </div>
                         )}
                         {donation.rating && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
-                            <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                              <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                            </div>
+                            <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
                           </div>
                         )}
                       </CardContent>
@@ -671,9 +675,12 @@ export default function Dashboard() {
                           <span>{donation.quantity} {donation.quantity_unit}</span>
                         </div>
                         {donation.rating && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
-                            <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                              <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                            </div>
+                            <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -862,9 +869,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
         {request.food_donations.rating && (
-          <div className="flex items-center gap-1 text-sm">
-            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+              <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+            </div>
+            <span className="text-muted-foreground">• {getFreshnessLabel(request.food_donations.rating)}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
