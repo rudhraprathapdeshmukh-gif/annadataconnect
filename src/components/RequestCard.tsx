@@ -1,10 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Package } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import DonorContactCard from './DonorContactCard';
 import ChatDialog from './ChatDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface FoodDonation {
   id: string;
@@ -35,6 +39,36 @@ interface RequestCardProps {
 export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const { user } = useAuth();
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleDealDone = async () => {
+    setIsConfirming(true);
+    try {
+      // Update request status to completed
+      const { error: requestError } = await supabase
+        .from('food_requests')
+        .update({ status: 'completed' })
+        .eq('id', request.id);
+
+      if (requestError) throw requestError;
+
+      // Update donation status to claimed
+      const { error: donationError } = await supabase
+        .from('food_donations')
+        .update({ status: 'claimed' })
+        .eq('id', request.food_donations.id);
+
+      if (donationError) throw donationError;
+
+      toast.success('Deal confirmed! The donation is now exclusively yours.');
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Error confirming deal:', error);
+      toast.error('Failed to confirm deal. Please try again.');
+    } finally {
+      setIsConfirming(false);
+    }
+  };
 
   return (
     <>
@@ -94,7 +128,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           )}
         </CardContent>
         {request.status === 'approved' && user && (
-          <CardFooter>
+          <CardFooter className="flex gap-2">
             <ChatDialog
               donationId={request.food_donations.id}
               otherUserId={request.food_donations.donor_id}
@@ -103,6 +137,15 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               buttonVariant="outline"
               buttonText="Message Donor"
             />
+            {!countdown.expired && (
+              <Button 
+                onClick={handleDealDone} 
+                disabled={isConfirming}
+                className="flex-1"
+              >
+                {isConfirming ? 'Confirming...' : 'Deal Done'}
+              </Button>
+            )}
           </CardFooter>
         )}
       </Card>
