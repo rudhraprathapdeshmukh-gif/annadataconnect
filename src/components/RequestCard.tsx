@@ -61,7 +61,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       if (donationError) throw donationError;
 
       toast.success('Deal confirmed! The donation is now exclusively yours.');
-      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       console.error('Error confirming deal:', error);
       toast.error('Failed to confirm deal. Please try again.');
