@@ -377,34 +377,102 @@ export default function Dashboard() {
         </div>
 
 {isDonorView ? (
-          <div className="space-y-4">
-            {requests.filter(r => r.status !== 'rejected').length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No requests received yet</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {requests.filter(r => r.status !== 'rejected').map((request) => {
-                  const expiryTime = request.accepted_at 
-                    ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
-                    : null;
-                  
-                  return (
-                  <DonorRequestCard 
-                    key={request.id} 
-                    request={request} 
-                    expiryTime={expiryTime}
-                    onAccept={() => handleRequestAction(request.id, 'approved')}
-                    onReject={() => handleRequestAction(request.id, 'rejected')}
-                  />
-                  );
-                })}
+          <Tabs defaultValue="active-donations" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
+              <TabsTrigger value="requests">Requests ({requests.filter(r => r.status !== 'rejected').length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active-donations" className="space-y-4">
+              {myDonations.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">No active donations yet</p>
+                    <Button onClick={() => navigate('/donate')}>Create Your First Donation</Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myDonations.map((donation) => (
+                    <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      {donation.image_url && (
+                        <div className="w-full h-48 overflow-hidden">
+                          <img
+                            src={donation.image_url}
+                            alt={donation.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
+                          <Badge variant={donation.status === 'available' ? 'default' : 'secondary'}>
+                            {donation.status}
+                          </Badge>
+                        </div>
+                        <CardDescription className="line-clamp-2">
+                          {donation.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Package className="h-4 w-4" />
+                          <span>{donation.quantity} {donation.quantity_unit}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 shrink-0" />
+                          <span className="line-clamp-1">{donation.pickup_location}</span>
+                        </div>
+                        {donation.expiry_date && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {donation.rating && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                            <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="requests" className="space-y-4">
+              {requests.filter(r => r.status !== 'rejected').length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No requests received yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {requests.filter(r => r.status !== 'rejected').map((request) => {
+                    const expiryTime = request.accepted_at 
+                      ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
+                      : null;
+                    
+                    return (
+                    <DonorRequestCard 
+                      key={request.id} 
+                      request={request} 
+                      expiryTime={expiryTime}
+                      onAccept={() => handleRequestAction(request.id, 'approved')}
+                      onReject={() => handleRequestAction(request.id, 'rejected')}
+                    />
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         ) : (
           <Tabs defaultValue="list" className="space-y-6">
             <TabsList>
