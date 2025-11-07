@@ -5,9 +5,30 @@ import { Heart, Users, Leaf, Package } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import heroImage from '@/assets/hero-food-sharing.jpg';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setUserType(data.user_type);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   if (loading) {
     return null;
@@ -40,11 +61,13 @@ const Index = () => {
                       Your Donations
                     </Button>
                   </Link>
-                  <Link to="/donate">
-                    <Button size="lg" variant="secondary">
-                      Donate Food
-                    </Button>
-                  </Link>
+                  {userType !== 'receiver' && (
+                    <Link to="/donate">
+                      <Button size="lg" variant="secondary">
+                        Donate Food
+                      </Button>
+                    </Link>
+                  )}
                 </>
               ) : (
                 <Link to="/auth?mode=signup">
