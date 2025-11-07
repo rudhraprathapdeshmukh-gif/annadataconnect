@@ -727,16 +727,12 @@ export default function Dashboard() {
                               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                 <User className="h-4 w-4 text-primary" />
                               </div>
-                              <div>
-                                <p className="text-sm font-semibold text-foreground">Donor Information</p>
-                                <p className="text-xs text-muted-foreground">Contact details for pickup</p>
-                              </div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Donor Contact</p>
                             </div>
-                            <div className="space-y-2 bg-background/50 rounded-md p-3">
+                            <div className="space-y-3 bg-background/50 rounded-md p-3">
                               {donation.profiles?.full_name && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  <span className="font-medium text-foreground">{donation.profiles.full_name}</span>
+                                <div className="pb-2 border-b border-border/50">
+                                  <p className="text-sm font-semibold text-foreground">{donation.profiles.full_name}</p>
                                 </div>
                               )}
                               {donation.phone_number && (
