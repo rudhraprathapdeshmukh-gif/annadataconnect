@@ -58,7 +58,7 @@ export default function Dashboard() {
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [isDonorView, setIsDonorView] = useState(true);
-  const [canToggle, setCanToggle] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name: string; user_type: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -69,27 +69,38 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDonations();
     if (user) {
+      fetchUserProfile();
       fetchMyDonations();
       fetchRequests();
       fetchMyRequests();
     }
   }, [user]);
 
-  // Determine user role and toggle availability
-  useEffect(() => {
-    const isDonor = myDonations.length > 0;
-    const isReceiver = myRequests.length > 0 || myDonations.length === 0;
+  const fetchUserProfile = async () => {
+    if (!user) return;
     
-    // User can toggle if they have both donated and requested
-    setCanToggle(isDonor && myRequests.length > 0);
-    
-    // Set default view based on role
-    if (isDonor && !isReceiver) {
-      setIsDonorView(true);
-    } else if (isReceiver && !isDonor) {
-      setIsDonorView(false);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, user_type')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+      
+      // Set default view based on user_type
+      if (data.user_type === 'donor') {
+        setIsDonorView(true);
+      } else if (data.user_type === 'receiver') {
+        setIsDonorView(false);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load user profile:', error);
+      }
     }
-  }, [myDonations, myRequests]);
+  };
 
   // Real-time subscription for food_requests updates
   useEffect(() => {
@@ -325,28 +336,34 @@ export default function Dashboard() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {isDonorView ? 'Donation Requests' : 'Available Food Donations'}
-            </h1>
-            <p className="text-muted-foreground">
-              {isDonorView 
-                ? 'Manage incoming food requests from your community' 
-                : 'Browse and request food from generous donors in your community'}
-            </p>
-          </div>
-          {canToggle && (
-            <div className="flex items-center gap-2">
-              <Label htmlFor="view-toggle" className="text-sm">Receiver</Label>
-              <Switch
-                id="view-toggle"
-                checked={isDonorView}
-                onCheckedChange={setIsDonorView}
-              />
-              <Label htmlFor="view-toggle" className="text-sm">Donor</Label>
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Welcome, {userProfile?.full_name || 'User'}! 👋
+              </h1>
+              <p className="text-muted-foreground">
+                {isDonorView 
+                  ? 'Manage incoming food requests from your community' 
+                  : 'Browse and request food from generous donors in your community'}
+              </p>
             </div>
-          )}
+            {userProfile?.user_type === 'both' && (
+              <div className="flex items-center gap-3 bg-muted/50 px-4 py-2 rounded-lg">
+                <Label htmlFor="view-toggle" className={`text-sm font-medium transition-colors ${!isDonorView ? 'text-primary' : 'text-muted-foreground'}`}>
+                  Receiver
+                </Label>
+                <Switch
+                  id="view-toggle"
+                  checked={isDonorView}
+                  onCheckedChange={setIsDonorView}
+                />
+                <Label htmlFor="view-toggle" className={`text-sm font-medium transition-colors ${isDonorView ? 'text-primary' : 'text-muted-foreground'}`}>
+                  Donor
+                </Label>
+              </div>
+            )}
+          </div>
         </div>
 
 {isDonorView ? (
