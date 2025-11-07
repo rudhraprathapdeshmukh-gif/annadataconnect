@@ -1,16 +1,31 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heart, Users, Leaf, Package } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Heart, Users, Leaf, Package, Clock, MapPin } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import heroImage from '@/assets/hero-food-sharing.jpg';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+interface ActiveDonation {
+  id: string;
+  title: string;
+  quantity: string;
+  quantity_unit: string;
+  status: string;
+  pickup_location: string;
+  expiry_date: string | null;
+  image_url: string | null;
+  pending_requests: number;
+}
+
 const Index = () => {
   const { user, loading } = useAuth();
   const [userType, setUserType] = useState<string | null>(null);
+  const [activeDonations, setActiveDonations] = useState<ActiveDonation[]>([]);
+  const [loadingDonations, setLoadingDonations] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -29,6 +44,60 @@ const Index = () => {
 
     fetchUserProfile();
   }, [user]);
+
+  useEffect(() => {
+    const fetchActiveDonations = async () => {
+      if (user && userType && userType !== 'receiver') {
+        setLoadingDonations(true);
+        try {
+          const { data: donations, error } = await supabase
+            .from('food_donations')
+            .select(`
+              id,
+              title,
+              quantity,
+              quantity_unit,
+              status,
+              pickup_location,
+              expiry_date,
+              image_url
+            `)
+            .eq('donor_id', user.id)
+            .in('status', ['available', 'claimed'])
+            .order('created_at', { ascending: false })
+            .limit(6);
+
+          if (error) throw error;
+
+          if (donations) {
+            // Fetch pending requests count for each donation
+            const donationsWithCounts = await Promise.all(
+              donations.map(async (donation) => {
+                const { count } = await supabase
+                  .from('food_requests')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('donation_id', donation.id)
+                  .eq('status', 'pending');
+
+                return {
+                  ...donation,
+                  pending_requests: count || 0
+                };
+              })
+            );
+
+            setActiveDonations(donationsWithCounts);
+          }
+        } catch (error) {
+          console.error('Error fetching active donations:', error);
+        } finally {
+          setLoadingDonations(false);
+        }
+      }
+    };
+
+    fetchActiveDonations();
+  }, [user, userType]);
 
   if (loading) {
     return null;
@@ -80,6 +149,94 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Active Donations Section - Only for Donors */}
+      {user && userType && userType !== 'receiver' && (
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Your Active Donations</h2>
+                <p className="text-muted-foreground">Manage your ongoing food donations</p>
+              </div>
+              <Link to="/dashboard">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
+
+            {loadingDonations ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading donations...</p>
+              </div>
+            ) : activeDonations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeDonations.map((donation) => (
+                  <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    {donation.image_url && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <img
+                          src={donation.image_url}
+                          alt={donation.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
+                        <Badge variant={donation.status === 'available' ? 'default' : 'secondary'}>
+                          {donation.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Package className="h-4 w-4" />
+                        <span>{donation.quantity} {donation.quantity_unit}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="line-clamp-1">{donation.pickup_location}</span>
+                      </div>
+                      {donation.expiry_date && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      {donation.pending_requests > 0 && (
+                        <div className="pt-2 border-t">
+                          <Badge variant="outline" className="w-full justify-center">
+                            {donation.pending_requests} Pending Request{donation.pending_requests !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      )}
+                      <Link to="/dashboard" className="block pt-2">
+                        <Button variant="secondary" size="sm" className="w-full">
+                          View Details
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="py-12">
+                <CardContent className="text-center space-y-4">
+                  <Package className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-medium mb-2">No active donations yet</p>
+                    <p className="text-muted-foreground mb-4">Start making a difference by donating food today</p>
+                    <Link to="/donate">
+                      <Button>Create Your First Donation</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-20 bg-muted/50">
