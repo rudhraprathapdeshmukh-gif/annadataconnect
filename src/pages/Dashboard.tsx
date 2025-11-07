@@ -443,7 +443,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-{isDonorView ? (
+        {isDonorView || userProfile?.user_type === 'donor' ? (
           <Tabs defaultValue="active-donations" className="space-y-6">
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
@@ -591,7 +591,7 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-              {donations.length === 0 ? (
+              {donations.filter(d => d.donor_id !== user?.id).length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -600,7 +600,7 @@ export default function Dashboard() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {donations.map((donation) => (
+                  {donations.filter(d => d.donor_id !== user?.id).map((donation) => (
                     <Card key={donation.id} className="flex flex-col">
                       {donation.image_url && (
                         <div className="w-full h-48 overflow-hidden">
