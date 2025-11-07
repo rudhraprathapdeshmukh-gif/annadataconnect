@@ -222,6 +222,25 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
+      // First, auto-reject expired approved requests
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      
+      // Get expired requests before updating them
+      const { data: expiredRequests } = await supabase
+        .from('food_requests')
+        .select('id')
+        .eq('status', 'approved')
+        .lt('accepted_at', tenMinutesAgo);
+      
+      if (expiredRequests && expiredRequests.length > 0) {
+        await supabase
+          .from('food_requests')
+          .update({ status: 'rejected' })
+          .in('id', expiredRequests.map(r => r.id));
+        
+        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
+      }
+
       const { data, error } = await supabase
         .from('food_requests')
         .select(`
@@ -283,16 +302,37 @@ export default function Dashboard() {
       }
 
       // Check for existing pending request
-      const { data: existing } = await supabase
+      const { data: existingPending } = await supabase
         .from('food_requests')
         .select('id')
         .eq('donation_id', donationId)
         .eq('requester_id', user.id)
         .eq('status', 'pending');
       
-      if (existing && existing.length > 0) {
+      if (existingPending && existingPending.length > 0) {
         toast.error('You already have a pending request for this donation');
         return;
+      }
+
+      // Check for active approved requests (within timer)
+      const { data: activeApproved } = await supabase
+        .from('food_requests')
+        .select('accepted_at, status')
+        .eq('donation_id', donationId)
+        .eq('status', 'approved');
+      
+      if (activeApproved && activeApproved.length > 0) {
+        const approvedRequest = activeApproved[0];
+        if (approvedRequest.accepted_at) {
+          const acceptedTime = new Date(approvedRequest.accepted_at);
+          const expiryTime = new Date(acceptedTime.getTime() + 10 * 60 * 1000);
+          
+          if (new Date() < expiryTime) {
+            const remainingMinutes = Math.ceil((expiryTime.getTime() - new Date().getTime()) / (60 * 1000));
+            toast.error(`This donation has an active approved request. Try again in ${remainingMinutes} minute(s).`);
+            return;
+          }
+        }
       }
 
       const { error } = await supabase
@@ -833,7 +873,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           }`}>
             <Clock className="h-4 w-4" />
             {countdown.expired ? (
-              <span>Time Expired</span>
+              <span>Time Expired - Request auto-rejected</span>
             ) : (
               <span>
                 Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}

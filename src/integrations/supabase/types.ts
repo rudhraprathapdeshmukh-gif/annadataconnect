@@ -207,6 +207,10 @@ export type Database = {
     }
     Functions: {
       get_user_display_name: { Args: { user_id: string }; Returns: string }
+      has_active_approved_request: {
+        Args: { _donation_id: string }
+        Returns: boolean
+      }
       has_completed_request: {
         Args: { _donation_id: string }
         Returns: boolean

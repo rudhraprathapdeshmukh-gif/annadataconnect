@@ -118,7 +118,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             }`}>
               <Clock className="h-4 w-4" />
               {countdown.expired ? (
-                <span>Time Expired</span>
+                <span>Time Expired - Request will be auto-rejected</span>
               ) : (
                 <span>
                   Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}
