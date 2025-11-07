@@ -36,6 +36,7 @@ interface FoodDonation {
   latitude?: number;
   longitude?: number;
   image_url?: string | null;
+  phone_number?: string | null;
   profiles?: {
     full_name: string;
     email: string;
@@ -185,7 +186,7 @@ export default function Dashboard() {
         .select(`
           id, title, description, pickup_location, status, latitude, longitude, 
           quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, 
-          rating, image_url,
+          rating, image_url, phone_number,
           profiles (full_name, email, phone_number)
         `)
         .eq('status', 'available')
@@ -207,7 +208,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
         .eq('donor_id', user.id)
         .neq('status', 'claimed')
         .is('deleted_at', null)
@@ -718,7 +719,9 @@ export default function Dashboard() {
                           </div>
                         )}
                         
-                        {donation.profiles && (
+                        {(
+                          donation.phone_number || donation.profiles
+                        ) && (
                           <div className="mt-3 pt-3 border-t border-primary/20 bg-primary/5 -mx-6 px-6 py-3 rounded-b-lg">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -730,21 +733,21 @@ export default function Dashboard() {
                               </div>
                             </div>
                             <div className="space-y-2 bg-background/50 rounded-md p-3">
-                              {donation.profiles.full_name && (
+                              {donation.profiles?.full_name && (
                                 <div className="flex items-center gap-2 text-sm">
                                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                                   <span className="font-medium text-foreground">{donation.profiles.full_name}</span>
                                 </div>
                               )}
-                              {donation.profiles.phone_number && (
+                              {donation.phone_number && (
                                 <div className="flex items-center gap-2 text-sm">
                                   <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  <a href={`tel:${donation.profiles.phone_number}`} className="text-primary hover:underline font-medium">
-                                    {donation.profiles.phone_number}
+                                  <a href={`tel:${donation.phone_number}`} className="text-primary hover:underline font-medium">
+                                    {donation.phone_number}
                                   </a>
                                 </div>
                               )}
-                              {donation.profiles.email && (
+                              {donation.profiles?.email && (
                                 <div className="flex items-center gap-2 text-sm">
                                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                                   <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline break-all">

@@ -6,38 +6,29 @@ import { supabase } from '@/integrations/supabase/client';
 interface DonorContactCardProps {
   donorId: string;
   requestStatus: string;
+  phoneNumber?: string;
 }
 
-interface DonorProfile {
-  full_name: string;
-  email: string;
-  phone_number?: string;
-}
 
-export default function DonorContactCard({ donorId, requestStatus }: DonorContactCardProps) {
-  const [donorProfile, setDonorProfile] = useState<DonorProfile | null>(null);
+export default function DonorContactCard({ donorId, requestStatus, phoneNumber }: DonorContactCardProps) {
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDonorProfile = async () => {
+    const fetchDisplayName = async () => {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, email, phone_number')
-          .eq('id', donorId)
-          .single();
-
+        const { data, error } = await supabase.rpc('get_user_display_name', { user_id: donorId });
         if (error) throw error;
-        setDonorProfile(data);
+        setDisplayName(data as string);
       } catch (error) {
-        console.error('Failed to fetch donor profile:', error);
+        console.error('Failed to fetch donor name:', error);
       } finally {
         setLoading(false);
       }
     };
 
     if (requestStatus === 'approved') {
-      fetchDonorProfile();
+      fetchDisplayName();
     } else {
       setLoading(false);
     }
@@ -57,10 +48,6 @@ export default function DonorContactCard({ donorId, requestStatus }: DonorContac
     );
   }
 
-  if (!donorProfile) {
-    return null;
-  }
-
   return (
     <Card className="mt-4 border-primary/20">
       <CardHeader>
@@ -73,25 +60,17 @@ export default function DonorContactCard({ donorId, requestStatus }: DonorContac
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {donorProfile.full_name && (
+        {displayName && (
           <div className="flex items-center gap-2 text-sm">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{donorProfile.full_name}</span>
+            <span className="font-medium">{displayName}</span>
           </div>
         )}
-        {donorProfile.email && (
-          <div className="flex items-center gap-2 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            <a href={`mailto:${donorProfile.email}`} className="text-primary hover:underline">
-              {donorProfile.email}
-            </a>
-          </div>
-        )}
-        {donorProfile.phone_number && (
+        {phoneNumber && (
           <div className="flex items-center gap-2 text-sm">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <a href={`tel:${donorProfile.phone_number}`} className="text-primary hover:underline">
-              {donorProfile.phone_number}
+            <a href={`tel:${phoneNumber}`} className="text-primary hover:underline">
+              {phoneNumber}
             </a>
           </div>
         )}

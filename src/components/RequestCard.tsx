@@ -21,6 +21,7 @@ interface FoodDonation {
   rating: number | null;
   donor_id: string;
   image_url?: string | null;
+  phone_number?: string | null;
 }
 
 interface FoodRequest {
@@ -155,6 +156,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       <DonorContactCard 
         donorId={request.food_donations.donor_id} 
         requestStatus={request.status} 
+        phoneNumber={request.food_donations.phone_number || undefined}
       />
     </>
   );
