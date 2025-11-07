@@ -37,6 +37,7 @@ export default function History() {
   const [donations, setDonations] = useState<FoodDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -47,8 +48,26 @@ export default function History() {
   useEffect(() => {
     if (user) {
       fetchHistory();
+      fetchUserType();
     }
   }, [user]);
+
+  const fetchUserType = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserType(data?.user_type);
+    } catch (error) {
+      console.error('Failed to load user type:', error);
+    }
+  };
 
   const fetchHistory = async () => {
     if (!user) return;
@@ -106,13 +125,16 @@ export default function History() {
           </p>
         </div>
 
-        <Tabs defaultValue="donations" className="space-y-6">
+        <Tabs defaultValue={userType === 'receiver' ? 'requests' : 'donations'} className="space-y-6">
           <TabsList>
-            <TabsTrigger value="donations">My Donations ({donations.length})</TabsTrigger>
+            {userType !== 'receiver' && (
+              <TabsTrigger value="donations">My Donations ({donations.length})</TabsTrigger>
+            )}
             <TabsTrigger value="requests">My Requests ({requests.length})</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="donations" className="space-y-4">
+          {userType !== 'receiver' && (
+            <TabsContent value="donations" className="space-y-4">
             {donations.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
@@ -163,7 +185,8 @@ export default function History() {
                 ))}
               </div>
             )}
-          </TabsContent>
+            </TabsContent>
+          )}
           
           <TabsContent value="requests" className="space-y-4">
             {requests.length === 0 ? (
