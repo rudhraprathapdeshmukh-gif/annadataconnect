@@ -45,12 +45,14 @@ export default function Navbar() {
                   <span className="hidden sm:inline">Dashboard</span>
                 </Button>
               </Link>
-              <Link to="/donate">
-                <Button variant="default" size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Donate Food</span>
-                </Button>
-              </Link>
+              {profile?.user_type !== 'receiver' && (
+                <Link to="/donate">
+                  <Button variant="default" size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Donate Food</span>
+                  </Button>
+                </Link>
+              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

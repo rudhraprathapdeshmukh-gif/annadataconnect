@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Calendar, MapPin, Package, Check, X, Clock } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 
@@ -31,6 +31,11 @@ interface FoodDonation {
   latitude?: number;
   longitude?: number;
   image_url?: string | null;
+  profiles?: {
+    full_name: string;
+    email: string;
+    phone_number?: string;
+  };
 }
 
 interface FoodRequest {
@@ -164,7 +169,12 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url')
+        .select(`
+          id, title, description, pickup_location, status, latitude, longitude, 
+          quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, 
+          rating, image_url,
+          profiles (full_name, email, phone_number)
+        `)
         .eq('status', 'available')
         .order('created_at', { ascending: false });
 
@@ -455,7 +465,7 @@ export default function Dashboard() {
                           {donation.description}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="flex-1 space-y-2">
+                      <CardContent className="flex-1 space-y-3">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Package className="h-4 w-4" />
                           <span>{donation.quantity} {donation.quantity_unit}</span>
@@ -471,9 +481,38 @@ export default function Dashboard() {
                           <span>{donation.pickup_location}</span>
                         </div>
                         {donation.expiry_date && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-destructive bg-destructive/10 p-2 rounded">
                             <Calendar className="h-4 w-4" />
-                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()}</span>
+                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString()}</span>
+                          </div>
+                        )}
+                        
+                        {donation.profiles && (
+                          <div className="mt-3 pt-3 border-t border-border">
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Donor Contact:</p>
+                            <div className="space-y-1.5">
+                              {donation.profiles.full_name && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="font-medium">{donation.profiles.full_name}</span>
+                                </div>
+                              )}
+                              {donation.profiles.phone_number && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <a href={`tel:${donation.profiles.phone_number}`} className="text-primary hover:underline">
+                                    {donation.profiles.phone_number}
+                                  </a>
+                                </div>
+                              )}
+                              {donation.profiles.email && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline text-xs">
+                                    {donation.profiles.email}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </CardContent>
