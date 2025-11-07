@@ -148,7 +148,7 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  // Real-time subscription for food_donations updates (for map)
+  // Real-time subscription for food_donations updates
   useEffect(() => {
     if (!user) return;
 
@@ -159,15 +159,15 @@ export default function Dashboard() {
         {
           event: '*',
           schema: 'public',
-          table: 'food_donations',
-          filter: 'status=eq.available'
+          table: 'food_donations'
         },
         (payload) => {
           if (import.meta.env.DEV) {
             console.log('Real-time donation update:', payload);
           }
-          // Refresh donations when any change occurs
+          // Refresh both lists when any donation changes
           fetchDonations();
+          fetchMyDonations();
         }
       )
       .subscribe();
