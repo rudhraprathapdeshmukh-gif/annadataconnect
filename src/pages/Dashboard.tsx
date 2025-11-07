@@ -615,6 +615,30 @@ export default function Dashboard() {
               <TabsTrigger value="list">List View</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
             </TabsList>
+
+            {/* Freshness Scale Legend */}
+            <Card className="bg-muted/30">
+              <CardContent className="py-4">
+                <p className="text-sm font-semibold mb-2">Freshness Scale:</p>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="text-yellow-500">★</span> Aged
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-yellow-500">★★</span> Poor
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-yellow-500">★★★</span> Okay
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-yellow-500">★★★★</span> Fresh
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-yellow-500">★★★★★</span> Just-Made
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
             
             <TabsContent value="my-requests" className="space-y-4">
               {myRequests.length === 0 ? (
