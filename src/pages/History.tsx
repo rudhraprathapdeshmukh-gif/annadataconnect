@@ -61,6 +61,9 @@ export default function History() {
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [userType, setUserType] = useState<string | null>(null);
+  
+  const completedDonations = donations.filter(d => d.status === 'claimed' && !d.deleted_at);
+  const deletedDonations = donations.filter(d => d.deleted_at);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -228,16 +231,23 @@ export default function History() {
           
           {userType !== 'receiver' && (
             <TabsContent value="donated" className="space-y-4">
-            {donations.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No completed donations yet</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {donations.map((donation) => (
+              <Tabs defaultValue="completed" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="completed">Completed ({completedDonations.length})</TabsTrigger>
+                  <TabsTrigger value="deleted">Deleted ({deletedDonations.length})</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="completed" className="space-y-4">
+                {completedDonations.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No completed donations yet</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {completedDonations.map((donation) => (
                   <Card key={donation.id} className="overflow-hidden">
                     {donation.image_url && (
                       <div className="w-full h-48 overflow-hidden bg-muted">
@@ -251,9 +261,7 @@ export default function History() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-xl">{donation.title}</CardTitle>
-                        <Badge variant={donation.deleted_at ? "destructive" : "secondary"}>
-                          {donation.deleted_at ? "Deleted" : "Completed"}
-                        </Badge>
+                        <Badge variant="secondary">Completed</Badge>
                       </div>
                       <CardDescription className="line-clamp-2">
                         {donation.description}
@@ -291,9 +299,69 @@ export default function History() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+                    ))}
+                  </div>
+                )}
+                </TabsContent>
+                
+                <TabsContent value="deleted" className="space-y-4">
+                {deletedDonations.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No deleted donations</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {deletedDonations.map((donation) => (
+                      <Card key={donation.id} className="overflow-hidden">
+                        {donation.image_url && (
+                          <div className="w-full h-48 overflow-hidden bg-muted">
+                            <img 
+                              src={donation.image_url} 
+                              alt={donation.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <CardTitle className="text-xl">{donation.title}</CardTitle>
+                            <Badge variant="destructive">Deleted</Badge>
+                          </div>
+                          <CardDescription className="line-clamp-2">
+                            {donation.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Package className="h-4 w-4" />
+                            <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            <span className="line-clamp-1">{donation.pickup_location}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Donated: {new Date(donation.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {donation.rating && (
+                            <div className="flex items-center gap-2 pt-2 border-t">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm font-medium">
+                                {getFreshnessLabel(donation.rating)} ({donation.rating}/5)
+                              </span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           )}
           

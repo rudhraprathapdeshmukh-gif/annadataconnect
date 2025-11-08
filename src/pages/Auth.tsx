@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Upload, X } from 'lucide-react';
 
 const passwordSchema = z.string()
   .min(8, { message: "Password must be at least 8 characters" })
@@ -45,6 +46,8 @@ export default function Auth() {
   const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('both');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Password strength indicators
   const passwordRequirements = [
@@ -60,6 +63,31 @@ export default function Auth() {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +116,32 @@ export default function Auth() {
       }
 
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName, phoneNumber, userType);
+        let avatarUrl: string | undefined = undefined;
+        
+        // Upload avatar if selected
+        if (avatarFile) {
+          const fileExt = avatarFile.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const filePath = `avatars/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('food-images')
+            .upload(filePath, avatarFile);
+
+          if (uploadError) {
+            toast.error('Failed to upload profile picture');
+            setLoading(false);
+            return;
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('food-images')
+            .getPublicUrl(filePath);
+          
+          avatarUrl = publicUrl;
+        }
+
+        const { error } = await signUp(email, password, fullName, phoneNumber, userType, avatarUrl);
         if (error) {
           toast.error(error.message);
         } else {
@@ -125,6 +178,43 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <>
+                <div className="space-y-2">
+                  <Label htmlFor="avatar">Profile Picture (Optional)</Label>
+                  <div className="flex items-center gap-4">
+                    {avatarPreview ? (
+                      <div className="relative">
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar preview"
+                          className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={removeAvatar}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Input
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Max size: 5MB</p>
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
