@@ -722,36 +722,32 @@ export default function Dashboard() {
                         {(
                           donation.phone_number || donation.profiles
                         ) && (
-                          <div className="mt-3 pt-3 border-t border-primary/20 bg-primary/5 -mx-6 px-6 py-3 rounded-b-lg">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-4 w-4 text-primary" />
-                              </div>
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2 mb-2">
+                              <User className="h-4 w-4 text-primary" />
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Donor Contact</p>
                             </div>
-                            <div className="space-y-3 bg-background/50 rounded-md p-3">
-                              {donation.profiles?.full_name && (
-                                <div className="pb-2 border-b border-border/50">
-                                  <p className="text-sm font-semibold text-foreground">{donation.profiles.full_name}</p>
-                                </div>
-                              )}
-                              {donation.phone_number && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  <a href={`tel:${donation.phone_number}`} className="text-primary hover:underline font-medium">
-                                    {donation.phone_number}
-                                  </a>
-                                </div>
-                              )}
-                              {donation.profiles?.email && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline break-all">
-                                    {donation.profiles.email}
-                                  </a>
-                                </div>
-                              )}
-                            </div>
+                            {donation.profiles?.full_name && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-semibold text-foreground">{donation.profiles.full_name}</span>
+                              </div>
+                            )}
+                            {donation.phone_number && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="h-4 w-4 shrink-0" />
+                                <a href={`tel:${donation.phone_number}`} className="text-primary hover:underline font-medium">
+                                  {donation.phone_number}
+                                </a>
+                              </div>
+                            )}
+                            {donation.profiles?.email && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Mail className="h-4 w-4 shrink-0" />
+                                <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline break-all">
+                                  {donation.profiles.email}
+                                </a>
+                              </div>
+                            )}
                           </div>
                         )}
                       </CardContent>
