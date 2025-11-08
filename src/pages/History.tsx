@@ -24,6 +24,14 @@ interface FoodDonation {
   image_url?: string | null;
   donor_id: string;
   deleted_at?: string | null;
+  completed_request?: {
+    id: string;
+    created_at: string;
+    requester_profile?: {
+      full_name: string;
+      email: string;
+    };
+  };
 }
 
 interface FoodRequest {
@@ -97,7 +105,51 @@ export default function History() {
         .order('created_at', { ascending: false });
 
       if (donationsError) throw donationsError;
-      setDonations(donationsData || []);
+      
+      // For each claimed donation, fetch the completed request and receiver info
+      const enrichedDonations: FoodDonation[] = donationsData || [];
+      if (donationsData) {
+        const claimedDonationIds = donationsData
+          .filter(d => d.status === 'claimed')
+          .map(d => d.id);
+        
+        if (claimedDonationIds.length > 0) {
+          const { data: completedRequests } = await supabase
+            .from('food_requests')
+            .select('id, donation_id, requester_id, created_at')
+            .in('donation_id', claimedDonationIds)
+            .eq('status', 'completed');
+          
+          if (completedRequests) {
+            // Fetch receiver profiles
+            const requesterIds = [...new Set(completedRequests.map(r => r.requester_id))];
+            const { data: receiverProfiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, email')
+              .in('id', requesterIds);
+            
+            // Attach receiver info to donations
+            enrichedDonations.forEach((donation: any) => {
+              const request = completedRequests.find(r => r.donation_id === donation.id);
+              if (request && receiverProfiles) {
+                const receiver = receiverProfiles.find(p => p.id === request.requester_id);
+                if (receiver) {
+                  donation.completed_request = {
+                    id: request.id,
+                    created_at: request.created_at,
+                    requester_profile: {
+                      full_name: receiver.full_name,
+                      email: receiver.email
+                    }
+                  };
+                }
+              }
+            });
+          }
+        }
+      }
+      
+      setDonations(enrichedDonations);
 
       // Fetch only COMPLETED user's requests (status = 'completed')
       const { data: requestsData, error: requestsError } = await supabase
@@ -208,6 +260,15 @@ export default function History() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                      {donation.completed_request?.requester_profile && (
+                        <div className="flex items-center gap-2 text-sm bg-primary/5 px-3 py-2 rounded-md">
+                          <User className="h-4 w-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-foreground">Received by</p>
+                            <p className="text-muted-foreground">{donation.completed_request.requester_profile.full_name}</p>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Package className="h-4 w-4" />
                         <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
