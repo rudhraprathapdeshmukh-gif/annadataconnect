@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
@@ -617,30 +618,6 @@ export default function Dashboard() {
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
             </TabsList>
 
-            {/* Freshness Scale Legend */}
-            <Card className="bg-muted/30">
-              <CardContent className="py-4">
-                <p className="text-sm font-semibold mb-2">Freshness Scale:</p>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span> Aged
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="text-yellow-500">★★</span> Poor
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="text-yellow-500">★★★</span> Okay
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="text-yellow-500">★★★★</span> Fresh
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="text-yellow-500">★★★★★</span> Just-Made
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-            
             <TabsContent value="my-requests" className="space-y-4">
               {myRequests.length === 0 ? (
                 <Card>
@@ -706,6 +683,40 @@ export default function Dashboard() {
                               <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
                             </div>
                             <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="ml-1 text-muted-foreground hover:text-foreground transition-colors">
+                                  <Info className="h-4 w-4" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64">
+                                <div className="space-y-2">
+                                  <p className="text-sm font-semibold">Freshness Scale:</p>
+                                  <div className="space-y-1 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-500">★</span>
+                                      <span>Aged</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-500">★★</span>
+                                      <span>Poor</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-500">★★★</span>
+                                      <span>Okay</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-500">★★★★</span>
+                                      <span>Fresh</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-500">★★★★★</span>
+                                      <span>Just-Made</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
