@@ -25,7 +25,8 @@ const phoneSchema = z.string()
 const signUpSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255, { message: "Email too long" }),
   password: passwordSchema,
-  fullName: z.string().trim().min(1, { message: "Name is required" }).max(100, { message: "Name too long" }).optional(),
+  firstName: z.string().trim().min(1, { message: "First name is required" }).max(50, { message: "First name too long" }),
+  lastName: z.string().trim().min(1, { message: "Last name is required" }).max(50, { message: "Last name too long" }),
   phoneNumber: phoneSchema,
 });
 
@@ -41,7 +42,8 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+91');
   const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('both');
   const [loading, setLoading] = useState(false);
@@ -96,7 +98,7 @@ export default function Auth() {
     try {
       // Validate input based on mode
       if (isSignUp) {
-        const validationData = { email, password, fullName, phoneNumber };
+        const validationData = { email, password, firstName, lastName, phoneNumber };
         const validation = signUpSchema.safeParse(validationData);
         if (!validation.success) {
           const firstError = validation.error.errors[0];
@@ -141,7 +143,7 @@ export default function Auth() {
           avatarUrl = publicUrl;
         }
 
-        const { error } = await signUp(email, password, fullName, phoneNumber, userType, avatarUrl);
+        const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
           toast.error(error.message);
         } else {
@@ -216,13 +218,24 @@ export default function Auth() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="fullName"
+                    id="firstName"
                     type="text"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Raj"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Kumar"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     required
                   />
                 </div>

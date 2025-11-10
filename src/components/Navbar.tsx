@@ -63,7 +63,7 @@ export default function Navbar() {
                 <DropdownMenuContent align="end" className="w-80 bg-background border-border z-50">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                      <p className="text-sm font-medium">{profile ? `${profile.first_name} ${profile.last_name}` : 'User'}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                       <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
                     </div>

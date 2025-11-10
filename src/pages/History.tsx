@@ -28,7 +28,8 @@ interface FoodDonation {
     id: string;
     created_at: string;
     requester_profile?: {
-      full_name: string;
+      first_name: string;
+      last_name: string;
       email: string;
     };
   };
@@ -44,12 +45,14 @@ interface FoodRequest {
   accepted_at: string | null;
   food_donations: FoodDonation & {
     profiles?: {
-      full_name: string;
+      first_name: string;
+      last_name: string;
       email: string;
     };
   };
   profiles?: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
     email: string;
   };
 }
@@ -128,7 +131,7 @@ export default function History() {
             const requesterIds = [...new Set(completedRequests.map(r => r.requester_id))];
             const { data: receiverProfiles } = await supabase
               .from('profiles')
-              .select('id, full_name, email')
+              .select('id, first_name, last_name, email')
               .in('id', requesterIds);
             
             // Attach receiver info to donations
@@ -141,7 +144,8 @@ export default function History() {
                     id: request.id,
                     created_at: request.created_at,
                     requester_profile: {
-                      full_name: receiver.full_name,
+                      first_name: receiver.first_name,
+                      last_name: receiver.last_name,
                       email: receiver.email
                     }
                   };
@@ -160,7 +164,7 @@ export default function History() {
         .select(`
           *,
           food_donations!inner(*),
-          profiles!requester_id(full_name, email)
+          profiles!requester_id(first_name, last_name, email)
         `)
         .eq('requester_id', user.id)
         .eq('status', 'completed')
@@ -171,7 +175,7 @@ export default function History() {
         const donorIds = [...new Set(requestsData.map(r => r.food_donations?.donor_id).filter(Boolean))];
         const { data: donorProfiles } = await supabase
           .from('profiles')
-          .select('id, full_name, email')
+          .select('id, first_name, last_name, email')
           .in('id', donorIds);
 
         // Attach donor profiles to food_donations
@@ -179,7 +183,7 @@ export default function History() {
           if (request.food_donations && donorProfiles) {
             const donor = donorProfiles.find(p => p.id === request.food_donations.donor_id);
             if (donor) {
-              (request.food_donations as any).profiles = { full_name: donor.full_name, email: donor.email };
+              (request.food_donations as any).profiles = { first_name: donor.first_name, last_name: donor.last_name, email: donor.email };
             }
           }
         });
@@ -273,7 +277,7 @@ export default function History() {
                           <User className="h-4 w-4 text-primary" />
                           <div>
                             <p className="font-medium text-foreground">Received by</p>
-                            <p className="text-muted-foreground">{donation.completed_request.requester_profile.full_name}</p>
+                            <p className="text-muted-foreground">{donation.completed_request.requester_profile.first_name} {donation.completed_request.requester_profile.last_name}</p>
                           </div>
                         </div>
                       )}
@@ -402,7 +406,7 @@ export default function History() {
                           <User className="h-4 w-4 text-primary" />
                           <div>
                             <p className="font-medium text-foreground">Donor</p>
-                            <p className="text-muted-foreground">{request.food_donations.profiles.full_name}</p>
+                            <p className="text-muted-foreground">{request.food_donations.profiles.first_name} {request.food_donations.profiles.last_name}</p>
                           </div>
                         </div>
                       )}

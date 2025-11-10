@@ -39,7 +39,8 @@ interface FoodDonation {
   image_url?: string | null;
   phone_number?: string | null;
   profiles?: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
     email: string;
     phone_number?: string;
   };
@@ -55,7 +56,8 @@ interface FoodRequest {
   accepted_at: string | null;
   food_donations: FoodDonation;
   profiles: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
     email: string;
     phone_number?: string;
   };
@@ -70,7 +72,7 @@ export default function Dashboard() {
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [isDonorView, setIsDonorView] = useState(true);
-  const [userProfile, setUserProfile] = useState<{ full_name: string; user_type: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string } | null>(null);
   const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
   const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -102,7 +104,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, user_type')
+        .select('first_name, last_name, user_type')
         .eq('id', user.id)
         .single();
 
@@ -188,7 +190,7 @@ export default function Dashboard() {
           id, title, description, pickup_location, status, latitude, longitude, 
           quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, 
           rating, image_url, phone_number,
-          profiles (full_name, email, phone_number)
+          profiles (first_name, last_name, email, phone_number)
         `)
         .eq('status', 'available')
         .is('deleted_at', null)
@@ -252,7 +254,7 @@ export default function Dashboard() {
         .select(`
           *,
           food_donations(*),
-          profiles(full_name, email, phone_number)
+          profiles(first_name, last_name, email, phone_number)
         `)
         .in('donation_id', (
           await supabase
@@ -281,7 +283,7 @@ export default function Dashboard() {
         .select(`
           *,
           food_donations(*),
-          profiles(full_name, email, phone_number)
+          profiles(first_name, last_name, email, phone_number)
         `)
         .eq('requester_id', user.id)
         .order('created_at', { ascending: false });
@@ -474,7 +476,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                Welcome, {userProfile?.full_name || 'User'}! 👋
+                Welcome, {userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'User'}! 👋
               </h1>
               <p className="text-muted-foreground">
                 {isDonorView 
@@ -738,9 +740,9 @@ export default function Dashboard() {
                               <User className="h-4 w-4 text-primary" />
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Donor Contact</p>
                             </div>
-                            {donation.profiles?.full_name && (
+                            {donation.profiles?.first_name && (
                               <div className="flex items-center gap-2 text-sm">
-                                <span className="font-semibold text-foreground">{donation.profiles.full_name}</span>
+                                <span className="font-semibold text-foreground">{donation.profiles.first_name} {donation.profiles.last_name}</span>
                               </div>
                             )}
                             {donation.phone_number && (
@@ -892,7 +894,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           </Badge>
         </div>
         <CardDescription>
-          Requested by: {request.profiles?.full_name || request.profiles?.email || 'Unknown'}
+          Requested by: {request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : request.profiles?.email || 'Unknown'}
         </CardDescription>
         {request.profiles && (
           <div className="text-sm text-muted-foreground space-y-1 mt-2">
@@ -958,7 +960,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           <ChatDialog
             donationId={request.food_donations.id}
             otherUserId={request.requester_id}
-            otherUserName={request.profiles?.full_name || request.profiles?.email || 'Receiver'}
+            otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : request.profiles?.email || 'Receiver'}
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
             buttonText="Message Receiver"
