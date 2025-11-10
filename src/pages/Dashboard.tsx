@@ -21,6 +21,23 @@ import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
 
+interface PublicDonation {
+  id: string;
+  title: string;
+  description: string;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  expiry_date: string;
+  masked_location: string;
+  status: string;
+  created_at: string;
+  rating: number | null;
+  approx_latitude: number;
+  approx_longitude: number;
+  image_url?: string | null;
+}
+
 interface FoodDonation {
   id: string;
   title: string;
@@ -66,7 +83,7 @@ interface FoodRequest {
 export default function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [donations, setDonations] = useState<FoodDonation[]>([]);
+  const [donations, setDonations] = useState<PublicDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
@@ -184,17 +201,9 @@ export default function Dashboard() {
 
   const fetchDonations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('food_donations')
-        .select(`
-          id, title, description, pickup_location, status, latitude, longitude, 
-          quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, 
-          rating, image_url, phone_number,
-          profiles (first_name, last_name, email, phone_number)
-        `)
-        .eq('status', 'available')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      // Use the secure RPC function that masks location data
+      // This shows approximate location only until user has an approved request
+      const { data, error } = await supabase.rpc('get_public_donations');
 
       if (error) throw error;
       setDonations(data || []);
@@ -302,13 +311,6 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      // Check if user is trying to request their own donation
-      const donation = donations.find(d => d.id === donationId);
-      if (donation && donation.donor_id === user.id) {
-        toast.error('You cannot request your own donation');
-        return;
-      }
-
       // Check for existing pending request
       const { data: existingPending } = await supabase
         .from('food_requests')
@@ -644,7 +646,7 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-              {donations.filter(d => d.donor_id !== user?.id).length === 0 ? (
+              {donations.filter(d => user?.id).length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -653,7 +655,7 @@ export default function Dashboard() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {donations.filter(d => d.donor_id !== user?.id).map((donation) => (
+                  {donations.map((donation) => (
                     <Card key={donation.id} className="flex flex-col">
                       {donation.image_url && (
                         <div className="w-full h-48 overflow-hidden">
@@ -723,44 +725,15 @@ export default function Dashboard() {
                         )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
-                          <span>{donation.pickup_location}</span>
+                          <span>{donation.masked_location}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground italic">
+                          Exact address will be revealed after your request is approved
                         </div>
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm font-semibold text-destructive bg-destructive/10 p-2 rounded">
                             <Calendar className="h-4 w-4" />
                             <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString()}</span>
-                          </div>
-                        )}
-                        
-                        {(
-                          donation.phone_number || donation.profiles
-                        ) && (
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center gap-2 mb-2">
-                              <User className="h-4 w-4 text-primary" />
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Donor Contact</p>
-                            </div>
-                            {donation.profiles?.first_name && (
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="font-semibold text-foreground">{donation.profiles.first_name} {donation.profiles.last_name}</span>
-                              </div>
-                            )}
-                            {donation.phone_number && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Phone className="h-4 w-4 shrink-0" />
-                                <a href={`tel:${donation.phone_number}`} className="text-primary hover:underline font-medium">
-                                  {donation.phone_number}
-                                </a>
-                              </div>
-                            )}
-                            {donation.profiles?.email && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-4 w-4 shrink-0" />
-                                <a href={`mailto:${donation.profiles.email}`} className="text-primary hover:underline break-all">
-                                  {donation.profiles.email}
-                                </a>
-                              </div>
-                            )}
                           </div>
                         )}
                       </CardContent>
