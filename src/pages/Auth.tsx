@@ -145,7 +145,18 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
-          toast.error(error.message);
+          // Handle specific error cases for duplicate entries
+          if (error.message?.includes('duplicate key value violates unique constraint')) {
+            if (error.message.includes('profiles_email_key')) {
+              toast.error('This email is already registered. Please use a different email or sign in.');
+            } else if (error.message.includes('profiles_phone_number_key')) {
+              toast.error('This phone number is already registered. Please use a different phone number.');
+            } else {
+              toast.error('This account information is already registered. Please sign in or use different details.');
+            }
+          } else {
+            toast.error(error.message);
+          }
         } else {
           toast.success('Account created successfully! Please sign in.');
           setIsSignUp(false);
@@ -222,7 +233,7 @@ export default function Auth() {
                   <Input
                     id="firstName"
                     type="text"
-                    placeholder="Raj"
+                    placeholder="Priya"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
@@ -233,7 +244,7 @@ export default function Auth() {
                   <Input
                     id="lastName"
                     type="text"
-                    placeholder="Kumar"
+                    placeholder="Sharma"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
@@ -258,7 +269,7 @@ export default function Auth() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="priya.sharma@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
