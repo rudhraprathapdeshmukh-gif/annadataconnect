@@ -68,6 +68,17 @@ export default function Auth() {
     if (user) {
       navigate('/dashboard');
     }
+
+    // Handle password reset from email link
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken) {
+      setShowResetPassword(true);
+      // Clear the hash from URL for better UX
+      window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
+    }
   }, [user, navigate]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,6 +141,17 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Check if user has a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Reset link expired. Please request a new password reset.');
+        setShowResetPassword(false);
+        setShowForgotPassword(true);
+        setLoading(false);
+        return;
+      }
+
       const validation = passwordSchema.safeParse(newPassword);
       if (!validation.success) {
         const firstError = validation.error.errors[0];
