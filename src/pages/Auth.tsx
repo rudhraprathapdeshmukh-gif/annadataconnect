@@ -65,15 +65,12 @@ export default function Auth() {
   ];
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-
     // Handle password reset from email link
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
+    const isRecoveryMode = type === 'recovery' || searchParams.get('mode') === 'reset';
     
     (async () => {
       if (type === 'recovery' && accessToken) {
@@ -94,7 +91,12 @@ export default function Auth() {
         window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
       }
     })();
-  }, [user, navigate]);
+
+    // Only redirect to dashboard if not in password reset mode
+    if (user && !isRecoveryMode) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate, searchParams]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
