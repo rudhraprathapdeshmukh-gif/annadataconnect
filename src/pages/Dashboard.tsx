@@ -258,6 +258,20 @@ export default function Dashboard() {
         toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
       }
 
+      // Get all donation IDs for which the current user is the donor
+      const { data: myDonationRows, error: myDonationsError } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id);
+
+      if (myDonationsError) throw myDonationsError;
+
+      const myDonationIds = myDonationRows?.map(d => d.id) ?? [];
+      if (myDonationIds.length === 0) {
+        setRequests([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('food_requests')
         .select(`
@@ -265,12 +279,7 @@ export default function Dashboard() {
           food_donations(*),
           profiles(first_name, last_name, email, phone_number)
         `)
-        .in('donation_id', (
-          await supabase
-            .from('food_donations')
-            .select('id')
-            .eq('donor_id', user.id)
-        ).data?.map(d => d.id) || [])
+        .in('donation_id', myDonationIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
