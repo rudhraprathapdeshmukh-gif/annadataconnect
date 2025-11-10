@@ -67,14 +67,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error signing out:', error.message);
+    try {
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      
+      // Attempt to sign out from server
+      const { error } = await supabase.auth.signOut();
+      
+      // Navigate away regardless of error (session might already be expired)
+      navigate('/');
+      
+      // Only log error in development, don't throw
+      if (error && import.meta.env.DEV) {
+        console.error('Sign out error (non-critical):', error.message);
       }
-      throw error;
+    } catch (error) {
+      // Still navigate even if there's an exception
+      navigate('/');
+      if (import.meta.env.DEV) {
+        console.error('Sign out exception:', error);
+      }
     }
-    navigate('/');
   };
 
   return (

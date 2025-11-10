@@ -100,7 +100,14 @@ const Index = () => {
   }, [user, userType]);
 
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -287,25 +294,27 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-3xl mx-auto bg-primary text-primary-foreground">
-            <CardContent className="py-12 text-center space-y-4">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Join Our Community Today
-              </h2>
-              <p className="text-lg opacity-90">
-                Whether you're donating or receiving, every action makes a difference
-              </p>
-              <Link to="/auth?mode=signup">
-                <Button size="lg" variant="secondary" className="mt-4">
-                  Sign Up Now
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      {!user && (
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <Card className="max-w-3xl mx-auto bg-primary text-primary-foreground">
+              <CardContent className="py-12 text-center space-y-4">
+                <h2 className="text-3xl md:text-4xl font-bold">
+                  Join Our Community Today
+                </h2>
+                <p className="text-lg opacity-90">
+                  Whether you're donating or receiving, every action makes a difference
+                </p>
+                <Link to="/auth?mode=signup">
+                  <Button size="lg" variant="secondary" className="mt-4">
+                    Sign Up Now
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
     </div>
   );
 };
