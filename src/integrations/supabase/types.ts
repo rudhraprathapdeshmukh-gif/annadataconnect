@@ -212,25 +212,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_public_donations: {
-        Args: never
-        Returns: {
-          approx_latitude: number
-          approx_longitude: number
-          created_at: string
-          description: string
-          expiry_date: string
-          food_type: string
-          id: string
-          image_url: string
-          masked_location: string
-          quantity: string
-          quantity_unit: string
-          rating: number
-          status: string
-          title: string
-        }[]
-      }
       get_user_display_name: { Args: { user_id: string }; Returns: string }
       has_active_approved_request: {
         Args: { _donation_id: string }
