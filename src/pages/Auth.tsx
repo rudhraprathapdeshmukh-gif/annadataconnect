@@ -71,14 +71,29 @@ export default function Auth() {
 
     // Handle password reset from email link
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
     const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
     
-    if (type === 'recovery' && accessToken) {
-      setShowResetPassword(true);
-      // Clear the hash from URL for better UX
-      window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
-    }
+    (async () => {
+      if (type === 'recovery' && accessToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || ''
+        });
+
+        if (error) {
+          toast.error('Reset link expired or invalid. Please request a new one.');
+          setShowResetPassword(false);
+          setShowForgotPassword(true);
+          return;
+        }
+
+        setShowResetPassword(true);
+        // Clear the hash from URL for better UX
+        window.history.replaceState(null, '', window.location.pathname + '?mode=reset');
+      }
+    })();
   }, [user, navigate]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,6 +189,25 @@ export default function Auth() {
       }
     } catch (error) {
       toast.error('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+      }
+    } catch (error) {
+      toast.error('Unable to start Google sign-in');
     } finally {
       setLoading(false);
     }
@@ -525,6 +559,9 @@ export default function Auth() {
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            </Button>
+            <Button type="button" variant="secondary" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+              Continue with Google
             </Button>
           </form>
           )}
