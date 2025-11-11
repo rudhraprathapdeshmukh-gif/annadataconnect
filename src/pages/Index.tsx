@@ -24,6 +24,7 @@ interface ActiveDonation {
 const Index = () => {
   const { user, loading } = useAuth();
   const [userType, setUserType] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string } | null>(null);
   const [activeDonations, setActiveDonations] = useState<ActiveDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(false);
 
@@ -32,12 +33,13 @@ const Index = () => {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('user_type')
+          .select('user_type, first_name, last_name')
           .eq('id', user.id)
           .maybeSingle();
         
         if (data) {
           setUserType(data.user_type);
+          setUserProfile({ first_name: data.first_name, last_name: data.last_name });
         }
       }
     };
@@ -122,12 +124,25 @@ const Index = () => {
         />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-              Share Food, Share <span className="text-primary">Love</span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
-            </p>
+            {user && userProfile ? (
+              <>
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+                  Welcome back, <span className="text-primary">{userProfile.first_name} {userProfile.last_name}</span>! 👋
+                </h1>
+                <p className="text-xl text-muted-foreground">
+                  Ready to make a difference today? Connect with your community and share the love.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+                  Share Food, Share <span className="text-primary">Love</span>
+                </h1>
+                <p className="text-xl text-muted-foreground">
+                  Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
+                </p>
+              </>
+            )}
             <div className="flex justify-center gap-4 pt-4">
               {user ? (
                 <>
