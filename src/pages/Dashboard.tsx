@@ -239,25 +239,6 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
-      // First, auto-reject expired approved requests
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      
-      // Get expired requests before updating them
-      const { data: expiredRequests } = await supabase
-        .from('food_requests')
-        .select('id')
-        .eq('status', 'approved')
-        .lt('accepted_at', tenMinutesAgo);
-      
-      if (expiredRequests && expiredRequests.length > 0) {
-        await supabase
-          .from('food_requests')
-          .update({ status: 'rejected' })
-          .in('id', expiredRequests.map(r => r.id));
-        
-        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
-      }
-
       // Get all donation IDs for which the current user is the donor
       const { data: myDonationRows, error: myDonationsError } = await supabase
         .from('food_donations')
@@ -270,6 +251,24 @@ export default function Dashboard() {
       if (myDonationIds.length === 0) {
         setRequests([]);
         return;
+      }
+
+      // Auto-reject expired approved requests for my donations only
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: expiredRequests } = await supabase
+        .from('food_requests')
+        .select('id')
+        .eq('status', 'approved')
+        .lt('accepted_at', tenMinutesAgo)
+        .in('donation_id', myDonationIds);
+      
+      if (expiredRequests && expiredRequests.length > 0) {
+        await supabase
+          .from('food_requests')
+          .update({ status: 'rejected' })
+          .in('id', expiredRequests.map(r => r.id));
+        
+        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
       }
 
       const { data, error } = await supabase
