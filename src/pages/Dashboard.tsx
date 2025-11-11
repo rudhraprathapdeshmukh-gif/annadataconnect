@@ -490,7 +490,7 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold mb-2">
                 {(() => {
                   const fullName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : '';
-                  const displayName = fullName || user?.email || 'User';
+                  const displayName = fullName || 'User';
                   return `Welcome, ${displayName}! 👋`;
                 })()}
               </h1>
