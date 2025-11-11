@@ -223,12 +223,12 @@ export default function History() {
           </p>
         </div>
 
-        <Tabs defaultValue={userType === 'receiver' ? 'received' : 'donated'} className="space-y-6">
+        <Tabs defaultValue="donated" className="space-y-6">
           <TabsList>
             {userType !== 'receiver' && (
               <TabsTrigger value="donated">Donated Food ({donations.length})</TabsTrigger>
             )}
-            {userType !== 'donor' && (
+            {userType === 'receiver' && (
               <TabsTrigger value="received">Received Food ({requests.length})</TabsTrigger>
             )}
           </TabsList>
