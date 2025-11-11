@@ -45,7 +45,7 @@ export default function Auth() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+91');
-  const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('donor');
+  const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('both');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -196,6 +196,24 @@ export default function Auth() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+      }
+    } catch (error) {
+      toast.error('Unable to start Google sign-in');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,6 +561,9 @@ export default function Auth() {
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            </Button>
+            <Button type="button" variant="secondary" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+              Continue with Google
             </Button>
           </form>
           )}
