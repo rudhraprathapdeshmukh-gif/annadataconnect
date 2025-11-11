@@ -34,7 +34,7 @@ const Index = () => {
           .from('profiles')
           .select('user_type')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
         if (data) {
           setUserType(data.user_type);

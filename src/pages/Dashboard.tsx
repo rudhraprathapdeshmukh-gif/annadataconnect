@@ -123,17 +123,19 @@ export default function Dashboard() {
         .from('profiles')
         .select('first_name, last_name, user_type')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setUserProfile(data);
-      
-      // Set default view based on user_type
-      if (data.user_type === 'donor') {
-        setIsDonorView(true);
-      } else if (data.user_type === 'receiver') {
-        setIsDonorView(false);
+      if (data) {
+        setUserProfile(data);
+        // Set default view based on user_type
+        if (data.user_type === 'donor') {
+          setIsDonorView(true);
+        } else if (data.user_type === 'receiver') {
+          setIsDonorView(false);
+        }
       }
+
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load user profile:', error);
@@ -287,7 +289,7 @@ export default function Dashboard() {
       if (import.meta.env.DEV) {
         console.error('Failed to load requests:', error);
       }
-      toast.error('Failed to load requests');
+      // Avoid noisy toasts on initial load; silently fail and keep UI stable
     }
   };
 
@@ -311,7 +313,7 @@ export default function Dashboard() {
       if (import.meta.env.DEV) {
         console.error('Failed to load my requests:', error);
       }
-      toast.error('Failed to load requests');
+      // Avoid noisy toasts on initial load; silently fail and keep UI stable
     }
   };
 
@@ -486,7 +488,11 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                Welcome, {userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : 'User'}! 👋
+                {(() => {
+                  const fullName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : '';
+                  const displayName = fullName || user?.email || 'User';
+                  return `Welcome, ${displayName}! 👋`;
+                })()}
               </h1>
               <p className="text-muted-foreground">
                 {isDonorView 
