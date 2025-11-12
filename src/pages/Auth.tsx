@@ -219,12 +219,20 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       
       if (error) {
-        toast.error(error.message);
+        if (error.message.includes('not enabled') || error.message.includes('not configured')) {
+          toast.error('Google sign-in is not configured. Please contact the administrator.');
+        } else {
+          toast.error(error.message);
+        }
       }
     } catch (error) {
       toast.error('An error occurred during Google sign-in');
