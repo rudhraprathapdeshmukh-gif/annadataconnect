@@ -298,8 +298,16 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created successfully! Please sign in.');
-          setIsSignUp(false);
+          // Automatically sign in after successful signup
+          toast.success('Account created successfully! Signing you in...');
+          const { error: signInError } = await signIn(email, password);
+          if (signInError) {
+            toast.error('Account created but sign in failed. Please sign in manually.');
+            setIsSignUp(false);
+          } else {
+            toast.success('Welcome to Annadataconnect! 🎉');
+            navigate('/dashboard');
+          }
         }
       } else {
         const { error } = await signIn(email, password);
