@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,16 +59,29 @@ export default function Navbar() {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <User className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="relative rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.first_name || 'User'} />
+                      <AvatarFallback>
+                        {profile?.first_name?.[0]?.toUpperCase() || profile?.last_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 bg-background border-border z-50">
                   <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{(() => { const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''; return fullName || 'User'; })()}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.first_name || 'User'} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          {profile?.first_name?.[0]?.toUpperCase() || profile?.last_name?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{(() => { const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''; return fullName || 'User'; })()}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
