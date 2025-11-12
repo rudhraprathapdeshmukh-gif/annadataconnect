@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,7 +45,7 @@ export default function Auth() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+91');
-  const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('donor');
+  const [userType, setUserType] = useState<'donor' | 'receiver'>('donor');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -570,35 +570,24 @@ export default function Auth() {
             </div>
             {isSignUp && (
               <div className="space-y-4">
-                <Label>I want to be a:</Label>
-                <div className="flex items-center justify-between space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="donor"
-                      checked={userType === 'donor' || userType === 'both'}
-                      onCheckedChange={(checked) => {
-                        if (checked && userType === 'receiver') setUserType('both');
-                        else if (checked) setUserType('donor');
-                        else if (userType === 'both') setUserType('receiver');
-                        else setUserType('both');
-                      }}
-                    />
-                    <Label htmlFor="donor" className="cursor-pointer">Donor</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="receiver"
-                      checked={userType === 'receiver' || userType === 'both'}
-                      onCheckedChange={(checked) => {
-                        if (checked && userType === 'donor') setUserType('both');
-                        else if (checked) setUserType('receiver');
-                        else if (userType === 'both') setUserType('donor');
-                        else setUserType('both');
-                      }}
-                    />
-                    <Label htmlFor="receiver" className="cursor-pointer">Receiver</Label>
-                  </div>
+                <Label>I am signing up as:</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={userType === 'donor' ? 'default' : 'outline'}
+                    onClick={() => setUserType('donor')}
+                  >
+                    Donor
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={userType === 'receiver' ? 'default' : 'outline'}
+                    onClick={() => setUserType('receiver')}
+                  >
+                    Receiver
+                  </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">You can change this later in settings.</p>
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
