@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, Users, Leaf, Package, Clock, MapPin } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import heroImage from '@/assets/hero-food-sharing.jpg';
@@ -24,7 +25,7 @@ interface ActiveDonation {
 const Index = () => {
   const { user, loading } = useAuth();
   const [userType, setUserType] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; avatar_url: string | null } | null>(null);
   const [activeDonations, setActiveDonations] = useState<ActiveDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(false);
 
@@ -33,13 +34,13 @@ const Index = () => {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('user_type, first_name, last_name')
+          .select('user_type, first_name, last_name, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
         
         if (data) {
           setUserType(data.user_type);
-          setUserProfile({ first_name: data.first_name, last_name: data.last_name });
+          setUserProfile({ first_name: data.first_name, last_name: data.last_name, avatar_url: data.avatar_url });
         }
       }
     };
@@ -126,6 +127,14 @@ const Index = () => {
           <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
             {user && userProfile ? (
               <>
+                <div className="flex justify-center">
+                  <Avatar className="h-20 w-20 mb-4">
+                    <AvatarImage src={userProfile.avatar_url || undefined} alt={`${userProfile.first_name} ${userProfile.last_name}`} />
+                    <AvatarFallback>
+                      {(userProfile.first_name?.[0] || 'U').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
                   Welcome back, <span className="text-primary">{userProfile.first_name} {userProfile.last_name}</span>! 👋
                 </h1>

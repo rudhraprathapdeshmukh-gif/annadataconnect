@@ -19,16 +19,35 @@ export default function Navbar() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (user) {
-      supabase
+    let cancelled = false;
+
+    const fetchProfile = async (attempt = 1) => {
+      if (!user || cancelled) return;
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle()
-        .then(({ data }) => setProfile(data));
+        .maybeSingle();
+
+      if (!cancelled) {
+        if (data) {
+          setProfile(data);
+        } else if (attempt < 5) {
+          // Profile row might not be ready just yet after signup; retry briefly
+          setTimeout(() => fetchProfile(attempt + 1), 400);
+        }
+      }
+    };
+
+    if (user) {
+      fetchProfile();
     } else {
       setProfile(null);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   return (
