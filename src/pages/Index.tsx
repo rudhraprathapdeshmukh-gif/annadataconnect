@@ -117,44 +117,44 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative py-20 md:py-28 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
+          <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
             {user && userProfile ? (
               <>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
                   Welcome back, <span className="text-primary">{userProfile.first_name} {userProfile.last_name}</span>! 👋
                 </h1>
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl md:text-2xl text-muted-foreground">
                   Ready to make a difference today? Connect with your community and share the love.
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-                  Share Food, Share <span className="text-primary">Love</span>
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+                  Share Food, Share <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Love</span>
                 </h1>
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
                   Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
                 </p>
               </>
             )}
-            <div className="flex justify-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
               {user ? (
                 <>
                   <Link to="/dashboard">
-                    <Button size="lg" variant="default">
+                    <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto">
                       <Package className="mr-2 h-5 w-5" />
                       Your Donations
                     </Button>
                   </Link>
                   {userType !== 'receiver' && (
                     <Link to="/donate">
-                      <Button size="lg" variant="secondary">
+                      <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto">
                         Donate Food
                       </Button>
                     </Link>
@@ -162,8 +162,8 @@ const Index = () => {
                 </>
               ) : (
                 <Link to="/auth?mode=signup">
-                  <Button size="lg">
-                    Sign Up
+                  <Button size="lg" className="shadow-lg hover-lift text-lg px-8 w-full sm:w-auto">
+                    Get Started
                   </Button>
                 </Link>
               )}
@@ -261,45 +261,45 @@ const Index = () => {
       )}
 
       {/* Features Section */}
-      <section className="py-20 bg-muted/50">
+      <section className="py-20 gradient-warm">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How Annadataconnect Works</h2>
-            <p className="text-muted-foreground text-lg">Simple, effective, and community-driven</p>
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">How Annadataconnect Works</h2>
+            <p className="text-muted-foreground text-lg md:text-xl">Simple, effective, and community-driven</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-primary" />
+            <Card className="text-center hover-lift border-0 shadow-lg">
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl">
+                  <Heart className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle>Donate Food</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl mb-3">Donate Food</CardTitle>
+                <CardDescription className="text-base">
                   Have surplus food? List it on Annadataconnect and help those in need
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-secondary" />
+            <Card className="text-center hover-lift border-0 shadow-lg">
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl">
+                  <Users className="h-8 w-8 text-secondary" />
                 </div>
-                <CardTitle>Connect</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl mb-3">Connect</CardTitle>
+                <CardDescription className="text-base">
                   Browse available donations and request what you need
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-                  <Leaf className="h-6 w-6 text-accent" />
+            <Card className="text-center hover-lift border-0 shadow-lg">
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl">
+                  <Leaf className="h-8 w-8 text-accent" />
                 </div>
-                <CardTitle>Make Impact</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl mb-3">Make Impact</CardTitle>
+                <CardDescription className="text-base">
                   Reduce food waste while helping your community thrive
                 </CardDescription>
               </CardHeader>
@@ -312,19 +312,22 @@ const Index = () => {
       {!user && (
         <section className="py-20">
           <div className="container mx-auto px-4">
-            <Card className="max-w-3xl mx-auto bg-primary text-primary-foreground">
-              <CardContent className="py-12 text-center space-y-4">
-                <h2 className="text-3xl md:text-4xl font-bold">
-                  Join Our Community Today
-                </h2>
-                <p className="text-lg opacity-90">
-                  Whether you're donating or receiving, every action makes a difference
-                </p>
-                <Link to="/auth?mode=signup">
-                  <Button size="lg" variant="secondary" className="mt-4">
-                    Sign Up Now
-                  </Button>
-                </Link>
+            <Card className="max-w-3xl mx-auto gradient-primary text-white border-0 shadow-2xl overflow-hidden">
+              <CardContent className="py-16 text-center space-y-6 relative">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMC41IiBvcGFjaXR5PSIwLjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
+                <div className="relative z-10">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                    Join Our Community Today
+                  </h2>
+                  <p className="text-xl md:text-2xl opacity-95 mb-8">
+                    Whether you're donating or receiving, every action makes a difference
+                  </p>
+                  <Link to="/auth?mode=signup">
+                    <Button size="lg" variant="secondary" className="shadow-xl hover-lift text-lg px-10">
+                      Sign Up Now
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>

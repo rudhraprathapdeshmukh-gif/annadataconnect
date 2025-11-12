@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Eye, EyeOff, Upload, X } from 'lucide-react';
+import { Eye, EyeOff, Upload, X, Heart } from 'lucide-react';
 
 const passwordSchema = z.string()
   .min(8, { message: "Password must be at least 8 characters" })
@@ -319,20 +319,30 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to Annadataconnect</CardTitle>
-          <CardDescription>
+    <div className="min-h-screen flex items-center justify-center gradient-warm p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in">
+        <CardHeader className="space-y-1 text-center pb-8 pt-8">
+          <div className="mx-auto mb-4 w-16 h-16 rounded-full gradient-primary flex items-center justify-center shadow-lg">
+            <Heart className="h-8 w-8 text-white" />
+          </div>
+          <CardTitle className="text-3xl font-bold">
             {showResetPassword 
-              ? 'Enter your new password'
+              ? 'Reset Your Password'
               : (showForgotPassword 
-                ? 'Enter your email to reset your password' 
-                : (isSignUp ? 'Create an account to get started' : 'Sign in to your account'))
+                ? 'Forgot Password?' 
+                : (isSignUp ? 'Join Annadataconnect' : 'Welcome Back'))
+            }
+          </CardTitle>
+          <CardDescription className="text-base">
+            {showResetPassword 
+              ? 'Enter your new password below'
+              : (showForgotPassword 
+                ? 'We\'ll send you a reset link' 
+                : (isSignUp ? 'Start sharing and caring today' : 'Sign in to continue making a difference'))
             }
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-8 pb-8">
           {showResetPassword ? (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
@@ -581,36 +591,36 @@ export default function Auth() {
             
             {!isSignUp && (
               <>
-                <div className="relative">
+                <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                   </div>
                 </div>
                 
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full hover-lift border-2"
                   onClick={handleGoogleSignIn}
                 >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path
-                      fill="currentColor"
+                      fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                     />
                     <path
-                      fill="currentColor"
+                      fill="#34A853"
                       d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                     />
                     <path
-                      fill="currentColor"
+                      fill="#FBBC05"
                       d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                     />
                     <path
-                      fill="currentColor"
+                      fill="#EA4335"
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
@@ -623,11 +633,11 @@ export default function Auth() {
           
           {!showForgotPassword && !showResetPassword && (
             <>
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-2 pt-2">
                 <Button
                   variant="link"
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-sm"
+                  className="text-sm font-medium"
                 >
                   {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
                 </Button>
@@ -636,7 +646,7 @@ export default function Auth() {
                     <Button
                       variant="link"
                       onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-muted-foreground"
+                      className="text-sm text-muted-foreground hover:text-foreground"
                     >
                       Forgot password?
                     </Button>
@@ -646,8 +656,8 @@ export default function Auth() {
             </>
           )}
           
-          <p className="text-center text-sm text-muted-foreground">
-            By continuing, you agree to our terms of service and privacy policy
+          <p className="text-center text-xs text-muted-foreground pt-4 border-t mt-6">
+            By continuing, you agree to our <span className="text-primary cursor-pointer hover:underline">Terms of Service</span> and <span className="text-primary cursor-pointer hover:underline">Privacy Policy</span>
           </p>
         </CardContent>
       </Card>

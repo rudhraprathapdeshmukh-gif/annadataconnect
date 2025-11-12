@@ -8,35 +8,44 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 140 25% 97%;
-    --foreground: 140 25% 15%;
+    /* Warm, welcoming color palette for food donation */
+    --background: 30 20% 98%;
+    --foreground: 25 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 25 25% 15%;
+    --card-foreground: 25 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 25% 15%;
+    --popover-foreground: 25 20% 15%;
 
-    --primary: 142 65% 45%;
+    /* Warm orange-red for primary - inviting and energetic */
+    --primary: 15 85% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 55% 55%;
-    --secondary-foreground: 0 0% 100%;
+    /* Warm amber for secondary */
+    --secondary: 35 90% 65%;
+    --secondary-foreground: 25 20% 15%;
 
-    --muted: 140 20% 92%;
-    --muted-foreground: 140 10% 45%;
+    /* Soft beige for muted elements */
+    --muted: 30 25% 94%;
+    --muted-foreground: 25 15% 45%;
 
-    --accent: 142 70% 50%;
+    /* Vibrant orange for accents */
+    --accent: 25 95% 60%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 140 25% 88%;
-    --input: 140 25% 88%;
-    --ring: 142 65% 45%;
+    --border: 30 20% 90%;
+    --input: 30 20% 90%;
+    --ring: 15 85% 55%;
 
     --radius: 0.75rem;
+
+    /* Gradients for special effects */
+    --gradient-primary: linear-gradient(135deg, hsl(15 85% 55%), hsl(25 95% 60%));
+    --gradient-warm: linear-gradient(180deg, hsl(30 20% 98%), hsl(30 25% 96%));
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -49,34 +58,37 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 140 25% 10%;
-    --foreground: 140 25% 95%;
+    --background: 25 15% 8%;
+    --foreground: 30 20% 95%;
 
     --card: 25 20% 12%;
-    --card-foreground: 36 39% 95%;
+    --card-foreground: 30 20% 95%;
 
     --popover: 25 20% 12%;
-    --popover-foreground: 36 39% 95%;
+    --popover-foreground: 30 20% 95%;
 
-    --primary: 142 65% 50%;
+    --primary: 15 85% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 55% 60%;
+    --secondary: 35 80% 60%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 140 15% 20%;
-    --muted-foreground: 140 20% 65%;
+    --muted: 25 15% 18%;
+    --muted-foreground: 30 15% 65%;
 
-    --accent: 142 70% 55%;
+    --accent: 25 90% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 140 15% 25%;
-    --input: 140 15% 25%;
-    --ring: 142 65% 50%;
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 15 85% 60%;
     
+    --gradient-primary: linear-gradient(135deg, hsl(15 85% 60%), hsl(25 90% 55%));
+    --gradient-warm: linear-gradient(180deg, hsl(25 15% 8%), hsl(25 15% 12%));
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -94,6 +106,54 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-poppins;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
