@@ -14,6 +14,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to capitalize first letter of each word
+const capitalizeName = (name: string | null | undefined): string => {
+  if (!name) return '';
+  return name
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function Navbar() {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
@@ -80,9 +89,13 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative rounded-full">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.first_name || 'User'} />
+                      <AvatarImage 
+                        src={profile?.avatar_url || undefined} 
+                        alt={`${capitalizeName(profile?.first_name)} ${capitalizeName(profile?.last_name)}`}
+                        className="object-cover"
+                      />
                       <AvatarFallback>
-                        {profile?.first_name?.[0]?.toUpperCase() || profile?.last_name?.[0]?.toUpperCase() || 'U'}
+                        {capitalizeName(profile?.first_name)?.[0] || capitalizeName(profile?.last_name)?.[0] || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -91,13 +104,19 @@ export default function Navbar() {
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.first_name || 'User'} />
+                        <AvatarImage 
+                          src={profile?.avatar_url || undefined} 
+                          alt={`${capitalizeName(profile?.first_name)} ${capitalizeName(profile?.last_name)}`}
+                          className="object-cover"
+                        />
                         <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                          {profile?.first_name?.[0]?.toUpperCase() || profile?.last_name?.[0]?.toUpperCase() || 'U'}
+                          {capitalizeName(profile?.first_name)?.[0] || capitalizeName(profile?.last_name)?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{(() => { const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''; return fullName || 'User'; })()}</p>
+                        <p className="text-sm font-medium">
+                          {capitalizeName(profile?.first_name)} {capitalizeName(profile?.last_name) || 'User'}
+                        </p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                         <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
                       </div>

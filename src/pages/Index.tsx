@@ -10,6 +10,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to capitalize first letter of each word
+const capitalizeName = (name: string | null | undefined): string => {
+  if (!name) return '';
+  return name
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 interface ActiveDonation {
   id: string;
   title: string;
@@ -128,15 +137,19 @@ const Index = () => {
             {user && userProfile ? (
               <>
                 <div className="flex justify-center">
-                  <Avatar className="h-20 w-20 mb-4">
-                    <AvatarImage src={userProfile.avatar_url || undefined} alt={`${userProfile.first_name} ${userProfile.last_name}`} />
-                    <AvatarFallback>
-                      {(userProfile.first_name?.[0] || 'U').toUpperCase()}
+                  <Avatar className="h-24 w-24 mb-6 border-4 border-primary/20 shadow-xl">
+                    <AvatarImage 
+                      src={userProfile.avatar_url || undefined} 
+                      alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-2xl bg-primary/10">
+                      {capitalizeName(userProfile.first_name)?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-                  Welcome back, <span className="text-primary">{userProfile.first_name} {userProfile.last_name}</span>! 👋
+                  Welcome back, <span className="text-primary">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground">
                   Ready to make a difference today? Connect with your community and share the love.
