@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
+
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -500,21 +500,6 @@ export default function Dashboard() {
                   : 'Browse and request food from generous donors in your community'}
               </p>
             </div>
-            {userProfile?.user_type === 'both' && (
-              <div className="flex items-center gap-3 bg-muted/50 px-4 py-2 rounded-lg">
-                <Label htmlFor="view-toggle" className={`text-sm font-medium transition-colors ${!isDonorView ? 'text-primary' : 'text-muted-foreground'}`}>
-                  Receiver
-                </Label>
-                <Switch
-                  id="view-toggle"
-                  checked={isDonorView}
-                  onCheckedChange={setIsDonorView}
-                />
-                <Label htmlFor="view-toggle" className={`text-sm font-medium transition-colors ${isDonorView ? 'text-primary' : 'text-muted-foreground'}`}>
-                  Donor
-                </Label>
-              </div>
-            )}
           </div>
         </div>
 
