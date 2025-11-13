@@ -88,7 +88,6 @@ export default function Dashboard() {
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
-  const [isDonorView, setIsDonorView] = useState(true);
   const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string } | null>(null);
   const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
   const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
@@ -128,12 +127,6 @@ export default function Dashboard() {
       if (error) throw error;
       if (data) {
         setUserProfile(data);
-        // Set default view based on user_type
-        if (data.user_type === 'donor') {
-          setIsDonorView(true);
-        } else if (data.user_type === 'receiver') {
-          setIsDonorView(false);
-        }
       }
 
     } catch (error) {
@@ -495,15 +488,17 @@ export default function Dashboard() {
                 })()}
               </h1>
               <p className="text-muted-foreground">
-                {isDonorView 
+                {userProfile?.user_type === 'donor' 
                   ? 'Manage incoming food requests from your community' 
-                  : 'Browse and request food from generous donors in your community'}
+                  : userProfile?.user_type === 'receiver'
+                  ? 'Browse and request food from generous donors in your community'
+                  : 'Manage donations and browse available food in your community'}
               </p>
             </div>
           </div>
         </div>
 
-        {isDonorView || userProfile?.user_type === 'donor' ? (
+        {(userProfile?.user_type === 'donor' || userProfile?.user_type === 'both') && (
           <Tabs defaultValue="active-donations" className="space-y-6">
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
@@ -614,8 +609,10 @@ export default function Dashboard() {
               )}
             </TabsContent>
           </Tabs>
-        ) : (
-          <Tabs defaultValue="list" className="space-y-6">
+        )}
+
+        {(userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') && (
+          <Tabs defaultValue="list" className={userProfile?.user_type === 'both' ? 'space-y-6 mt-8' : 'space-y-6'}>
             <TabsList>
               <TabsTrigger value="list">List View</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>

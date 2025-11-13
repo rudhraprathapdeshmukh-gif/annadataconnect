@@ -47,6 +47,7 @@ export default function Donate() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -70,6 +71,29 @@ export default function Donate() {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const fetchUserType = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setUserType(data.user_type);
+          // Redirect receivers to dashboard
+          if (data.user_type === 'receiver') {
+            toast.error('Only donors can create donations');
+            navigate('/dashboard');
+          }
+        }
+      }
+    };
+
+    fetchUserType();
+  }, [user, navigate]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
