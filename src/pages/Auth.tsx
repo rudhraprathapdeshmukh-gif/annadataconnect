@@ -45,7 +45,7 @@ export default function Auth() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+91');
-  const [userType, setUserType] = useState<'donor' | 'receiver'>('donor');
+  const [userType, setUserType] = useState<'donor' | 'receiver' | 'both'>('donor');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -571,7 +571,7 @@ export default function Auth() {
             {isSignUp && (
               <div className="space-y-4">
                 <Label>I am signing up as:</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button
                     type="button"
                     variant={userType === 'donor' ? 'default' : 'outline'}
@@ -585,6 +585,13 @@ export default function Auth() {
                     onClick={() => setUserType('receiver')}
                   >
                     Receiver
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={userType === 'both' ? 'default' : 'outline'}
+                    onClick={() => setUserType('both')}
+                  >
+                    Both
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">You can change this later in settings.</p>
