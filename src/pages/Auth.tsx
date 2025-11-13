@@ -594,7 +594,7 @@ export default function Auth() {
                     Both
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">You can change this later in settings.</p>
+                <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
