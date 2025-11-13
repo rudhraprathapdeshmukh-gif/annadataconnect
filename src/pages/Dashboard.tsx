@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
@@ -88,7 +89,7 @@ export default function Dashboard() {
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
-  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string; avatar_url?: string } | null>(null);
   const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
   const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -120,7 +121,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, user_type')
+        .select('first_name, last_name, user_type, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -479,21 +480,32 @@ export default function Dashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">
-                {(() => {
-                  const fullName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : '';
-                  const displayName = fullName || 'User';
-                  return `Welcome, ${displayName}! 👋`;
-                })()}
-              </h1>
-              <p className="text-muted-foreground">
-                {userProfile?.user_type === 'donor' 
-                  ? 'Manage incoming food requests from your community' 
-                  : userProfile?.user_type === 'receiver'
-                  ? 'Browse and request food from generous donors in your community'
-                  : 'Manage donations and browse available food in your community'}
-              </p>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={userProfile?.avatar_url || undefined} alt="Profile picture" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                  {userProfile?.first_name?.[0]?.toUpperCase() || 'U'}
+                  {userProfile?.last_name?.[0]?.toUpperCase() || ''}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  {(() => {
+                    const firstName = userProfile?.first_name || '';
+                    const lastName = userProfile?.last_name || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    const displayName = fullName || 'User';
+                    return `Welcome, ${displayName}! 👋`;
+                  })()}
+                </h1>
+                <p className="text-muted-foreground">
+                  {userProfile?.user_type === 'donor' 
+                    ? 'Manage incoming food requests from your community' 
+                    : userProfile?.user_type === 'receiver'
+                    ? 'Browse and request food from generous donors in your community'
+                    : 'Manage donations and browse available food in your community'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
