@@ -56,7 +56,7 @@ interface FoodDonation {
   longitude?: number;
   image_url?: string | null;
   phone_number?: string | null;
-  profiles?: {
+  donor_profile?: {
     first_name: string;
     last_name: string;
     email: string;
@@ -300,7 +300,10 @@ export default function Dashboard() {
         .from('food_requests')
         .select(`
           *,
-          food_donations(*, profiles!food_donations_donor_id_fkey(first_name, last_name, email, phone_number)),
+          food_donations!inner(
+            *,
+            donor_profile:profiles!donor_id(first_name, last_name, email, phone_number)
+          ),
           profiles(first_name, last_name, email, phone_number)
         `)
         .eq('requester_id', user.id)
