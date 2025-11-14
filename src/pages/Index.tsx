@@ -75,7 +75,8 @@ const Index = () => {
               image_url
             `)
             .eq('donor_id', user.id)
-            .in('status', ['available', 'claimed'])
+            .eq('status', 'available')
+            .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(6);
 
