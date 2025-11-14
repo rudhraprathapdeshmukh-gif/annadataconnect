@@ -30,12 +30,12 @@ interface PublicDonation {
   quantity_unit: string;
   food_type: string;
   expiry_date: string;
-  masked_location: string;
+  pickup_location: string;
   status: string;
   created_at: string;
   rating: number | null;
-  approx_latitude: number;
-  approx_longitude: number;
+  latitude?: number;
+  longitude?: number;
   image_url?: string | null;
 }
 
@@ -198,12 +198,14 @@ export default function Dashboard() {
 
   const fetchDonations = async () => {
     try {
-      // Use the secure RPC function that masks location data
-      // This shows approximate location only until user has an approved request
-      const { data, error } = await supabase.rpc('get_public_donations');
+      const { data, error } = await supabase
+        .from('food_donations')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, created_at, expiry_date, rating, image_url')
+        .eq('status', 'available')
+        .is('deleted_at', null);
 
       if (error) throw error;
-      setDonations((data || []).filter(d => d.status === 'available'));
+      setDonations(data || []);
     } catch (error) {
       toast.error('Failed to load donations');
     } finally {
@@ -757,10 +759,7 @@ export default function Dashboard() {
                         )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
-                          <span>{donation.masked_location}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground italic">
-                          Exact address will be revealed after your request is approved
+                          <span>{donation.pickup_location}</span>
                         </div>
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm font-semibold text-destructive bg-destructive/10 p-2 rounded">
