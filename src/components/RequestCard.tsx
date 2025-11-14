@@ -177,13 +177,13 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             buttonText="Message Donor"
           />
           {!countdown.expired && (
-            <Button 
-              onClick={handleDealDone} 
-              disabled={isConfirming}
-              className="flex-1"
-            >
-              {isConfirming ? 'Confirming...' : 'Deal Done'}
-            </Button>
+          <Button 
+            onClick={handleDealDone} 
+            disabled={isConfirming}
+            className="flex-1 transition-all hover:scale-105 active:scale-95"
+          >
+            {isConfirming ? 'Confirming...' : 'Deal Done'}
+          </Button>
           )}
         </CardFooter>
       )}

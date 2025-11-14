@@ -552,7 +552,7 @@ export default function Dashboard() {
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground mb-4">No active donations yet</p>
-                    <Button onClick={() => navigate('/donate')}>Create Your First Donation</Button>
+                    <Button onClick={() => navigate('/donate')} className="transition-all hover:scale-105 active:scale-95">Create Your First Donation</Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -773,7 +773,7 @@ export default function Dashboard() {
                       </CardContent>
                       <CardFooter>
                         <Button 
-                          className="w-full" 
+                          className="w-full transition-all hover:scale-105 active:scale-95" 
                           onClick={() => requestFood(donation.id)}
                         >
                           Request Food
@@ -837,10 +837,10 @@ export default function Dashboard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingDonation(null)}>
+            <Button variant="outline" onClick={() => setEditingDonation(null)} className="transition-all hover:scale-105 active:scale-95">
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit}>
+            <Button onClick={handleSaveEdit} className="transition-all hover:scale-105 active:scale-95">
               Save Changes
             </Button>
           </DialogFooter>
@@ -900,16 +900,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
             {request.status}
           </Badge>
         </div>
-        <CardDescription>
-          Requested by: {request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : request.profiles?.email || 'Unknown'}
+        <CardDescription className="line-clamp-2">
+          {request.food_donations.description}
         </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
         {request.profiles && (
-          <div className="mt-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
-            <p className="text-sm font-semibold text-primary">Requester Contact:</p>
+          <div className="mb-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20 animate-fade-in">
+            <p className="text-sm font-semibold text-primary">Request Details:</p>
             <div className="space-y-1 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-3.5 w-3.5" />
-                <span>{request.profiles.first_name} {request.profiles.last_name}</span>
+                <span className="font-medium">{request.profiles.first_name} {request.profiles.last_name}</span>
               </div>
               {request.profiles.email && (
                 <div className="flex items-center gap-2">
@@ -926,9 +928,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
             </div>
           </div>
         )}
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-sm text-muted-foreground">{request.message}</p>
+        <p className="text-sm text-muted-foreground italic">{request.message}</p>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Package className="h-4 w-4" />
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
@@ -964,7 +964,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
       {request.status === 'pending' ? (
         <CardFooter className="gap-2">
           <Button
-            className="flex-1"
+            className="flex-1 transition-all hover:scale-105 active:scale-95"
             onClick={onAccept}
           >
             <Check className="h-4 w-4 mr-2" />
@@ -972,7 +972,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           </Button>
           <Button
             variant="destructive"
-            className="flex-1"
+            className="flex-1 transition-all hover:scale-105 active:scale-95"
             onClick={onReject}
           >
             <X className="h-4 w-4 mr-2" />
@@ -984,10 +984,10 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           <ChatDialog
             donationId={request.food_donations.id}
             otherUserId={request.requester_id}
-            otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : request.profiles?.email || 'Receiver'}
+            otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : 'Requester'}
             donationTitle={request.food_donations.title}
-            buttonVariant="outline"
-            buttonText="Message Receiver"
+            buttonVariant="default"
+            buttonText="Message Requester"
           />
         </CardFooter>
       ) : null}

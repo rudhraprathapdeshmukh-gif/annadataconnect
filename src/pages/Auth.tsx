@@ -406,7 +406,7 @@ export default function Auth() {
                   </div>
                 )}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>
             </form>
@@ -423,7 +423,7 @@ export default function Auth() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>
               <Button
@@ -597,7 +597,7 @@ export default function Auth() {
                 <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
               {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
             </Button>
             

@@ -25,12 +25,12 @@ export default function ChatDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize}>
+        <Button variant={buttonVariant} size={buttonSize} className="transition-all hover:scale-105 active:scale-95">
           <MessageCircle className="h-4 w-4 mr-2" />
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 animate-scale-in">
         <Chat
           donationId={donationId}
           otherUserId={otherUserId}
