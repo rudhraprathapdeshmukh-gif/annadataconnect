@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Package } from 'lucide-react';
+import { Calendar, Clock, Package, MapPin, Phone, Mail, User } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import ChatDialog from './ChatDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,13 @@ interface FoodDonation {
   donor_id: string;
   image_url?: string | null;
   phone_number?: string | null;
+  pickup_location?: string | null;
+  profiles?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number?: string;
+  };
 }
 
 interface FoodRequest {
@@ -114,6 +121,36 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           <Calendar className="h-4 w-4" />
           <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
         </div>
+        {request.status === 'approved' && request.food_donations.pickup_location && (
+          <div className="mt-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
+            <p className="text-sm font-semibold text-primary">Pickup Details:</p>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{request.food_donations.pickup_location}</span>
+            </div>
+            {request.food_donations.profiles && (
+              <div className="space-y-1 text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
+                <p className="font-medium text-foreground">Donor Contact:</p>
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5" />
+                  <span>{request.food_donations.profiles.first_name} {request.food_donations.profiles.last_name}</span>
+                </div>
+                {request.food_donations.profiles.phone_number && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>{request.food_donations.profiles.phone_number}</span>
+                  </div>
+                )}
+                {request.food_donations.profiles.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>{request.food_donations.profiles.email}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {request.status === 'approved' && expiryTime && (
           <div className={`flex items-center gap-2 text-sm font-semibold ${
             countdown.expired ? 'text-destructive' : 'text-primary'
