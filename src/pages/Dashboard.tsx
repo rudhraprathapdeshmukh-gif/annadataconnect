@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
@@ -877,9 +878,83 @@ interface DonorRequestCardProps {
 
 function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequestCardProps) {
   const countdown = useCountdown(expiryTime);
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6) {
+      toast.error('Please enter the complete 6-digit OTP');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      // Fetch the donation OTP
+      const { data: donation, error: fetchError } = await supabase
+        .from('food_donations')
+        .select('otp')
+        .eq('id', request.food_donations.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (donation.otp !== otpValue) {
+        toast.error('Invalid OTP. Please check and try again.');
+        setIsVerifying(false);
+        return;
+      }
+
+      // Update request status to completed
+      const { error: requestError } = await supabase
+        .from('food_requests')
+        .update({ status: 'completed' })
+        .eq('id', request.id);
+
+      if (requestError) throw requestError;
+
+      // Update donation status to completed
+      const { error: donationError } = await supabase
+        .from('food_donations')
+        .update({ status: 'completed', deleted_at: new Date().toISOString() })
+        .eq('id', request.food_donations.id);
+
+      if (donationError) throw donationError;
+
+      toast.success('Pickup confirmed! Thank you for donating.');
+      setShowOtpDialog(false);
+      setShowRatingDialog(true);
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      toast.error('Failed to verify OTP. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSubmitRating = async () => {
+    if (rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    try {
+      // We could add a separate receiver_rating field, for now just close the dialog
+      toast.success('Thank you for your rating!');
+      setShowRatingDialog(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
+    }
+  };
   
   return (
-    <Card>
+    <>
+      <Card>
       {request.food_donations.image_url && (
         <div className="w-full h-48 overflow-hidden">
           <img
@@ -962,35 +1037,116 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
         )}
       </CardContent>
       {request.status === 'pending' ? (
-        <CardFooter className="gap-2">
-          <Button
-            className="flex-1 transition-all hover:scale-105 active:scale-95"
+        <CardFooter className="flex gap-2">
+          <Button 
+            variant="default" 
+            className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onAccept}
           >
             <Check className="h-4 w-4 mr-2" />
             Accept
           </Button>
-          <Button
-            variant="destructive"
-            className="flex-1 transition-all hover:scale-105 active:scale-95"
+          <Button 
+            variant="destructive" 
+            className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onReject}
           >
             <X className="h-4 w-4 mr-2" />
             Reject
           </Button>
         </CardFooter>
-      ) : request.status === 'approved' ? (
-        <CardFooter>
-          <ChatDialog
-            donationId={request.food_donations.id}
-            otherUserId={request.requester_id}
-            otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : 'Requester'}
-            donationTitle={request.food_donations.title}
-            buttonVariant="default"
-            buttonText="Message Requester"
-          />
+      ) : request.status === 'approved' && !countdown.expired ? (
+        <CardFooter className="flex flex-col gap-2">
+          <Button 
+            variant="default" 
+            className="w-full transition-all hover:scale-105 active:scale-95" 
+            onClick={() => setShowOtpDialog(true)}
+          >
+            <KeyRound className="h-4 w-4 mr-2" />
+            Verify Pickup OTP
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Enter the OTP provided by the receiver to confirm pickup
+          </p>
         </CardFooter>
       ) : null}
     </Card>
+
+    <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Verify Pickup OTP</DialogTitle>
+          <DialogDescription>
+            Ask the receiver to show their OTP and enter it below to confirm the pickup
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-center py-6">
+          <InputOTP
+            maxLength={6}
+            value={otpValue}
+            onChange={setOtpValue}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowOtpDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleVerifyOtp} 
+            disabled={isVerifying || otpValue.length !== 6}
+            className="transition-all hover:scale-105 active:scale-95"
+          >
+            {isVerifying ? 'Verifying...' : 'Verify & Confirm Pickup'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rate the Receiver</DialogTitle>
+          <DialogDescription>
+            How was your experience with this receiver?
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-center gap-2 py-6">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              className="transition-all hover:scale-110 active:scale-95"
+            >
+              <Star
+                className={`h-10 w-10 ${
+                  star <= (hoverRating || rating)
+                    ? 'fill-yellow-500 text-yellow-500'
+                    : 'text-muted-foreground'
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowRatingDialog(false)}>
+            Skip
+          </Button>
+          <Button onClick={handleSubmitRating} className="transition-all hover:scale-105 active:scale-95">
+            Submit Rating
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
