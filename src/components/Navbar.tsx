@@ -124,6 +124,13 @@ export default function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
+                  <Link to="/profile">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </DropdownMenuItem>
+                  </Link>
+                  
                   <Link to="/history">
                     <DropdownMenuItem className="cursor-pointer">
                       <FolderClock className="h-4 w-4 mr-2" />

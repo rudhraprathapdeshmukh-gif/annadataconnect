@@ -98,10 +98,6 @@ export default function Dashboard() {
     quantity: '',
     pickup_location: '',
   });
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -141,72 +137,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
-        return;
-      }
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAvatarUpload = async () => {
-    if (!avatarFile || !user) return;
-
-    setUploadingAvatar(true);
-    try {
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `avatars/${user.id}/${fileName}`;
-
-      // Delete old avatar if exists
-      if (userProfile?.avatar_url) {
-        const oldPath = userProfile.avatar_url.split('/').slice(-3).join('/');
-        await supabase.storage.from('food-images').remove([oldPath]);
-      }
-
-      // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from('food-images')
-        .upload(filePath, avatarFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('food-images')
-        .getPublicUrl(filePath);
-
-      // Update profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      setUserProfile({ ...userProfile!, avatar_url: publicUrl });
-      setShowProfileDialog(false);
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      toast.success('Profile picture updated successfully!');
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast.error('Failed to update profile picture');
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
 
   // Real-time subscription for food_requests updates
   useEffect(() => {
@@ -560,14 +490,6 @@ export default function Dashboard() {
                     {userProfile?.last_name?.[0]?.toUpperCase() || ''}
                   </AvatarFallback>
                 </Avatar>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full shadow-md"
-                  onClick={() => setShowProfileDialog(true)}
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
               </div>
               <div>
                 <h1 className="text-3xl font-bold mb-2">
@@ -919,56 +841,6 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Profile Picture Dialog */}
-      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Change Profile Picture</DialogTitle>
-            <DialogDescription>
-              Upload a new profile picture. Max size 5MB.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center gap-4">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture preview" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-4xl">
-                  {userProfile?.first_name?.[0]?.toUpperCase() || 'U'}
-                  {userProfile?.last_name?.[0]?.toUpperCase() || ''}
-                </AvatarFallback>
-              </Avatar>
-              <div className="w-full">
-                <Label htmlFor="avatar-upload" className="cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-md hover:bg-accent transition-colors">
-                    <Upload className="h-4 w-4" />
-                    <span>Choose Image</span>
-                  </div>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </Label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowProfileDialog(false);
-              setAvatarFile(null);
-              setAvatarPreview(null);
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleAvatarUpload} disabled={!avatarFile || uploadingAvatar}>
-              {uploadingAvatar ? 'Uploading...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
