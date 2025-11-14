@@ -14,7 +14,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Upload, X, CalendarIcon, Clock } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Upload, X, CalendarIcon, Clock, ShieldCheck } from 'lucide-react';
 import { format, addYears, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,9 @@ const donationSchema = z.object({
   }, { message: "Expiry date must be between now and 2 years from today" }),
   rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
   image: z.instanceof(File, { message: "Food image is required" }),
+  safety_confirmed: z.boolean().refine((val) => val === true, {
+    message: "You must confirm the food is safe to donate",
+  }),
 });
 
 export default function Donate() {
@@ -65,6 +69,7 @@ export default function Donate() {
   const [expiryTime, setExpiryTime] = useState('12:00');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [safetyConfirmed, setSafetyConfirmed] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -139,11 +144,12 @@ export default function Donate() {
       const expiryDateTime = new Date(expiryDate);
       expiryDateTime.setHours(hours, minutes, 0, 0);
 
-      // Validate input including image and expiry datetime
+      // Validate input including image, expiry datetime, and safety confirmation
       const validation = donationSchema.safeParse({ 
         ...formData, 
         image: imageFile,
-        expiry_datetime: expiryDateTime
+        expiry_datetime: expiryDateTime,
+        safety_confirmed: safetyConfirmed,
       });
       
       if (!validation.success) {
@@ -171,8 +177,11 @@ export default function Donate() {
       // Combine address fields into pickup_location
       const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
 
-      // Insert donation with image URL and coordinates
-      const { error } = await supabase
+      // Generate 6-digit OTP for pickup verification
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Insert donation with image URL, coordinates, and OTP
+      const { data: donationData, error } = await supabase
         .from('food_donations')
         .insert([{
           donor_id: user.id,
@@ -188,11 +197,14 @@ export default function Donate() {
           expiry_date: validation.data.expiry_datetime.toISOString(),
           rating: validation.data.rating,
           image_url: publicUrl,
-        }]);
+          otp: otp,
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast.success('Food donation created successfully!');
+      toast.success(`Donation created successfully! ID: ${donationData.id.slice(0, 8).toUpperCase()}`);
       navigate('/dashboard');
     } catch (error) {
       toast.error('Failed to create donation');
@@ -486,7 +498,39 @@ export default function Donate() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
+              <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-3 flex-1">
+                    <div>
+                      <h3 className="font-semibold text-foreground mb-2">Safety Check</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        A quick built-in reminder: Food must be fresh, not spoiled, and stored safely.
+                      </p>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="safety-check"
+                        checked={safetyConfirmed}
+                        onCheckedChange={(checked) => setSafetyConfirmed(checked as boolean)}
+                        className="mt-0.5"
+                      />
+                      <label
+                        htmlFor="safety-check"
+                        className="text-sm font-medium leading-relaxed cursor-pointer"
+                      >
+                        I confirm this food is safe, fresh, and suitable for donation
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full transition-all hover:scale-105 active:scale-95" 
+                disabled={submitting || !safetyConfirmed}
+              >
                 {submitting ? 'Creating...' : 'Create Donation'}
               </Button>
             </form>
