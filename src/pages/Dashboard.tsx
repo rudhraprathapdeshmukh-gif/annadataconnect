@@ -1148,5 +1148,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
