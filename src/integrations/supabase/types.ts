@@ -93,8 +93,10 @@ export type Database = {
           accepted_at: string | null
           created_at: string
           donation_id: string
+          donor_rating: number | null
           id: string
           message: string | null
+          receiver_rating: number | null
           requester_id: string
           status: string | null
           updated_at: string
@@ -103,8 +105,10 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           donation_id: string
+          donor_rating?: number | null
           id?: string
           message?: string | null
+          receiver_rating?: number | null
           requester_id: string
           status?: string | null
           updated_at?: string
@@ -113,8 +117,10 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           donation_id?: string
+          donor_rating?: number | null
           id?: string
           message?: string | null
+          receiver_rating?: number | null
           requester_id?: string
           status?: string | null
           updated_at?: string
