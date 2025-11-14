@@ -904,9 +904,26 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           Requested by: {request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : request.profiles?.email || 'Unknown'}
         </CardDescription>
         {request.profiles && (
-          <div className="text-sm text-muted-foreground space-y-1 mt-2">
-            {request.profiles.email && <div>Email: {request.profiles.email}</div>}
-            {request.profiles.phone_number && <div>Phone: {request.profiles.phone_number}</div>}
+          <div className="mt-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
+            <p className="text-sm font-semibold text-primary">Requester Contact:</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5" />
+                <span>{request.profiles.first_name} {request.profiles.last_name}</span>
+              </div>
+              {request.profiles.email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>{request.profiles.email}</span>
+                </div>
+              )}
+              {request.profiles.phone_number && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>{request.profiles.phone_number}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardHeader>
@@ -916,15 +933,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           <Package className="h-4 w-4" />
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
-        {request.food_donations.pickup_location && (
-          <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <p className="text-sm font-semibold text-primary mb-2">Pickup Location:</p>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span>{request.food_donations.pickup_location}</span>
-            </div>
-          </div>
-        )}
         {request.food_donations.rating && (
           <div className="flex items-center gap-2 text-sm">
             <div className="flex items-center gap-1">
