@@ -22,7 +22,7 @@ interface FoodDonation {
   image_url?: string | null;
   phone_number?: string | null;
   pickup_location?: string | null;
-  profiles?: {
+  donor_profile?: {
     first_name: string;
     last_name: string;
     email: string;
@@ -128,23 +128,23 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{request.food_donations.pickup_location}</span>
             </div>
-            {request.food_donations.profiles && (
+            {request.food_donations.donor_profile && (
               <div className="space-y-1 text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
                 <p className="font-medium text-foreground">Donor Contact:</p>
                 <div className="flex items-center gap-2">
                   <User className="h-3.5 w-3.5" />
-                  <span>{request.food_donations.profiles.first_name} {request.food_donations.profiles.last_name}</span>
+                  <span>{request.food_donations.donor_profile.first_name} {request.food_donations.donor_profile.last_name}</span>
                 </div>
-                {request.food_donations.profiles.phone_number && (
+                {request.food_donations.donor_profile.phone_number && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-3.5 w-3.5" />
-                    <span>{request.food_donations.profiles.phone_number}</span>
+                    <span>{request.food_donations.donor_profile.phone_number}</span>
                   </div>
                 )}
-                {request.food_donations.profiles.email && (
+                {request.food_donations.donor_profile.email && (
                   <div className="flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
-                    <span>{request.food_donations.profiles.email}</span>
+                    <span>{request.food_donations.donor_profile.email}</span>
                   </div>
                 )}
               </div>
