@@ -475,7 +475,7 @@ export default function Dashboard() {
 
   if (loading || loadingDonations) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-muted-foreground">Loading...</p>
@@ -485,7 +485,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
