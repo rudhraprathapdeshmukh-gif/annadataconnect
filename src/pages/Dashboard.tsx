@@ -475,8 +475,13 @@ export default function Dashboard() {
 
   if (loading || loadingDonations) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-background via-primary/10 to-accent/10">
         <Navbar />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl opacity-40" />
+          <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-gradient-to-tr from-accent/25 to-primary/25 blur-3xl opacity-40" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/.15)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.15)_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
+        </div>
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-muted-foreground">Loading...</p>
         </div>
@@ -485,8 +490,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-background via-primary/10 to-accent/10">
       <Navbar />
+      
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 blur-3xl opacity-40" />
+        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-gradient-to-tr from-accent/25 to-primary/25 blur-3xl opacity-40" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/.15)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.15)_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
+      </div>
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
