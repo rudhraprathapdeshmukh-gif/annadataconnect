@@ -306,10 +306,11 @@ export default function Dashboard() {
 
       if (error) throw error;
       
-      // Filter out requests for claimed or deleted donations
+      // Filter out requests for claimed or deleted donations and hide completed ones
       const activeRequests = (data || []).filter(request => 
         request.food_donations.status !== 'claimed' && 
-        !request.food_donations.deleted_at
+        !request.food_donations.deleted_at &&
+        request.status !== 'completed'
       );
       
       setMyRequests(activeRequests);
