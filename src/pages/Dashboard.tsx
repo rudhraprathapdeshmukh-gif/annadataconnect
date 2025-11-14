@@ -236,11 +236,13 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
-      // Get all donation IDs for which the current user is the donor
+      // Get all active donation IDs for which the current user is the donor (not claimed, not deleted)
       const { data: myDonationRows, error: myDonationsError } = await supabase
         .from('food_donations')
         .select('id')
-        .eq('donor_id', user.id);
+        .eq('donor_id', user.id)
+        .neq('status', 'claimed')
+        .is('deleted_at', null);
 
       if (myDonationsError) throw myDonationsError;
 
@@ -303,7 +305,14 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMyRequests(data || []);
+      
+      // Filter out requests for claimed or deleted donations
+      const activeRequests = (data || []).filter(request => 
+        request.food_donations.status !== 'claimed' && 
+        !request.food_donations.deleted_at
+      );
+      
+      setMyRequests(activeRequests);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load my requests:', error);
