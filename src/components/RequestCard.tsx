@@ -1,14 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Package, MapPin, Phone, Mail, User } from 'lucide-react';
+import { Calendar, Clock, Package, MapPin, Phone, Mail, User, KeyRound, Star } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import ChatDialog from './ChatDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface FoodDonation {
   id: string;
@@ -22,6 +23,7 @@ interface FoodDonation {
   image_url?: string | null;
   phone_number?: string | null;
   pickup_location?: string | null;
+  otp?: string | null;
   donor_profile?: {
     first_name: string;
     last_name: string;
@@ -48,6 +50,31 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const { user } = useAuth();
   const [isConfirming, setIsConfirming] = useState(false);
+  const [otp, setOtp] = useState<string | null>(null);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+
+  useEffect(() => {
+    if (request.status === 'approved') {
+      fetchOtp();
+    }
+  }, [request.status]);
+
+  const fetchOtp = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('food_donations')
+        .select('otp')
+        .eq('id', request.food_donations.id)
+        .single();
+
+      if (error) throw error;
+      setOtp(data.otp);
+    } catch (error) {
+      console.error('Error fetching OTP:', error);
+    }
+  };
 
   const handleDealDone = async () => {
     setIsConfirming(true);
@@ -74,6 +101,28 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       toast.error('Failed to confirm deal. Please try again.');
     } finally {
       setIsConfirming(false);
+    }
+  };
+
+  const handleSubmitRating = async () => {
+    if (rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('food_donations')
+        .update({ rating })
+        .eq('id', request.food_donations.id);
+
+      if (error) throw error;
+
+      toast.success('Thank you for your rating!');
+      setShowRatingDialog(false);
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
     }
   };
 
