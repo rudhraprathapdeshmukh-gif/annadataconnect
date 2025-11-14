@@ -914,6 +914,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           <Package className="h-4 w-4" />
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
+        {request.food_donations.pickup_location && (
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>{request.food_donations.pickup_location}</span>
+          </div>
+        )}
         {request.food_donations.rating && (
           <div className="flex items-center gap-2 text-sm">
             <div className="flex items-center gap-1">
