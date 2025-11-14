@@ -38,6 +38,7 @@ interface FoodRequest {
   message: string;
   created_at: string;
   accepted_at: string | null;
+  receiver_rating: number | null;
   food_donations: FoodDonation;
 }
 
@@ -59,7 +60,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
     if (request.status === 'approved') {
       fetchOtp();
     }
-  }, [request.status]);
+    // Show rating dialog if request is completed and receiver hasn't rated yet
+    if (request.status === 'completed' && !request.receiver_rating) {
+      setShowRatingDialog(true);
+    }
+  }, [request.status, request.receiver_rating]);
 
   const fetchOtp = async () => {
     try {
@@ -111,10 +116,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
     }
 
     try {
+      // Save receiver's rating of the donor
       const { error } = await supabase
-        .from('food_donations')
-        .update({ rating })
-        .eq('id', request.food_donations.id);
+        .from('food_requests')
+        .update({ receiver_rating: rating })
+        .eq('id', request.id);
 
       if (error) throw error;
 
@@ -200,6 +206,22 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             )}
           </div>
         )}
+        {request.status === 'approved' && otp && (
+          <div className="mt-3 p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <KeyRound className="h-4 w-4" />
+              <span>Your Pickup OTP</span>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold tracking-widest text-foreground font-mono bg-background/50 rounded px-4 py-3 border border-border/50">
+                {otp}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Show this code to the donor during pickup
+              </p>
+            </div>
+          </div>
+        )}
         {request.status === 'approved' && expiryTime && (
           <div className={`flex items-center gap-2 text-sm font-semibold ${
             countdown.expired ? 'text-destructive' : 'text-primary'
@@ -225,15 +247,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             buttonVariant="outline"
             buttonText="Message Donor"
           />
-          {!countdown.expired && (
-          <Button 
-            onClick={handleDealDone} 
-            disabled={isConfirming}
-            className="flex-1 transition-all hover:scale-105 active:scale-95"
-          >
-            {isConfirming ? 'Confirming...' : 'Deal Done'}
-          </Button>
-          )}
         </CardFooter>
       )}
     </Card>

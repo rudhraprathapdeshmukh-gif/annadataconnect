@@ -73,6 +73,8 @@ interface FoodRequest {
   message: string;
   created_at: string;
   accepted_at: string | null;
+  donor_rating: number | null;
+  receiver_rating: number | null;
   food_donations: FoodDonation;
   profiles: {
     first_name: string;
@@ -885,6 +887,13 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
+  // Show rating dialog if request is completed and donor hasn't rated yet
+  useEffect(() => {
+    if (request.status === 'completed' && !request.donor_rating) {
+      setShowRatingDialog(true);
+    }
+  }, [request.status, request.donor_rating]);
+
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6) {
       toast.error('Please enter the complete 6-digit OTP');
@@ -942,7 +951,14 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
     }
 
     try {
-      // We could add a separate receiver_rating field, for now just close the dialog
+      // Save donor's rating of the receiver
+      const { error } = await supabase
+        .from('food_requests')
+        .update({ donor_rating: rating })
+        .eq('id', request.id);
+
+      if (error) throw error;
+
       toast.success('Thank you for your rating!');
       setShowRatingDialog(false);
       window.location.reload();
