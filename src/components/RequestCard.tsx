@@ -53,10 +53,10 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
 
       if (requestError) throw requestError;
 
-      // Update donation status to claimed
+      // Update donation status to claimed and hide from public lists
       const { error: donationError } = await supabase
         .from('food_donations')
-        .update({ status: 'claimed' })
+        .update({ status: 'claimed', deleted_at: new Date().toISOString() })
         .eq('id', request.food_donations.id);
 
       if (donationError) throw donationError;

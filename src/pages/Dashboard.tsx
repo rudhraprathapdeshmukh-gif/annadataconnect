@@ -203,7 +203,7 @@ export default function Dashboard() {
       const { data, error } = await supabase.rpc('get_public_donations');
 
       if (error) throw error;
-      setDonations(data || []);
+      setDonations((data || []).filter(d => d.status === 'available'));
     } catch (error) {
       toast.error('Failed to load donations');
     } finally {
