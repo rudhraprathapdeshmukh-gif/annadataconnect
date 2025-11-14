@@ -88,7 +88,6 @@ export default function Dashboard() {
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
-  const [completedDonations, setCompletedDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string; avatar_url?: string } | null>(null);
   const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
@@ -111,7 +110,6 @@ export default function Dashboard() {
     if (user) {
       fetchUserProfile();
       fetchMyDonations();
-      fetchCompletedDonations();
       fetchRequests();
       fetchMyRequests();
     }
@@ -189,7 +187,6 @@ export default function Dashboard() {
           // Refresh all donation lists when any donation changes
           fetchDonations();
           fetchMyDonations();
-          fetchCompletedDonations();
         }
       )
       .subscribe();
@@ -231,27 +228,6 @@ export default function Dashboard() {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load my donations:', error);
-      }
-    }
-  };
-
-  const fetchCompletedDonations = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
-        .eq('donor_id', user.id)
-        .eq('status', 'claimed')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCompletedDonations(data || []);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to load completed donations:', error);
       }
     }
   };
@@ -542,7 +518,6 @@ export default function Dashboard() {
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
               <TabsTrigger value="requests">Requests ({requests.filter(r => r.status !== 'rejected').length})</TabsTrigger>
-              <TabsTrigger value="completed-donations">Completed ({completedDonations.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -645,67 +620,6 @@ export default function Dashboard() {
                     />
                     );
                   })}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="completed-donations" className="space-y-4">
-              {completedDonations.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No completed donations yet</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {completedDonations.map((donation) => (
-                    <Card key={donation.id} className="overflow-hidden">
-                      {donation.image_url && (
-                        <div className="w-full h-48 overflow-hidden">
-                          <img
-                            src={donation.image_url}
-                            alt={donation.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
-                          <Badge variant="default" className="bg-green-600">
-                            Completed
-                          </Badge>
-                        </div>
-                        <CardDescription className="line-clamp-2">
-                          {donation.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>{donation.quantity} {donation.quantity_unit}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 shrink-0" />
-                          <span className="line-clamp-1">{donation.pickup_location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>Donated: {new Date(donation.created_at).toLocaleDateString()}</span>
-                        </div>
-                        {donation.rating && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
-                              <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
-                            </div>
-                            <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
                 </div>
               )}
             </TabsContent>
