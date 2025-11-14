@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, User } from 'lucide-react';
+import { Upload, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Profile() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [userProfile, setUserProfile] = useState<{ 
     first_name: string; 
     last_name: string; 
@@ -219,6 +222,37 @@ export default function Profile() {
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
               <p className="text-lg capitalize">{userProfile?.user_type}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>Customize how the app looks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {theme === 'dark' ? (
+                  <Moon className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <Sun className="h-5 w-5 text-muted-foreground" />
+                )}
+                <div>
+                  <Label htmlFor="theme-toggle" className="text-base font-medium cursor-pointer">
+                    Dark Mode
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {theme === 'dark' ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="theme-toggle"
+                checked={theme === 'dark'}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              />
             </div>
           </CardContent>
         </Card>
