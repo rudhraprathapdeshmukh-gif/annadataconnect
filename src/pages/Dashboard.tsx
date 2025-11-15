@@ -1143,7 +1143,20 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
         setShowRatingDialog(open);
       }}
     >
-      <DialogContent>
+      <DialogContent 
+        onInteractOutside={(e) => {
+          if (rating === 0) {
+            e.preventDefault();
+            toast.error('Please rate the receiver before closing');
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          if (rating === 0) {
+            e.preventDefault();
+            toast.error('Please rate the receiver before closing');
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Rate the Receiver</DialogTitle>
           <DialogDescription>
