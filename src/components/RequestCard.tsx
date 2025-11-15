@@ -234,7 +234,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             otherUserName="Donor"
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
-            buttonText="Message Donor"
+            buttonText="Chat"
           />
         </CardFooter>
       )}
