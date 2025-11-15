@@ -246,6 +246,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_receiver_donation_ids: {
+        Args: { receiver_id: string }
+        Returns: {
+          donation_id: string
+        }[]
+      }
       get_receiver_donor_ids: {
         Args: { receiver_id: string }
         Returns: {
