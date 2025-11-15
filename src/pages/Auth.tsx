@@ -99,7 +99,7 @@ export default function Auth() {
       const oauthError = query.get('error_description') || hashParams2.get('error_description') || query.get('error') || hashParams2.get('error');
       if (oauthError) {
         const message = oauthError.includes('existing accounts')
-          ? 'Google sign-in is for existing accounts only. Please sign up with email/password first.'
+          ? 'You need to signup first'
           : oauthError;
         toast.error(message);
         // Clean the URL to remove error params
