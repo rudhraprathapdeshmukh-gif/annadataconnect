@@ -181,7 +181,7 @@ export default function History() {
         .from('food_requests')
         .select(`
           *,
-          food_donations!inner(*),
+          food_donations(*),
           profiles!requester_id(first_name, last_name, email)
         `)
         .eq('requester_id', user.id)
@@ -530,7 +530,9 @@ export default function History() {
                               onClick={() => handleRateUser(
                                 request.id, 
                                 'receiver',
-                                `${request.food_donations?.profiles?.first_name} ${request.food_donations?.profiles?.last_name}`
+                                request.food_donations?.profiles
+                                  ? `${request.food_donations.profiles.first_name} ${request.food_donations.profiles.last_name}`
+                                  : 'the donor'
                               )}
                             >
                               <Star className="h-4 w-4 mr-2" />
