@@ -246,6 +246,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_receiver_donor_ids: {
+        Args: { receiver_id: string }
+        Returns: {
+          donor_id: string
+        }[]
+      }
       get_user_display_name: { Args: { user_id: string }; Returns: string }
       has_active_approved_request: {
         Args: { _donation_id: string }
