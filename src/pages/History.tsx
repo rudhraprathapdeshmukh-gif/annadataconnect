@@ -371,23 +371,6 @@ export default function History() {
                                 Rate Receiver
                               </Button>
                             )}
-                            
-                            {/* Rating you received */}
-                            {donation.completed_request.donor_rating ? (
-                              <div className="flex items-center gap-2">
-                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                <span className="text-sm">
-                                  They rated you: {donation.completed_request.donor_rating}/5 ({getRatingLabel(donation.completed_request.donor_rating)})
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Star className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  Waiting for their rating
-                                </span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
@@ -538,23 +521,6 @@ export default function History() {
                               <Star className="h-4 w-4 mr-2" />
                               Rate Donor
                             </Button>
-                          )}
-                          
-                          {/* Rating you received */}
-                          {request.receiver_rating ? (
-                            <div className="flex items-center gap-2">
-                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                              <span className="text-sm">
-                                They rated you: {request.receiver_rating}/5 ({getRatingLabel(request.receiver_rating)})
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Star className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">
-                                Waiting for their rating
-                              </span>
-                            </div>
                           )}
                         </div>
                       </div>

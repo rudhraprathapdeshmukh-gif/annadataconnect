@@ -259,23 +259,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                   </span>
                 </div>
               )}
-              
-              {/* Rating you received (donor rated receiver) */}
-              {request.donor_rating ? (
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm">
-                    Donor rated you: {request.donor_rating}/5
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Waiting for donor's rating
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </CardFooter>
