@@ -92,15 +92,16 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
 
       if (requestError) throw requestError;
 
-      // Update donation status to claimed and hide from public lists
+      // Update donation status to completed and hide from public lists
       const { error: donationError } = await supabase
         .from('food_donations')
-        .update({ status: 'claimed', deleted_at: new Date().toISOString() })
+        .update({ status: 'completed', deleted_at: new Date().toISOString() })
         .eq('id', request.food_donations.id);
 
       if (donationError) throw donationError;
 
-      toast.success('Deal confirmed! The donation is now exclusively yours.');
+      toast.success('Pickup confirmed! Please rate the donor.');
+      setShowRatingDialog(true);
     } catch (error) {
       console.error('Error confirming deal:', error);
       toast.error('Failed to confirm deal. Please try again.');
@@ -249,6 +250,54 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           />
         </CardFooter>
       )}
+
+      {/* Rating Dialog for Receiver */}
+      <Dialog open={showRatingDialog} onOpenChange={(open) => {
+        if (!open && rating === 0) {
+          toast.error('Please rate the donor before closing');
+          return;
+        }
+        setShowRatingDialog(open);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rate the Donor</DialogTitle>
+            <DialogDescription>
+              How was your experience receiving this donation?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={`h-10 w-10 ${
+                      star <= (hoverRating || rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {rating > 0 && `You selected ${rating} star${rating > 1 ? 's' : ''}`}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSubmitRating} disabled={rating === 0}>
+              Submit Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
