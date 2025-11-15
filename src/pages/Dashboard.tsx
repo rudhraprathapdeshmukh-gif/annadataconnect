@@ -1098,6 +1098,19 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [receiverRating, setReceiverRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
+
+  useEffect(() => {
+    if (request.requester_id) {
+      loadReceiverRating();
+    }
+  }, [request.requester_id]);
+
+  const loadReceiverRating = async () => {
+    const { fetchUserRating } = await import('@/lib/userRatings');
+    const rating = await fetchUserRating(request.requester_id);
+    setReceiverRating(rating);
+  };
 
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6) {
@@ -1186,6 +1199,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
                 <User className="h-3.5 w-3.5" />
                 <span className="font-medium">{request.profiles.first_name} {request.profiles.last_name}</span>
               </div>
+              {receiverRating.average && (
+                <div className="flex items-center gap-2">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <span>{receiverRating.average} ({receiverRating.count} ratings)</span>
+                </div>
+              )}
               {request.profiles.email && (
                 <div className="flex items-center gap-2">
                   <Mail className="h-3.5 w-3.5" />
@@ -1198,6 +1217,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
                   <span>{request.profiles.phone_number}</span>
                 </div>
               )}
+              <a 
+                href={`/profile/${request.requester_id}`}
+                className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
+              >
+                View Full Profile →
+              </a>
             </div>
           </div>
         )}

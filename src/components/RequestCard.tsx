@@ -12,6 +12,8 @@ import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
+import { fetchUserRating } from '@/lib/userRatings';
 
 interface FoodDonation {
   id: string;
@@ -54,12 +56,21 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const { user } = useAuth();
   const [isConfirming, setIsConfirming] = useState(false);
   const [otp, setOtp] = useState<string | null>(null);
+  const [donorRating, setDonorRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
 
   useEffect(() => {
     if (request.status === 'approved') {
       fetchOtp();
+      if (request.food_donations.donor_id) {
+        loadDonorRating();
+      }
     }
-  }, [request.status]);
+  }, [request.status, request.food_donations.donor_id]);
+
+  const loadDonorRating = async () => {
+    const rating = await fetchUserRating(request.food_donations.donor_id);
+    setDonorRating(rating);
+  };
 
   const fetchOtp = async () => {
     try {
@@ -162,6 +173,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                   <User className="h-3.5 w-3.5" />
                   <span>{request.food_donations.donor_profile.first_name} {request.food_donations.donor_profile.last_name}</span>
                 </div>
+                {donorRating.average && (
+                  <div className="flex items-center gap-2">
+                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                    <span>{donorRating.average} ({donorRating.count} ratings)</span>
+                  </div>
+                )}
                 {request.food_donations.donor_profile.phone_number && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-3.5 w-3.5" />
@@ -174,6 +191,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                     <span>{request.food_donations.donor_profile.email}</span>
                   </div>
                 )}
+                <Link 
+                  to={`/profile/${request.food_donations.donor_id}`}
+                  className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
+                >
+                  View Full Profile →
+                </Link>
               </div>
             )}
           </div>
