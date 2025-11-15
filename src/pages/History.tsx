@@ -345,29 +345,52 @@ export default function History() {
                         <Calendar className="h-4 w-4" />
                         <span>Donated: {new Date(donation.created_at).toLocaleDateString()}</span>
                       </div>
-                      {donation.completed_request?.receiver_rating ? (
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">
-                            You rated the receiver: {donation.completed_request.receiver_rating}/5 ({getRatingLabel(donation.completed_request.receiver_rating)})
-                          </span>
-                        </div>
-                      ) : donation.completed_request ? (
-                        <div className="pt-2 border-t">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleRateUser(
-                              donation.completed_request!.id, 
-                              'donor',
-                              `${donation.completed_request?.requester_profile?.first_name} ${donation.completed_request?.requester_profile?.last_name}`
+                      {donation.completed_request && (
+                        <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50 mt-2">
+                          <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+                          <div className="space-y-2">
+                            {/* Rating you gave */}
+                            {donation.completed_request.receiver_rating ? (
+                              <div className="flex items-center gap-2">
+                                <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
+                                <span className="text-sm">
+                                  You rated them: {donation.completed_request.receiver_rating}/5 ({getRatingLabel(donation.completed_request.receiver_rating)})
+                                </span>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRateUser(
+                                  donation.completed_request!.id, 
+                                  'donor',
+                                  `${donation.completed_request?.requester_profile?.first_name} ${donation.completed_request?.requester_profile?.last_name}`
+                                )}
+                              >
+                                <Star className="h-4 w-4 mr-2" />
+                                Rate Receiver
+                              </Button>
                             )}
-                          >
-                            <Star className="h-4 w-4 mr-2" />
-                            Rate Receiver
-                          </Button>
+                            
+                            {/* Rating you received */}
+                            {donation.completed_request.donor_rating ? (
+                              <div className="flex items-center gap-2">
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                <span className="text-sm">
+                                  They rated you: {donation.completed_request.donor_rating}/5 ({getRatingLabel(donation.completed_request.donor_rating)})
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Star className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  Waiting for their rating
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ) : null}
+                      )}
                     </CardContent>
                   </Card>
                     ))}
@@ -489,29 +512,50 @@ export default function History() {
                         <Calendar className="h-4 w-4" />
                         <span>Received: {new Date(request.created_at).toLocaleDateString()}</span>
                       </div>
-                      {request.donor_rating ? (
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">
-                            You rated the donor: {request.donor_rating}/5 ({getRatingLabel(request.donor_rating)})
-                          </span>
+                      <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50 mt-2">
+                        <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+                        <div className="space-y-2">
+                          {/* Rating you gave */}
+                          {request.donor_rating ? (
+                            <div className="flex items-center gap-2">
+                              <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
+                              <span className="text-sm">
+                                You rated them: {request.donor_rating}/5 ({getRatingLabel(request.donor_rating)})
+                              </span>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRateUser(
+                                request.id, 
+                                'receiver',
+                                `${request.food_donations?.profiles?.first_name} ${request.food_donations?.profiles?.last_name}`
+                              )}
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Rate Donor
+                            </Button>
+                          )}
+                          
+                          {/* Rating you received */}
+                          {request.receiver_rating ? (
+                            <div className="flex items-center gap-2">
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                              <span className="text-sm">
+                                They rated you: {request.receiver_rating}/5 ({getRatingLabel(request.receiver_rating)})
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Star className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">
+                                Waiting for their rating
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="pt-2 border-t">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleRateUser(
-                              request.id, 
-                              'receiver',
-                              `${request.food_donations?.profiles?.first_name} ${request.food_donations?.profiles?.last_name}`
-                            )}
-                          >
-                            <Star className="h-4 w-4 mr-2" />
-                            Rate Donor
-                          </Button>
-                        </div>
-                      )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

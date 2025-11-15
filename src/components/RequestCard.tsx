@@ -43,6 +43,7 @@ interface FoodRequest {
   created_at: string;
   accepted_at: string | null;
   receiver_rating: number | null;
+  donor_rating: number | null;
   food_donations: FoodDonation;
 }
 
@@ -242,6 +243,48 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             buttonVariant="outline"
             buttonText="Message Donor"
           />
+        </CardFooter>
+      )}
+      {request.status === 'completed' && (
+        <CardFooter>
+          <div className="w-full space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+            <div className="space-y-2">
+              {/* Rating you gave (receiver rating donor) */}
+              {request.receiver_rating ? (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
+                  <span className="text-sm">
+                    You rated donor: {request.receiver_rating}/5
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    You haven't rated the donor yet
+                  </span>
+                </div>
+              )}
+              
+              {/* Rating you received (donor rated receiver) */}
+              {request.donor_rating ? (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  <span className="text-sm">
+                    Donor rated you: {request.donor_rating}/5
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Waiting for donor's rating
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </CardFooter>
       )}
     </Card>
