@@ -90,6 +90,7 @@ export default function Dashboard() {
   const [donations, setDonations] = useState<PublicDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
+  const [myRequestsAll, setMyRequestsAll] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
   const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string; avatar_url?: string } | null>(null);
@@ -129,10 +130,10 @@ export default function Dashboard() {
 
   // Check for pending ratings after data loads
   useEffect(() => {
-    if (user && requests.length > 0) {
+    if (user && (requests.length > 0 || myRequestsAll.length > 0)) {
       checkPendingRatings();
     }
-  }, [user, requests, myRequests]);
+  }, [user, requests, myRequestsAll]);
 
   const checkPendingRatings = () => {
     // Check if user is a donor with completed unrated requests
@@ -151,7 +152,7 @@ export default function Dashboard() {
     }
 
     // Check if user is a receiver with completed unrated requests
-    const receiverUnrated = myRequests.find(
+    const receiverUnrated = myRequestsAll.find(
       req => req.status === 'completed' && !req.receiver_rating
     );
     
@@ -175,8 +176,8 @@ export default function Dashboard() {
 
     try {
       const updateData = pendingRating.type === 'donor'
-        ? { donor_rating: globalRating, receiver_review: globalReview || null }
-        : { receiver_rating: globalRating, donor_review: globalReview || null };
+        ? { donor_rating: globalRating, donor_review: globalReview || null }
+        : { receiver_rating: globalRating, receiver_review: globalReview || null };
 
       const { error } = await supabase
         .from('food_requests')
@@ -396,7 +397,10 @@ export default function Dashboard() {
 
       if (error) throw error;
       
-      // Filter out requests for claimed or deleted donations and hide completed ones
+      // Keep a full copy for rating checks
+      setMyRequestsAll(data || []);
+      
+      // Filter out requests for claimed or deleted donations and hide completed ones for UI
       const activeRequests = (data || []).filter(request => 
         request.food_donations.status !== 'claimed' && 
         !request.food_donations.deleted_at &&
