@@ -277,6 +277,7 @@ export default function Dashboard() {
           // Refresh requests when any change occurs
           fetchRequests();
           fetchMyRequests();
+          fetchMyDonations();
         }
       )
       .subscribe();
@@ -430,7 +431,14 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRequests(data || []);
+      
+      // Filter out requests for completed, claimed, or deleted donations
+      const filtered = (data || []).filter(r =>
+        r.food_donations.status !== 'completed' &&
+        r.food_donations.status !== 'claimed' &&
+        !r.food_donations.deleted_at
+      );
+      setRequests(filtered);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load requests:', error);
@@ -793,7 +801,7 @@ export default function Dashboard() {
                       expiryTime={expiryTime}
                       onAccept={() => handleRequestAction(request.id, 'approved')}
                       onReject={() => handleRequestAction(request.id, 'rejected')}
-                      onRefresh={fetchRequests}
+                      onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
                     />
                     );
                   })}
@@ -1155,13 +1163,8 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
 
       if (requestError) throw requestError;
 
-      // Update donation status to completed
-      const { error: donationError } = await supabase
-        .from('food_donations')
-        .update({ status: 'completed', deleted_at: new Date().toISOString() })
-        .eq('id', request.food_donations.id);
-
-      if (donationError) throw donationError;
+      // Donation status update is handled by backend trigger on_request_completed()
+      // No manual update needed here
 
       toast.success('Pickup confirmed! Thank you for donating.');
       setShowOtpDialog(false);
