@@ -101,6 +101,15 @@ export default function Dashboard() {
     quantity: '',
     pickup_location: '',
   });
+  const [pendingRating, setPendingRating] = useState<{
+    requestId: string;
+    type: 'donor' | 'receiver';
+    otherUserName: string;
+    donationTitle: string;
+  } | null>(null);
+  const [globalRating, setGlobalRating] = useState(0);
+  const [globalHoverRating, setGlobalHoverRating] = useState(0);
+  const [globalReview, setGlobalReview] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -117,6 +126,79 @@ export default function Dashboard() {
       fetchMyRequests();
     }
   }, [user]);
+
+  // Check for pending ratings after data loads
+  useEffect(() => {
+    if (user && requests.length > 0) {
+      checkPendingRatings();
+    }
+  }, [user, requests, myRequests]);
+
+  const checkPendingRatings = () => {
+    // Check if user is a donor with completed unrated requests
+    const donorUnrated = requests.find(
+      req => req.status === 'completed' && !req.donor_rating
+    );
+    
+    if (donorUnrated) {
+      setPendingRating({
+        requestId: donorUnrated.id,
+        type: 'donor',
+        otherUserName: `${donorUnrated.profiles.first_name} ${donorUnrated.profiles.last_name}`,
+        donationTitle: donorUnrated.food_donations.title
+      });
+      return;
+    }
+
+    // Check if user is a receiver with completed unrated requests
+    const receiverUnrated = myRequests.find(
+      req => req.status === 'completed' && !req.receiver_rating
+    );
+    
+    if (receiverUnrated) {
+      setPendingRating({
+        requestId: receiverUnrated.id,
+        type: 'receiver',
+        otherUserName: receiverUnrated.food_donations.donor_profile 
+          ? `${receiverUnrated.food_donations.donor_profile.first_name} ${receiverUnrated.food_donations.donor_profile.last_name}`
+          : 'the donor',
+        donationTitle: receiverUnrated.food_donations.title
+      });
+    }
+  };
+
+  const handleGlobalRatingSubmit = async () => {
+    if (globalRating === 0 || !pendingRating) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    try {
+      const updateData = pendingRating.type === 'donor'
+        ? { donor_rating: globalRating, receiver_review: globalReview || null }
+        : { receiver_rating: globalRating, donor_review: globalReview || null };
+
+      const { error } = await supabase
+        .from('food_requests')
+        .update(updateData)
+        .eq('id', pendingRating.requestId);
+
+      if (error) throw error;
+
+      toast.success('Thank you for your rating!');
+      setPendingRating(null);
+      setGlobalRating(0);
+      setGlobalHoverRating(0);
+      setGlobalReview('');
+      
+      // Refresh data
+      fetchRequests();
+      fetchMyRequests();
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
+    }
+  };
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -867,6 +949,79 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Global Pending Rating Dialog */}
+      <Dialog 
+        open={!!pendingRating} 
+        onOpenChange={(open) => {
+          if (!open && globalRating === 0) {
+            toast.error('Please rate before closing - this is required to complete the transaction');
+            return;
+          }
+        }}
+      >
+        <DialogContent
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            toast.error('Please complete your rating to continue');
+          }}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+            toast.error('Please complete your rating to continue');
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Rate {pendingRating?.type === 'donor' ? 'the Receiver' : 'the Donor'}</DialogTitle>
+            <DialogDescription>
+              You need to rate {pendingRating?.otherUserName} for "{pendingRating?.donationTitle}" to complete this transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setGlobalRating(star)}
+                  onMouseEnter={() => setGlobalHoverRating(star)}
+                  onMouseLeave={() => setGlobalHoverRating(0)}
+                  className="transition-all hover:scale-110 active:scale-95"
+                >
+                  <Star
+                    className={`h-12 w-12 ${
+                      star <= (globalHoverRating || globalRating)
+                        ? 'fill-yellow-500 text-yellow-500'
+                        : 'text-muted-foreground'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="globalReview">Review (Optional)</Label>
+              <Textarea
+                id="globalReview"
+                placeholder={`Share your experience with ${pendingRating?.otherUserName}...`}
+                value={globalReview}
+                onChange={(e) => setGlobalReview(e.target.value)}
+                className="min-h-[100px] resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {globalReview.length}/500
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={handleGlobalRatingSubmit} 
+              disabled={globalRating === 0} 
+              className="transition-all hover:scale-105 active:scale-95"
+            >
+              Submit Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
