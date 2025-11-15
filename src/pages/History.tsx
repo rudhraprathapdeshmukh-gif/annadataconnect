@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MapPin, Package, Star, User } from 'lucide-react';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface FoodDonation {
   id: string;
@@ -27,6 +30,8 @@ interface FoodDonation {
   completed_request?: {
     id: string;
     created_at: string;
+    donor_rating: number | null;
+    receiver_rating: number | null;
     requester_profile?: {
       first_name: string;
       last_name: string;
@@ -43,6 +48,8 @@ interface FoodRequest {
   message: string;
   created_at: string;
   accepted_at: string | null;
+  donor_rating: number | null;
+  receiver_rating: number | null;
   food_donations: FoodDonation & {
     profiles?: {
       first_name: string;
@@ -64,6 +71,14 @@ export default function History() {
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [userType, setUserType] = useState<string | null>(null);
+  const [ratingDialog, setRatingDialog] = useState<{
+    open: boolean;
+    requestId: string;
+    type: 'donor' | 'receiver';
+    otherPersonName: string;
+  }>({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
   
   const completedDonations = donations.filter(d => d.status === 'claimed' && !d.deleted_at);
   const deletedDonations = donations.filter(d => d.deleted_at);
@@ -122,7 +137,7 @@ export default function History() {
         if (claimedDonationIds.length > 0) {
           const { data: completedRequests } = await supabase
             .from('food_requests')
-            .select('id, donation_id, requester_id, created_at')
+            .select('id, donation_id, requester_id, created_at, donor_rating, receiver_rating')
             .in('donation_id', claimedDonationIds)
             .eq('status', 'completed');
           
@@ -143,6 +158,8 @@ export default function History() {
                   donation.completed_request = {
                     id: request.id,
                     created_at: request.created_at,
+                    donor_rating: request.donor_rating,
+                    receiver_rating: request.receiver_rating,
                     requester_profile: {
                       first_name: receiver.first_name,
                       last_name: receiver.last_name,
@@ -195,6 +212,40 @@ export default function History() {
       console.error('Failed to load history:', error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleRateUser = (requestId: string, type: 'donor' | 'receiver', otherPersonName: string) => {
+    setRatingDialog({ open: true, requestId, type, otherPersonName });
+    setSelectedRating(0);
+  };
+
+  const submitRating = async () => {
+    if (selectedRating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    setSubmittingRating(true);
+    try {
+      const updateField = ratingDialog.type === 'donor' ? 'receiver_rating' : 'donor_rating';
+      
+      const { error } = await supabase
+        .from('food_requests')
+        .update({ [updateField]: selectedRating })
+        .eq('id', ratingDialog.requestId);
+
+      if (error) throw error;
+
+      toast.success('Rating submitted successfully!');
+      setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
+      setSelectedRating(0);
+      fetchHistory(); // Refresh data
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -293,14 +344,29 @@ export default function History() {
                         <Calendar className="h-4 w-4" />
                         <span>Donated: {new Date(donation.created_at).toLocaleDateString()}</span>
                       </div>
-                      {donation.rating && (
+                      {donation.completed_request?.receiver_rating ? (
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-medium">
-                            {getFreshnessLabel(donation.rating)} ({donation.rating}/5)
+                            You rated the receiver: {donation.completed_request.receiver_rating}/5
                           </span>
                         </div>
-                      )}
+                      ) : donation.completed_request ? (
+                        <div className="pt-2 border-t">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRateUser(
+                              donation.completed_request!.id, 
+                              'donor',
+                              `${donation.completed_request?.requester_profile?.first_name} ${donation.completed_request?.requester_profile?.last_name}`
+                            )}
+                          >
+                            <Star className="h-4 w-4 mr-2" />
+                            Rate Receiver
+                          </Button>
+                        </div>
+                      ) : null}
                     </CardContent>
                   </Card>
                     ))}
@@ -422,12 +488,27 @@ export default function History() {
                         <Calendar className="h-4 w-4" />
                         <span>Received: {new Date(request.created_at).toLocaleDateString()}</span>
                       </div>
-                      {request.food_donations?.rating && (
+                      {request.donor_rating ? (
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-medium">
-                            {getFreshnessLabel(request.food_donations.rating)} ({request.food_donations.rating}/5)
+                            You rated the donor: {request.donor_rating}/5
                           </span>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRateUser(
+                              request.id, 
+                              'receiver',
+                              `${request.food_donations?.profiles?.first_name} ${request.food_donations?.profiles?.last_name}`
+                            )}
+                          >
+                            <Star className="h-4 w-4 mr-2" />
+                            Rate Donor
+                          </Button>
                         </div>
                       )}
                     </CardContent>
@@ -439,6 +520,51 @@ export default function History() {
           )}
         </Tabs>
       </div>
+
+      {/* Rating Dialog */}
+      <Dialog open={ratingDialog.open} onOpenChange={(open) => setRatingDialog({ ...ratingDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rate {ratingDialog.otherPersonName}</DialogTitle>
+            <DialogDescription>
+              How would you rate your experience with {ratingDialog.otherPersonName}?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-center gap-2 py-8">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setSelectedRating(star)}
+                className="transition-all hover:scale-110"
+              >
+                <Star
+                  className={`h-10 w-10 ${
+                    star <= selectedRating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
+                setSelectedRating(0);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={submitRating} disabled={submittingRating || selectedRating === 0}>
+              {submittingRating ? 'Submitting...' : 'Submit Rating'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
