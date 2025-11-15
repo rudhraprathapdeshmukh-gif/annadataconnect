@@ -96,12 +96,21 @@ export default function Auth() {
     if (!isRecoveryMode) {
       const query = new URLSearchParams(window.location.search);
       const hashParams2 = new URLSearchParams(window.location.hash.substring(1));
-      const oauthError = query.get('error_description') || hashParams2.get('error_description') || query.get('error') || hashParams2.get('error');
-      if (oauthError) {
-        const message = oauthError.includes('existing accounts')
-          ? 'You need to signup first'
-          : oauthError;
-        toast.error(message);
+      const oauthError = query.get('error_description') || hashParams2.get('error_description');
+      const errorType = query.get('error') || hashParams2.get('error');
+      
+      if (oauthError || errorType) {
+        let message = oauthError || errorType;
+        
+        // Handle access_denied specifically for Google OAuth blocking
+        if (errorType === 'access_denied' || message.includes('access_denied')) {
+          message = 'Google sign-in is only available for existing accounts. Please sign up with email and password first, then you can link your Google account.';
+        } else if (message.includes('existing accounts') || message.includes('sign up first')) {
+          message = 'You need to sign up first with email and password before using Google sign-in.';
+        }
+        
+        toast.error(message, { duration: 6000 }); // Longer duration for important message
+        
         // Clean the URL to remove error params
         const cleanPath = window.location.pathname + (searchParams.get('mode') ? `?mode=${searchParams.get('mode')}` : '');
         window.history.replaceState(null, '', cleanPath);
@@ -121,7 +130,10 @@ export default function Auth() {
         if (error || !profile) {
           // User doesn't have a profile, they're trying to sign in without signing up
           await supabase.auth.signOut();
-          toast.error('No account found. Please sign up first before using Google sign-in.');
+          toast.error(
+            'No account found. Please sign up with email and password first before using Google sign-in.',
+            { duration: 6000 }
+          );
           return;
         }
 
@@ -244,20 +256,27 @@ export default function Auth() {
       });
       
       if (error) {
-        if (error.message.includes('existing accounts') || error.message.includes('sign up first')) {
-          toast.error('You need to signup first');
+        let errorMessage = error.message;
+        
+        if (error.message.includes('existing accounts') || 
+            error.message.includes('sign up first') ||
+            error.message.includes('access_denied')) {
+          errorMessage = 'Google sign-in is only available for existing accounts. Please sign up with email and password first.';
         } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
-          toast.error('Google sign-in is not configured. Please contact the administrator.');
-        } else {
-          toast.error(error.message);
+          errorMessage = 'Google sign-in is not configured. Please contact the administrator.';
         }
+        
+        toast.error(errorMessage, { duration: 6000 });
       }
     } catch (error: any) {
-      if (error?.message?.includes('existing accounts') || error?.message?.includes('sign up first')) {
-        toast.error('You need to signup first');
-      } else {
-        toast.error('An error occurred during Google sign-in');
-      }
+      const errorMessage = 
+        error?.message?.includes('existing accounts') || 
+        error?.message?.includes('sign up first') ||
+        error?.message?.includes('access_denied')
+          ? 'Google sign-in is only available for existing accounts. Please sign up with email and password first.'
+          : 'An error occurred during Google sign-in';
+      
+      toast.error(errorMessage, { duration: 6000 });
     }
   };
 
@@ -660,6 +679,10 @@ export default function Auth() {
                   </svg>
                   Sign in with Google
                 </Button>
+                
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Only available if you signed up with email first
+                </p>
               </>
             )}
           </form>
