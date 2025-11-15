@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,6 +112,7 @@ export default function Dashboard() {
   const [globalRating, setGlobalRating] = useState(0);
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
   const [globalReview, setGlobalReview] = useState('');
+  const hasCheckedInitialRatings = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -131,10 +132,18 @@ export default function Dashboard() {
 
   // Check for pending ratings after data loads
   useEffect(() => {
-    if (user && (donorRequestsAll.length > 0 || myRequestsAll.length > 0)) {
+    if (user && (donorRequestsAll.length > 0 || myRequestsAll.length > 0) && !hasCheckedInitialRatings.current) {
       checkPendingRatings();
+      hasCheckedInitialRatings.current = true;
     }
   }, [user, donorRequestsAll, myRequestsAll]);
+
+  // Reset on unmount
+  useEffect(() => {
+    return () => {
+      hasCheckedInitialRatings.current = false;
+    };
+  }, []);
 
   const getRatingLabel = (rating: number): string => {
     switch(rating) {
