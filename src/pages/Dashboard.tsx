@@ -136,6 +136,17 @@ export default function Dashboard() {
     }
   }, [user, donorRequestsAll, myRequestsAll]);
 
+  const getRatingLabel = (rating: number): string => {
+    switch(rating) {
+      case 5: return "Excellent";
+      case 4: return "Good";
+      case 3: return "Average";
+      case 2: return "Poor";
+      case 1: return "Very Poor";
+      default: return "Rate";
+    }
+  };
+
   const checkPendingRatings = () => {
     // Check if user is a donor with completed unrated requests
     const donorUnrated = donorRequestsAll.find(
@@ -761,6 +772,7 @@ export default function Dashboard() {
                       expiryTime={expiryTime}
                       onAccept={() => handleRequestAction(request.id, 'approved')}
                       onReject={() => handleRequestAction(request.id, 'rejected')}
+                      onRefresh={fetchRequests}
                     />
                     );
                   })}
@@ -1010,24 +1022,29 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
-            <div className="flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setGlobalRating(star)}
-                  onMouseEnter={() => setGlobalHoverRating(star)}
-                  onMouseLeave={() => setGlobalHoverRating(0)}
-                  className="transition-all hover:scale-110 active:scale-95"
-                >
-                  <Star
-                    className={`h-12 w-12 ${
-                      star <= (globalHoverRating || globalRating)
-                        ? 'fill-yellow-500 text-yellow-500'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                </button>
-              ))}
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setGlobalRating(star)}
+                    onMouseEnter={() => setGlobalHoverRating(star)}
+                    onMouseLeave={() => setGlobalHoverRating(0)}
+                    className="transition-all hover:scale-110 active:scale-95"
+                  >
+                    <Star
+                      className={`h-12 w-12 ${
+                        star <= (globalHoverRating || globalRating)
+                          ? 'fill-yellow-500 text-yellow-500'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-lg font-medium text-primary">
+                {getRatingLabel(globalHoverRating || globalRating)}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="globalReview">Review (Optional)</Label>
@@ -1064,24 +1081,14 @@ interface DonorRequestCardProps {
   expiryTime: Date | null;
   onAccept: () => void;
   onReject: () => void;
+  onRefresh: () => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }: DonorRequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [showRatingDialog, setShowRatingDialog] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [review, setReview] = useState('');
-
-  // Show rating dialog if request is completed and donor hasn't rated yet
-  useEffect(() => {
-    if (request.status === 'completed' && !request.donor_rating) {
-      setShowRatingDialog(true);
-    }
-  }, [request.status, request.donor_rating]);
 
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6) {
@@ -1124,7 +1131,8 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
 
       toast.success('Pickup confirmed! Thank you for donating.');
       setShowOtpDialog(false);
-      setShowRatingDialog(true);
+      // Refresh to trigger global rating dialog
+      onRefresh();
     } catch (error) {
       console.error('Error verifying OTP:', error);
       toast.error('Failed to verify OTP. Please try again.');
@@ -1133,35 +1141,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
     }
   };
 
-  const handleSubmitRating = async () => {
-    if (rating === 0) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    try {
-      // Save donor's rating of the receiver
-      const { error } = await supabase
-        .from('food_requests')
-        .update({ 
-          donor_rating: rating,
-          receiver_review: review || null
-        })
-        .eq('id', request.id);
-
-      if (error) throw error;
-
-      toast.success('Thank you for your rating!');
-      setShowRatingDialog(false);
-      setRating(0);
-      setReview('');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
-    }
-  };
-  
   return (
     <>
       <Card>
@@ -1316,79 +1295,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
             className="transition-all hover:scale-105 active:scale-95"
           >
             {isVerifying ? 'Verifying...' : 'Verify & Confirm Pickup'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog 
-      open={showRatingDialog} 
-      onOpenChange={(open) => {
-        if (!open && rating === 0) {
-          toast.error('Please rate the receiver before closing');
-          return;
-        }
-        setShowRatingDialog(open);
-      }}
-    >
-      <DialogContent 
-        onInteractOutside={(e) => {
-          if (rating === 0) {
-            e.preventDefault();
-            toast.error('Please rate the receiver before closing');
-          }
-        }}
-        onEscapeKeyDown={(e) => {
-          if (rating === 0) {
-            e.preventDefault();
-            toast.error('Please rate the receiver before closing');
-          }
-        }}
-      >
-        <DialogHeader>
-          <DialogTitle>Rate the Receiver</DialogTitle>
-          <DialogDescription>
-            How was your experience with this receiver?
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-4 py-4">
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                className="transition-all hover:scale-110 active:scale-95"
-              >
-                <Star
-                  className={`h-10 w-10 ${
-                    star <= (hoverRating || rating)
-                      ? 'fill-yellow-500 text-yellow-500'
-                      : 'text-muted-foreground'
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="review">Review (Optional)</Label>
-            <Textarea
-              id="review"
-              placeholder="Share your experience with this receiver..."
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              className="min-h-[100px] resize-none"
-              maxLength={500}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {review.length}/500
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmitRating} disabled={rating === 0} className="transition-all hover:scale-105 active:scale-95">
-            Submit Rating
           </Button>
         </DialogFooter>
       </DialogContent>
