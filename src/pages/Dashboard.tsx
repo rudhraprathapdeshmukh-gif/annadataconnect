@@ -886,6 +886,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [review, setReview] = useState('');
 
   // Show rating dialog if request is completed and donor hasn't rated yet
   useEffect(() => {
@@ -954,13 +955,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
       // Save donor's rating of the receiver
       const { error } = await supabase
         .from('food_requests')
-        .update({ donor_rating: rating })
+        .update({ 
+          donor_rating: rating,
+          receiver_review: review || null
+        })
         .eq('id', request.id);
 
       if (error) throw error;
 
       toast.success('Thank you for your rating!');
       setShowRatingDialog(false);
+      setRating(0);
+      setReview('');
       window.location.reload();
     } catch (error) {
       console.error('Error submitting rating:', error);
@@ -1144,24 +1150,40 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
             How was your experience with this receiver?
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-center gap-2 py-6">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="transition-all hover:scale-110 active:scale-95"
-            >
-              <Star
-                className={`h-10 w-10 ${
-                  star <= (hoverRating || rating)
-                    ? 'fill-yellow-500 text-yellow-500'
-                    : 'text-muted-foreground'
-                }`}
-              />
-            </button>
-          ))}
+        <div className="flex flex-col gap-4 py-4">
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                className="transition-all hover:scale-110 active:scale-95"
+              >
+                <Star
+                  className={`h-10 w-10 ${
+                    star <= (hoverRating || rating)
+                      ? 'fill-yellow-500 text-yellow-500'
+                      : 'text-muted-foreground'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="review">Review (Optional)</Label>
+            <Textarea
+              id="review"
+              placeholder="Share your experience with this receiver..."
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              className="min-h-[100px] resize-none"
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {review.length}/500
+            </p>
+          </div>
         </div>
         <DialogFooter>
           <Button onClick={handleSubmitRating} disabled={rating === 0} className="transition-all hover:scale-105 active:scale-95">
