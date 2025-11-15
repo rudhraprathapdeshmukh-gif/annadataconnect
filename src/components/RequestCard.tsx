@@ -270,7 +270,20 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           setShowRatingDialog(open);
         }}
       >
-        <DialogContent>
+        <DialogContent
+          onInteractOutside={(e) => {
+            if (rating === 0) {
+              e.preventDefault();
+              toast.error('Please rate the donor before closing');
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            if (rating === 0) {
+              e.preventDefault();
+              toast.error('Please rate the donor before closing');
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Rate the Donor</DialogTitle>
             <DialogDescription>
