@@ -169,12 +169,12 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
               {user ? (
                 <>
-                  <Link to="/dashboard">
-                    <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto">
-                      <Package className="mr-2 h-5 w-5" />
-                      Your Donations
-                    </Button>
-                  </Link>
+                <Link to="/dashboard">
+                  <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto">
+                    <Package className="mr-2 h-5 w-5" />
+                    {userType === 'receiver' ? 'Available Food' : 'Your Donations'}
+                  </Button>
+                </Link>
                   {userType !== 'receiver' && (
                     <Link to="/donate">
                       <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto">
