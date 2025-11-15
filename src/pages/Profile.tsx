@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, Moon, Sun } from 'lucide-react';
+import { Upload, Moon, Sun, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Profile() {
@@ -27,6 +27,8 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [totalRatings, setTotalRatings] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,6 +39,7 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchAverageRating();
     }
   }, [user]);
 
@@ -57,6 +60,57 @@ export default function Profile() {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load user profile:', error);
+      }
+    }
+  };
+
+  const fetchAverageRating = async () => {
+    if (!user) return;
+    
+    try {
+      // Fetch ratings where user is the donor (receiver rated them)
+      const { data: donorRatings } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .eq('donation_id', user.id)
+        .not('receiver_rating', 'is', null);
+
+      // Fetch donations by this user
+      const { data: userDonations } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id);
+
+      const donationIds = userDonations?.map(d => d.id) || [];
+
+      // Fetch ratings for these donations (where receivers rated the donor)
+      const { data: receiverRatingsForDonor } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .in('donation_id', donationIds)
+        .not('receiver_rating', 'is', null);
+
+      // Fetch ratings where user is the receiver (donor rated them)
+      const { data: receiverRatings } = await supabase
+        .from('food_requests')
+        .select('donor_rating')
+        .eq('requester_id', user.id)
+        .not('donor_rating', 'is', null);
+
+      // Combine all ratings
+      const allRatings: number[] = [
+        ...(receiverRatingsForDonor?.map(r => r.receiver_rating).filter(Boolean) || []),
+        ...(receiverRatings?.map(r => r.donor_rating).filter(Boolean) || [])
+      ] as number[];
+
+      if (allRatings.length > 0) {
+        const avg = allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length;
+        setAverageRating(Math.round(avg * 10) / 10); // Round to 1 decimal
+        setTotalRatings(allRatings.length);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load ratings:', error);
       }
     }
   };
@@ -223,6 +277,27 @@ export default function Profile() {
               <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
               <p className="text-lg capitalize">{userProfile?.user_type}</p>
             </div>
+            {averageRating !== null && (
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Average Rating</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-5 w-5 ${
+                          star <= Math.round(averageRating)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-lg font-semibold">{averageRating}</span>
+                  <span className="text-sm text-muted-foreground">({totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'})</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
