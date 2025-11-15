@@ -447,7 +447,7 @@ export default function Dashboard() {
         .from('food_requests')
         .select(`
           *,
-          food_donations!inner(
+          food_donations(
             *,
             donor_profile:profiles!donor_id(first_name, last_name, email, phone_number)
           ),
