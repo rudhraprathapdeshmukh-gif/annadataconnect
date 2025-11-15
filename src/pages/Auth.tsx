@@ -92,6 +92,22 @@ export default function Auth() {
       }
     })();
 
+    // Handle OAuth errors from provider redirects (e.g., blocked Google signup)
+    if (!isRecoveryMode) {
+      const query = new URLSearchParams(window.location.search);
+      const hashParams2 = new URLSearchParams(window.location.hash.substring(1));
+      const oauthError = query.get('error_description') || hashParams2.get('error_description') || query.get('error') || hashParams2.get('error');
+      if (oauthError) {
+        const message = oauthError.includes('existing accounts')
+          ? 'Google sign-in is for existing accounts only. Please sign up with email/password first.'
+          : oauthError;
+        toast.error(message);
+        // Clean the URL to remove error params
+        const cleanPath = window.location.pathname + (searchParams.get('mode') ? `?mode=${searchParams.get('mode')}` : '');
+        window.history.replaceState(null, '', cleanPath);
+      }
+    }
+
     // Check if user signed in with Google and validate they have an account
     if (user && !isRecoveryMode) {
       (async () => {
@@ -219,7 +235,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -636,7 +652,7 @@ export default function Auth() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  Sign in with Google (existing users only)
                 </Button>
               </>
             )}
