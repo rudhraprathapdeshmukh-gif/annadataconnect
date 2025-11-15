@@ -244,14 +244,20 @@ export default function Auth() {
       });
       
       if (error) {
-        if (error.message.includes('not enabled') || error.message.includes('not configured')) {
+        if (error.message.includes('existing accounts') || error.message.includes('sign up first')) {
+          toast.error('You need to signup first');
+        } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
           toast.error('Google sign-in is not configured. Please contact the administrator.');
         } else {
           toast.error(error.message);
         }
       }
-    } catch (error) {
-      toast.error('An error occurred during Google sign-in');
+    } catch (error: any) {
+      if (error?.message?.includes('existing accounts') || error?.message?.includes('sign up first')) {
+        toast.error('You need to signup first');
+      } else {
+        toast.error('An error occurred during Google sign-in');
+      }
     }
   };
 
