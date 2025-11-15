@@ -92,20 +92,13 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
     setIsConfirming(true);
     try {
       // Update request status to completed
+      // The database trigger will automatically update the donation status
       const { error: requestError } = await supabase
         .from('food_requests')
         .update({ status: 'completed' })
         .eq('id', request.id);
 
       if (requestError) throw requestError;
-
-      // Update donation status to completed and hide from public lists
-      const { error: donationError } = await supabase
-        .from('food_donations')
-        .update({ status: 'completed', deleted_at: new Date().toISOString() })
-        .eq('id', request.food_donations.id);
-
-      if (donationError) throw donationError;
 
       toast.success('Pickup confirmed! Please complete the rating to finish.');
     } catch (error) {
