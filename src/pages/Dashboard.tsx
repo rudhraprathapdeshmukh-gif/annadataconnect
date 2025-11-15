@@ -1318,17 +1318,40 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
         </CardFooter>
       ) : request.status === 'approved' && !countdown.expired ? (
         <CardFooter className="flex flex-col gap-2">
-          <Button 
-            variant="default" 
-            className="w-full transition-all hover:scale-105 active:scale-95" 
-            onClick={() => setShowOtpDialog(true)}
-          >
-            <KeyRound className="h-4 w-4 mr-2" />
-            Verify Pickup OTP
-          </Button>
+          <div className="flex gap-2 w-full">
+            <ChatDialog
+              donationId={request.donation_id}
+              otherUserId={request.requester_id}
+              otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : 'Receiver'}
+              donationTitle={request.food_donations.title}
+              buttonVariant="outline"
+              buttonSize="default"
+              buttonText="Chat"
+            />
+            <Button 
+              variant="default" 
+              className="flex-1 transition-all hover:scale-105 active:scale-95" 
+              onClick={() => setShowOtpDialog(true)}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Verify Pickup OTP
+            </Button>
+          </div>
           <p className="text-xs text-center text-muted-foreground">
             Enter the OTP provided by the receiver to confirm pickup
           </p>
+        </CardFooter>
+      ) : request.status === 'completed' ? (
+        <CardFooter>
+          <ChatDialog
+            donationId={request.donation_id}
+            otherUserId={request.requester_id}
+            otherUserName={request.profiles ? `${request.profiles.first_name} ${request.profiles.last_name}` : 'Receiver'}
+            donationTitle={request.food_donations.title}
+            buttonVariant="outline"
+            buttonSize="default"
+            buttonText="View Chat History"
+          />
         </CardFooter>
       ) : null}
     </Card>
