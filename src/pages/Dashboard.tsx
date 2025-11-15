@@ -658,7 +658,7 @@ export default function Dashboard() {
         {(userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') && (
           <Tabs defaultValue="list" className={userProfile?.user_type === 'both' ? 'space-y-6 mt-8' : 'space-y-6'}>
             <TabsList>
-              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="list">Available Food</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
             </TabsList>
 
