@@ -1293,23 +1293,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
                   </span>
                 </div>
               )}
-              
-              {/* Rating you received (receiver rated donor) */}
-              {request.donor_rating ? (
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm">
-                    They rated you: {request.donor_rating}/5
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Waiting for their rating
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         )}
