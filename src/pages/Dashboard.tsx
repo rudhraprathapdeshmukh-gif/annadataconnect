@@ -89,6 +89,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [donations, setDonations] = useState<PublicDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
+  const [donorRequestsAll, setDonorRequestsAll] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
   const [myRequestsAll, setMyRequestsAll] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
@@ -130,14 +131,14 @@ export default function Dashboard() {
 
   // Check for pending ratings after data loads
   useEffect(() => {
-    if (user && (requests.length > 0 || myRequestsAll.length > 0)) {
+    if (user && (donorRequestsAll.length > 0 || myRequestsAll.length > 0)) {
       checkPendingRatings();
     }
-  }, [user, requests, myRequestsAll]);
+  }, [user, donorRequestsAll, myRequestsAll]);
 
   const checkPendingRatings = () => {
     // Check if user is a donor with completed unrated requests
-    const donorUnrated = requests.find(
+    const donorUnrated = donorRequestsAll.find(
       req => req.status === 'completed' && !req.donor_rating
     );
     
@@ -324,7 +325,35 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
-      // Get all active donation IDs for which the current user is the donor (not claimed, not deleted)
+      // 1) Fetch ALL donation IDs for rating checks (no filters)
+      const { data: allDonationRows, error: allDonationsError } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id);
+
+      if (allDonationsError) throw allDonationsError;
+
+      const allDonationIds = allDonationRows?.map(d => d.id) ?? [];
+      
+      // 2) Fetch ALL requests for these donations for rating checks
+      if (allDonationIds.length > 0) {
+        const { data: allRequests, error: allRequestsError } = await supabase
+          .from('food_requests')
+          .select(`
+            *,
+            food_donations(*),
+            profiles(first_name, last_name, email, phone_number)
+          `)
+          .in('donation_id', allDonationIds)
+          .order('created_at', { ascending: false });
+
+        if (allRequestsError) throw allRequestsError;
+        setDonorRequestsAll(allRequests || []);
+      } else {
+        setDonorRequestsAll([]);
+      }
+
+      // 3) Get all active donation IDs for which the current user is the donor (not claimed, not deleted)
       const { data: myDonationRows, error: myDonationsError } = await supabase
         .from('food_donations')
         .select('id')
