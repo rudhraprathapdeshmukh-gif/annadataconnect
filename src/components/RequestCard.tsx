@@ -252,13 +252,16 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       )}
 
       {/* Rating Dialog for Receiver */}
-      <Dialog open={showRatingDialog} onOpenChange={(open) => {
-        if (!open && rating === 0) {
-          toast.error('Please rate the donor before closing');
-          return;
-        }
-        setShowRatingDialog(open);
-      }}>
+      <Dialog 
+        open={showRatingDialog} 
+        onOpenChange={(open) => {
+          if (!open && rating === 0) {
+            toast.error('Please rate the donor before closing');
+            return;
+          }
+          setShowRatingDialog(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rate the Donor</DialogTitle>

@@ -1127,13 +1127,16 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
       </DialogContent>
     </Dialog>
 
-    <Dialog open={showRatingDialog} onOpenChange={(open) => {
-      if (!open && rating === 0) {
-        toast.error('Please rate before closing');
-        return;
-      }
-      setShowRatingDialog(open);
-    }}>
+    <Dialog 
+      open={showRatingDialog} 
+      onOpenChange={(open) => {
+        if (!open && rating === 0) {
+          toast.error('Please rate the receiver before closing');
+          return;
+        }
+        setShowRatingDialog(open);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rate the Receiver</DialogTitle>
@@ -1161,10 +1164,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
           ))}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setShowRatingDialog(false)}>
-            Skip
-          </Button>
-          <Button onClick={handleSubmitRating} className="transition-all hover:scale-105 active:scale-95">
+          <Button onClick={handleSubmitRating} disabled={rating === 0} className="transition-all hover:scale-105 active:scale-95">
             Submit Rating
           </Button>
         </DialogFooter>
