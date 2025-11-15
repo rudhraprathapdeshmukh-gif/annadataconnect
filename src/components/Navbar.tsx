@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import NotificationBell from './NotificationBell';
 
 // Helper function to capitalize first letter of each word
 const capitalizeName = (name: string | null | undefined): string => {
@@ -84,6 +85,8 @@ export default function Navbar() {
                   </Button>
                 </Link>
               )}
+              
+              <NotificationBell />
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
