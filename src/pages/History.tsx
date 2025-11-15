@@ -6,11 +6,12 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Package, Star, User } from 'lucide-react';
+import { Calendar, MapPin, Package, Star, User, ArrowUpDown } from 'lucide-react';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { getRatingLabel } from '@/lib/ratingLabels';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface FoodDonation {
@@ -80,9 +81,60 @@ export default function History() {
   }>({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [donationSort, setDonationSort] = useState('date-newest');
+  const [requestSort, setRequestSort] = useState('date-newest');
   
-  const completedDonations = donations.filter(d => d.status === 'completed' && !d.deleted_at);
-  const deletedDonations = donations.filter(d => d.deleted_at);
+  const sortDonations = (donations: FoodDonation[], sortType: string) => {
+    const sorted = [...donations];
+    switch (sortType) {
+      case 'date-newest':
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'date-oldest':
+        return sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'title-az':
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+      case 'title-za':
+        return sorted.sort((a, b) => b.title.localeCompare(a.title));
+      case 'quantity-high':
+        return sorted.sort((a, b) => parseFloat(b.quantity) - parseFloat(a.quantity));
+      case 'quantity-low':
+        return sorted.sort((a, b) => parseFloat(a.quantity) - parseFloat(b.quantity));
+      case 'type-az':
+        return sorted.sort((a, b) => a.food_type.localeCompare(b.food_type));
+      case 'type-za':
+        return sorted.sort((a, b) => b.food_type.localeCompare(a.food_type));
+      default:
+        return sorted;
+    }
+  };
+
+  const sortRequests = (requests: FoodRequest[], sortType: string) => {
+    const sorted = [...requests];
+    switch (sortType) {
+      case 'date-newest':
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'date-oldest':
+        return sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'title-az':
+        return sorted.sort((a, b) => (a.food_donations?.title || '').localeCompare(b.food_donations?.title || ''));
+      case 'title-za':
+        return sorted.sort((a, b) => (b.food_donations?.title || '').localeCompare(a.food_donations?.title || ''));
+      case 'quantity-high':
+        return sorted.sort((a, b) => parseFloat(b.food_donations?.quantity || '0') - parseFloat(a.food_donations?.quantity || '0'));
+      case 'quantity-low':
+        return sorted.sort((a, b) => parseFloat(a.food_donations?.quantity || '0') - parseFloat(b.food_donations?.quantity || '0'));
+      case 'type-az':
+        return sorted.sort((a, b) => (a.food_donations?.food_type || '').localeCompare(b.food_donations?.food_type || ''));
+      case 'type-za':
+        return sorted.sort((a, b) => (b.food_donations?.food_type || '').localeCompare(a.food_donations?.food_type || ''));
+      default:
+        return sorted;
+    }
+  };
+  
+  const completedDonations = sortDonations(donations.filter(d => d.status === 'completed' && !d.deleted_at), donationSort);
+  const deletedDonations = sortDonations(donations.filter(d => d.deleted_at), donationSort);
+  const sortedRequests = sortRequests(requests, requestSort);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -287,6 +339,26 @@ export default function History() {
           
           {userType !== 'receiver' && (
             <TabsContent value="donated" className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <Select value={donationSort} onValueChange={setDonationSort}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date-newest">Date (Newest First)</SelectItem>
+                      <SelectItem value="date-oldest">Date (Oldest First)</SelectItem>
+                      <SelectItem value="title-az">Title (A-Z)</SelectItem>
+                      <SelectItem value="title-za">Title (Z-A)</SelectItem>
+                      <SelectItem value="quantity-high">Quantity (High to Low)</SelectItem>
+                      <SelectItem value="quantity-low">Quantity (Low to High)</SelectItem>
+                      <SelectItem value="type-az">Food Type (A-Z)</SelectItem>
+                      <SelectItem value="type-za">Food Type (Z-A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <Tabs defaultValue="completed" className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="completed">Completed ({completedDonations.length})</TabsTrigger>
@@ -444,7 +516,27 @@ export default function History() {
           
           {userType !== 'donor' && (
             <TabsContent value="received" className="space-y-4">
-            {requests.length === 0 ? (
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                <Select value={requestSort} onValueChange={setRequestSort}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-newest">Date (Newest First)</SelectItem>
+                    <SelectItem value="date-oldest">Date (Oldest First)</SelectItem>
+                    <SelectItem value="title-az">Title (A-Z)</SelectItem>
+                    <SelectItem value="title-za">Title (Z-A)</SelectItem>
+                    <SelectItem value="quantity-high">Quantity (High to Low)</SelectItem>
+                    <SelectItem value="quantity-low">Quantity (Low to High)</SelectItem>
+                    <SelectItem value="type-az">Food Type (A-Z)</SelectItem>
+                    <SelectItem value="type-za">Food Type (Z-A)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {sortedRequests.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -453,7 +545,7 @@ export default function History() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {requests.map((request) => (
+                {sortedRequests.map((request) => (
                   <Card key={request.id} className="overflow-hidden">
                     {request.food_donations?.image_url && (
                       <div className="w-full h-48 overflow-hidden bg-muted">
