@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, Moon, Sun, Star, User, Calendar } from 'lucide-react';
+import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRatingLabel } from '@/lib/ratingLabels';
 
@@ -26,6 +26,7 @@ interface Review {
 export default function Profile() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { userId } = useParams<{ userId: string }>();
   const { theme, setTheme } = useTheme();
   const [userProfile, setUserProfile] = useState<{ 
     first_name: string; 
@@ -41,6 +42,10 @@ export default function Profile() {
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [reviews, setReviews] = useState<Review[]>([]);
+  
+  // Determine if viewing own profile or another user's
+  const isOwnProfile = !userId || userId === user?.id;
+  const profileUserId = userId || user?.id;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,21 +54,21 @@ export default function Profile() {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (profileUserId) {
       fetchUserProfile();
       fetchAverageRating();
       fetchReviews();
     }
-  }, [user]);
+  }, [profileUserId]);
 
   const fetchUserProfile = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
     
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('first_name, last_name, email, phone_number, user_type, avatar_url')
-        .eq('id', user.id)
+        .eq('id', profileUserId)
         .maybeSingle();
 
       if (error) throw error;
@@ -78,14 +83,14 @@ export default function Profile() {
   };
 
   const fetchAverageRating = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
     
     try {
       // 1. Get all donations by this user
       const { data: userDonations } = await supabase
         .from('food_donations')
         .select('id')
-        .eq('donor_id', user.id);
+        .eq('donor_id', profileUserId);
 
       const donationIds = userDonations?.map(d => d.id) || [];
 
@@ -100,7 +105,7 @@ export default function Profile() {
       const { data: ratingsAsReceiver } = await supabase
         .from('food_requests')
         .select('donor_rating')
-        .eq('requester_id', user.id)
+        .eq('requester_id', profileUserId)
         .not('donor_rating', 'is', null);
 
       // Combine all ratings
@@ -123,14 +128,14 @@ export default function Profile() {
   };
 
   const fetchReviews = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
     
     try {
       // Get all donations by this user
       const { data: userDonations } = await supabase
         .from('food_donations')
         .select('id')
-        .eq('donor_id', user.id);
+        .eq('donor_id', profileUserId);
 
       const donationIds = userDonations?.map(d => d.id) || [];
 
@@ -159,7 +164,7 @@ export default function Profile() {
           created_at,
           food_donations(donor_id)
         `)
-        .eq('requester_id', user.id)
+        .eq('requester_id', profileUserId)
         .not('donor_rating', 'is', null)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -299,8 +304,22 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+        {!isOwnProfile && (
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        )}
+        <h1 className="text-3xl font-bold mb-8">
+          {isOwnProfile ? 'Profile Settings' : `${userProfile?.first_name}'s Profile`}
+        </h1>
         
+        {/* Profile Picture - Only show for own profile */}
+        {isOwnProfile && (
         <Card>
           <CardHeader>
             <CardTitle>Profile Picture</CardTitle>
@@ -345,12 +364,49 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+        )}
+
+        {/* Public Profile View - Show avatar and basic info for other users */}
+        {!isOwnProfile && userProfile && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-4">
+                <Avatar className="h-32 w-32">
+                  <AvatarImage 
+                    src={userProfile.avatar_url || undefined} 
+                    alt="Profile picture"
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-4xl">
+                    {capitalizeName(userProfile.first_name)?.[0] || capitalizeName(userProfile.last_name)?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold">
+                    {capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}
+                  </h2>
+                  <Badge variant="secondary" className="mt-2">
+                    {userProfile.user_type === 'both' ? 'Donor & Receiver' : 
+                     userProfile.user_type === 'donor' ? 'Donor' : 'Receiver'}
+                  </Badge>
+                </div>
+                {averageRating && (
+                  <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
+                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <span className="font-bold text-lg">{averageRating}</span>
+                    <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {reviews.length > 0 && (
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Reviews Received</CardTitle>
-              <CardDescription>Recent reviews from your transactions</CardDescription>
+              <CardDescription>Recent reviews from {isOwnProfile ? 'your' : 'their'} transactions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {reviews.map((review) => (
@@ -394,6 +450,8 @@ export default function Profile() {
           </Card>
         )}
 
+        {/* Personal Information - Only show for own profile */}
+        {isOwnProfile && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -443,7 +501,10 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+        )}
 
+        {/* Appearance Settings - Only show for own profile */}
+        {isOwnProfile && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
@@ -474,6 +535,7 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

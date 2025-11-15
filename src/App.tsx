@@ -28,6 +28,7 @@ const App = () => (
             <Route path="/donate" element={<Donate />} />
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
