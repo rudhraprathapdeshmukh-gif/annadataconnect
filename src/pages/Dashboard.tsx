@@ -112,7 +112,7 @@ export default function Dashboard() {
   const [globalRating, setGlobalRating] = useState(0);
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
   const [globalReview, setGlobalReview] = useState('');
-  const hasCheckedInitialRatings = useRef(false);
+  const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -132,18 +132,10 @@ export default function Dashboard() {
 
   // Check for pending ratings after data loads
   useEffect(() => {
-    if (user && (donorRequestsAll.length > 0 || myRequestsAll.length > 0) && !hasCheckedInitialRatings.current) {
+    if (user && (donorRequestsAll.length > 0 || myRequestsAll.length > 0)) {
       checkPendingRatings();
-      hasCheckedInitialRatings.current = true;
     }
   }, [user, donorRequestsAll, myRequestsAll]);
-
-  // Reset on unmount
-  useEffect(() => {
-    return () => {
-      hasCheckedInitialRatings.current = false;
-    };
-  }, []);
 
   const getRatingLabel = (rating: number): string => {
     switch(rating) {
@@ -159,33 +151,43 @@ export default function Dashboard() {
   const checkPendingRatings = () => {
     // Check if user is a donor with completed unrated requests
     const donorUnrated = donorRequestsAll.find(
-      req => req.status === 'completed' && !req.donor_rating
+      req => req.status === 'completed' && 
+             !req.donor_rating && 
+             !checkedRatingRequests.current.has(req.id)
     );
     
     if (donorUnrated) {
-      setPendingRating({
-        requestId: donorUnrated.id,
-        type: 'donor',
-        otherUserName: `${donorUnrated.profiles.first_name} ${donorUnrated.profiles.last_name}`,
-        donationTitle: donorUnrated.food_donations.title
-      });
+      checkedRatingRequests.current.add(donorUnrated.id);
+      setTimeout(() => {
+        setPendingRating({
+          requestId: donorUnrated.id,
+          type: 'donor',
+          otherUserName: `${donorUnrated.profiles.first_name} ${donorUnrated.profiles.last_name}`,
+          donationTitle: donorUnrated.food_donations.title
+        });
+      }, 1000);
       return;
     }
 
     // Check if user is a receiver with completed unrated requests
     const receiverUnrated = myRequestsAll.find(
-      req => req.status === 'completed' && !req.receiver_rating
+      req => req.status === 'completed' && 
+             !req.receiver_rating && 
+             !checkedRatingRequests.current.has(req.id)
     );
     
     if (receiverUnrated) {
-      setPendingRating({
-        requestId: receiverUnrated.id,
-        type: 'receiver',
-        otherUserName: receiverUnrated.food_donations.donor_profile 
-          ? `${receiverUnrated.food_donations.donor_profile.first_name} ${receiverUnrated.food_donations.donor_profile.last_name}`
-          : 'the donor',
-        donationTitle: receiverUnrated.food_donations.title
-      });
+      checkedRatingRequests.current.add(receiverUnrated.id);
+      setTimeout(() => {
+        setPendingRating({
+          requestId: receiverUnrated.id,
+          type: 'receiver',
+          otherUserName: receiverUnrated.food_donations.donor_profile 
+            ? `${receiverUnrated.food_donations.donor_profile.first_name} ${receiverUnrated.food_donations.donor_profile.last_name}`
+            : 'the donor',
+          donationTitle: receiverUnrated.food_donations.title
+        });
+      }, 1000);
     }
   };
 
@@ -262,6 +264,16 @@ export default function Dashboard() {
           if (import.meta.env.DEV) {
             console.log('Real-time request update:', payload);
           }
+          
+          // Show toast when request becomes completed
+          if (payload.eventType === 'UPDATE' && 
+              payload.new && 
+              payload.old && 
+              payload.new.status === 'completed' && 
+              payload.old.status === 'approved') {
+            toast.success('Pickup completed! Please rate your experience.');
+          }
+          
           // Refresh requests when any change occurs
           fetchRequests();
           fetchMyRequests();
