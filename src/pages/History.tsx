@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MapPin, Package, Star, User } from 'lucide-react';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
+import { getRatingLabel } from '@/lib/ratingLabels';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -348,7 +349,7 @@ export default function History() {
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-medium">
-                            You rated the receiver: {donation.completed_request.receiver_rating}/5
+                            You rated the receiver: {donation.completed_request.receiver_rating}/5 ({getRatingLabel(donation.completed_request.receiver_rating)})
                           </span>
                         </div>
                       ) : donation.completed_request ? (
@@ -492,7 +493,7 @@ export default function History() {
                         <div className="flex items-center gap-2 pt-2 border-t">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-medium">
-                            You rated the donor: {request.donor_rating}/5
+                            You rated the donor: {request.donor_rating}/5 ({getRatingLabel(request.donor_rating)})
                           </span>
                         </div>
                       ) : (

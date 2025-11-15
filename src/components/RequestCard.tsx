@@ -54,20 +54,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const { user } = useAuth();
   const [isConfirming, setIsConfirming] = useState(false);
   const [otp, setOtp] = useState<string | null>(null);
-  const [showRatingDialog, setShowRatingDialog] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [review, setReview] = useState('');
 
   useEffect(() => {
     if (request.status === 'approved') {
       fetchOtp();
     }
-    // Show rating dialog if request is completed and receiver hasn't rated yet
-    if (request.status === 'completed' && !request.receiver_rating) {
-      setShowRatingDialog(true);
-    }
-  }, [request.status, request.receiver_rating]);
+  }, [request.status]);
 
   const fetchOtp = async () => {
     try {
@@ -103,41 +95,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
 
       if (donationError) throw donationError;
 
-      toast.success('Pickup confirmed! Please rate the donor.');
-      setShowRatingDialog(true);
+      toast.success('Pickup confirmed! Please complete the rating to finish.');
     } catch (error) {
       console.error('Error confirming deal:', error);
       toast.error('Failed to confirm deal. Please try again.');
     } finally {
       setIsConfirming(false);
-    }
-  };
-
-  const handleSubmitRating = async () => {
-    if (rating === 0) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    try {
-      // Save receiver's rating of the donor
-      const { error } = await supabase
-        .from('food_requests')
-        .update({ 
-          receiver_rating: rating,
-          donor_review: review || null
-        })
-        .eq('id', request.id);
-
-      if (error) throw error;
-
-      toast.success('Thank you for your rating!');
-      setShowRatingDialog(false);
-      setRating(0);
-      setReview('');
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
     }
   };
 
@@ -258,86 +221,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           />
         </CardFooter>
       )}
-
-      {/* Rating Dialog for Receiver */}
-      <Dialog 
-        open={showRatingDialog} 
-        onOpenChange={(open) => {
-          if (!open && rating === 0) {
-            toast.error('Please rate the donor before closing');
-            return;
-          }
-          setShowRatingDialog(open);
-        }}
-      >
-        <DialogContent
-          onInteractOutside={(e) => {
-            if (rating === 0) {
-              e.preventDefault();
-              toast.error('Please rate the donor before closing');
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (rating === 0) {
-              e.preventDefault();
-              toast.error('Please rate the donor before closing');
-            }
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Rate the Donor</DialogTitle>
-            <DialogDescription>
-              How was your experience receiving this donation?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={`h-10 w-10 ${
-                        star <= (hoverRating || rating)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {rating > 0 && `You selected ${rating} star${rating > 1 ? 's' : ''}`}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="review">Review (Optional)</Label>
-              <Textarea
-                id="review"
-                placeholder="Share your experience with this donor..."
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                className="min-h-[100px] resize-none"
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {review.length}/500
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleSubmitRating} disabled={rating === 0}>
-              Submit Rating
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
