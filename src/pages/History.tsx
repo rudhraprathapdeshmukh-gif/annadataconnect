@@ -80,7 +80,7 @@ export default function History() {
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   
-  const completedDonations = donations.filter(d => d.status === 'claimed' && !d.deleted_at);
+  const completedDonations = donations.filter(d => d.status === 'completed' && !d.deleted_at);
   const deletedDonations = donations.filter(d => d.deleted_at);
 
   useEffect(() => {
@@ -117,28 +117,28 @@ export default function History() {
     if (!user) return;
 
     try {
-      // Fetch ALL user's donations including soft-deleted ones (claimed + deleted)
+      // Fetch ALL user's donations including completed ones
       const { data: donationsData, error: donationsError } = await supabase
         .from('food_donations')
         .select('*')
         .eq('donor_id', user.id)
-        .or('status.eq.claimed,deleted_at.not.is.null')
+        .or('status.eq.completed,deleted_at.not.is.null')
         .order('created_at', { ascending: false });
 
       if (donationsError) throw donationsError;
       
-      // For each claimed donation, fetch the completed request and receiver info
+      // For each completed donation, fetch the completed request and receiver info
       const enrichedDonations: FoodDonation[] = donationsData || [];
       if (donationsData) {
-        const claimedDonationIds = donationsData
-          .filter(d => d.status === 'claimed')
+        const completedDonationIds = donationsData
+          .filter(d => d.status === 'completed')
           .map(d => d.id);
         
-        if (claimedDonationIds.length > 0) {
+        if (completedDonationIds.length > 0) {
           const { data: completedRequests } = await supabase
             .from('food_requests')
             .select('id, donation_id, requester_id, created_at, donor_rating, receiver_rating')
-            .in('donation_id', claimedDonationIds)
+            .in('donation_id', completedDonationIds)
             .eq('status', 'completed');
           
           if (completedRequests) {

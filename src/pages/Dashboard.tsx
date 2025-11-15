@@ -1127,7 +1127,13 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject }: DonorRequ
       </DialogContent>
     </Dialog>
 
-    <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+    <Dialog open={showRatingDialog} onOpenChange={(open) => {
+      if (!open && rating === 0) {
+        toast.error('Please rate before closing');
+        return;
+      }
+      setShowRatingDialog(open);
+    }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rate the Receiver</DialogTitle>
