@@ -719,13 +719,19 @@ export default function Dashboard() {
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', deletingDonationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Deletion error details:', error);
+        throw error;
+      }
 
       toast.success('Donation deleted successfully!');
       setDeletingDonationId(null);
       fetchMyDonations();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting donation:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error details:', error?.details);
+      console.error('Error hint:', error?.hint);
       toast.error('Failed to delete donation');
     }
   };
