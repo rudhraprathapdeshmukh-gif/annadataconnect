@@ -91,44 +91,65 @@ export type Database = {
       food_requests: {
         Row: {
           accepted_at: string | null
+          actual_pickup_at: string | null
+          arrival_confirmed_at: string | null
           created_at: string
           donation_id: string
           donor_rating: number | null
           donor_review: string | null
+          estimated_travel_time: number | null
+          extension_granted: boolean | null
+          extension_requested_at: string | null
           id: string
           message: string | null
+          no_show: boolean | null
           receiver_rating: number | null
           receiver_review: string | null
           requester_id: string
           status: string | null
+          timer_duration: number | null
           updated_at: string
         }
         Insert: {
           accepted_at?: string | null
+          actual_pickup_at?: string | null
+          arrival_confirmed_at?: string | null
           created_at?: string
           donation_id: string
           donor_rating?: number | null
           donor_review?: string | null
+          estimated_travel_time?: number | null
+          extension_granted?: boolean | null
+          extension_requested_at?: string | null
           id?: string
           message?: string | null
+          no_show?: boolean | null
           receiver_rating?: number | null
           receiver_review?: string | null
           requester_id: string
           status?: string | null
+          timer_duration?: number | null
           updated_at?: string
         }
         Update: {
           accepted_at?: string | null
+          actual_pickup_at?: string | null
+          arrival_confirmed_at?: string | null
           created_at?: string
           donation_id?: string
           donor_rating?: number | null
           donor_review?: string | null
+          estimated_travel_time?: number | null
+          extension_granted?: boolean | null
+          extension_requested_at?: string | null
           id?: string
           message?: string | null
+          no_show?: boolean | null
           receiver_rating?: number | null
           receiver_review?: string | null
           requester_id?: string
           status?: string | null
+          timer_duration?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -222,34 +243,49 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          average_pickup_time: number | null
           created_at: string
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
+          no_show_count: number | null
+          on_time_count: number | null
           phone_number: string | null
+          reliability_score: number | null
+          total_pickups: number | null
           updated_at: string
           user_type: string | null
         }
         Insert: {
           avatar_url?: string | null
+          average_pickup_time?: number | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
+          no_show_count?: number | null
+          on_time_count?: number | null
           phone_number?: string | null
+          reliability_score?: number | null
+          total_pickups?: number | null
           updated_at?: string
           user_type?: string | null
         }
         Update: {
           avatar_url?: string | null
+          average_pickup_time?: number | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          no_show_count?: number | null
+          on_time_count?: number | null
           phone_number?: string | null
+          reliability_score?: number | null
+          total_pickups?: number | null
           updated_at?: string
           user_type?: string | null
         }

@@ -14,6 +14,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
 import { fetchUserRating } from '@/lib/userRatings';
+import { TimerProgressBar } from './TimerProgressBar';
+import { ReliabilityBadge } from './ReliabilityBadge';
+import { ExtensionRequestDialog } from './ExtensionRequestDialog';
 
 interface FoodDonation {
   id: string;
@@ -44,6 +47,9 @@ interface FoodRequest {
   accepted_at: string | null;
   receiver_rating: number | null;
   donor_rating: number | null;
+  timer_duration: number | null;
+  extension_requested_at: string | null;
+  extension_granted: boolean;
   food_donations: FoodDonation;
 }
 
@@ -58,6 +64,8 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [otp, setOtp] = useState<string | null>(null);
   const [donorRating, setDonorRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
+  const [showExtensionDialog, setShowExtensionDialog] = useState(false);
+  const [warningShown, setWarningShown] = useState(false);
 
   useEffect(() => {
     if (request.status === 'approved') {
@@ -71,6 +79,45 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const loadDonorRating = async () => {
     const rating = await fetchUserRating(request.food_donations.donor_id);
     setDonorRating(rating);
+  };
+
+  const handleWarningThreshold = () => {
+    if (!warningShown) {
+      setWarningShown(true);
+      toast.warning('⏰ Hurry! Less than 10% time remaining', {
+        description: 'Consider requesting an extension if needed'
+      });
+    }
+  };
+
+  const handleExtensionRequest = async (reason: string) => {
+    try {
+      const { error } = await supabase
+        .from('food_requests')
+        .update({
+          extension_requested_at: new Date().toISOString(),
+        })
+        .eq('id', request.id);
+
+      if (error) throw error;
+
+      toast.success('Extension request sent to donor');
+      
+      // Create notification for donor
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: request.food_donations.donor_id,
+          type: 'extension_request',
+          title: 'Time Extension Requested',
+          message: `Reason: ${reason}`,
+          related_id: request.id,
+        });
+    } catch (error) {
+      console.error('Error requesting extension:', error);
+      toast.error('Failed to send extension request');
+      throw error;
+    }
   };
 
   const fetchOtp = async () => {
@@ -211,17 +258,28 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </div>
           </div>
         )}
-        {request.status === 'approved' && expiryTime && (
-          <div className={`flex items-center gap-2 text-sm font-semibold ${
-            countdown.expired ? 'text-destructive' : 'text-primary'
-          }`}>
-            <Clock className="h-4 w-4" />
-            {countdown.expired ? (
-              <span>Time Expired - Request will be auto-rejected</span>
-            ) : (
-              <span>
-                Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}
-              </span>
+        {request.status === 'approved' && expiryTime && request.accepted_at && request.timer_duration && (
+          <div className="space-y-2">
+            <TimerProgressBar
+              acceptedAt={new Date(request.accepted_at)}
+              timerDuration={request.timer_duration}
+              onWarningThreshold={handleWarningThreshold}
+            />
+            {!countdown.expired && !request.extension_requested_at && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setShowExtensionDialog(true)}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Request Extension (+5 min)
+              </Button>
+            )}
+            {request.extension_requested_at && !request.extension_granted && (
+              <p className="text-sm text-muted-foreground text-center">
+                Extension requested - waiting for donor approval
+              </p>
             )}
           </div>
         )}
@@ -263,6 +321,15 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           </div>
         </CardFooter>
       )}
+      
+      <ExtensionRequestDialog
+        open={showExtensionDialog}
+        onOpenChange={setShowExtensionDialog}
+        onSubmit={handleExtensionRequest}
+        extensionMinutes={5}
+        maxExtensions={2}
+        currentExtensions={request.extension_requested_at ? 1 : 0}
+      />
     </Card>
   );
 }

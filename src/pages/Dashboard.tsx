@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
+import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
+import { shouldBlockUser } from '@/lib/reliabilityScore';
 
 interface PublicDonation {
   id: string;
@@ -75,12 +77,18 @@ interface FoodRequest {
   accepted_at: string | null;
   donor_rating: number | null;
   receiver_rating: number | null;
+  timer_duration: number | null;
+  estimated_travel_time: number | null;
+  extension_requested_at: string | null;
+  extension_granted: boolean;
+  no_show: boolean;
   food_donations: FoodDonation;
   profiles: {
     first_name: string;
     last_name: string;
     email: string;
     phone_number?: string;
+    reliability_score?: number;
   };
 }
 
@@ -513,7 +521,9 @@ export default function Dashboard() {
         const approvedRequest = activeApproved[0];
         if (approvedRequest.accepted_at) {
           const acceptedTime = new Date(approvedRequest.accepted_at);
-          const expiryTime = new Date(acceptedTime.getTime() + 10 * 60 * 1000);
+          // Use the stored timer_duration or default to 10 minutes for old requests
+          const timerMinutes = (approvedRequest as any).timer_duration || 10;
+          const expiryTime = new Date(acceptedTime.getTime() + timerMinutes * 60 * 1000);
           
           if (new Date() < expiryTime) {
             const remainingMinutes = Math.ceil((expiryTime.getTime() - new Date().getTime()) / (60 * 1000));
@@ -553,7 +563,37 @@ export default function Dashboard() {
       const updateData: any = { status: action };
       
       if (action === 'approved') {
+        // Fetch request details with donation and requester profile
+        const { data: requestData, error: fetchError } = await supabase
+          .from('food_requests')
+          .select(`
+            *,
+            food_donations(latitude, longitude),
+            profiles(reliability_score, average_pickup_time)
+          `)
+          .eq('id', requestId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        // Calculate dynamic timer
+        const donorLat = requestData.food_donations.latitude;
+        const donorLon = requestData.food_donations.longitude;
+        const reliabilityScore = requestData.profiles.reliability_score || 100;
+        const averagePickupTime = requestData.profiles.average_pickup_time;
+
+        const { duration, breakdown } = calculateDynamicTimer(
+          donorLat,
+          donorLon,
+          undefined, // Receiver location not available at approval time
+          undefined,
+          reliabilityScore,
+          averagePickupTime
+        );
+
         updateData.accepted_at = new Date().toISOString();
+        updateData.timer_duration = duration;
+        updateData.estimated_travel_time = breakdown.travelTime;
       }
 
       const { error } = await supabase
@@ -568,7 +608,7 @@ export default function Dashboard() {
         throw error;
       }
       
-      toast.success(`Request ${action} successfully!`);
+      toast.success(`Request ${action} successfully!${action === 'approved' ? ` Timer: ${updateData.timer_duration} minutes` : ''}`);
       fetchRequests();
       fetchMyRequests();
     } catch (error: any) {
@@ -790,9 +830,11 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {requests.filter(r => r.status !== 'rejected').map((request) => {
-                    const expiryTime = request.accepted_at 
-                      ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
-                      : null;
+                    const expiryTime = request.accepted_at && request.timer_duration
+                      ? calculateExpiryTime(new Date(request.accepted_at), request.timer_duration)
+                      : request.accepted_at 
+                        ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
+                        : null;
                     
                     return (
                     <DonorRequestCard 
@@ -829,9 +871,11 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myRequests.map((request) => {
-                    const expiryTime = request.accepted_at 
-                      ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
-                      : null;
+                    const expiryTime = request.accepted_at && request.timer_duration
+                      ? calculateExpiryTime(new Date(request.accepted_at), request.timer_duration)
+                      : request.accepted_at 
+                        ? new Date(new Date(request.accepted_at).getTime() + 10 * 60 * 1000)
+                        : null;
                     
                     return (
                       <RequestCard key={request.id} request={request} expiryTime={expiryTime} />
