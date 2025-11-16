@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRatingLabel } from '@/lib/ratingLabels';
+import { ReliabilityBadge } from '@/components/ReliabilityBadge';
 
 export default function Profile() {
   const { user, loading } = useAuth();
@@ -26,6 +27,10 @@ export default function Profile() {
     phone_number?: string;
     user_type: string; 
     avatar_url?: string;
+    reliability_score?: number;
+    total_pickups?: number;
+    on_time_count?: number;
+    created_at?: string;
   } | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -56,7 +61,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, phone_number, user_type, avatar_url')
+        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at')
         .eq('id', profileUserId)
         .maybeSingle();
 
@@ -283,22 +288,61 @@ export default function Profile() {
                     {capitalizeName(userProfile.first_name)?.[0] || capitalizeName(userProfile.last_name)?.[0] || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-center">
+                <div className="text-center space-y-3 w-full">
                   <h2 className="text-2xl font-bold">
                     {capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}
                   </h2>
-                  <Badge variant="secondary" className="mt-2">
-                    {userProfile.user_type === 'both' ? 'Donor & Receiver' : 
-                     userProfile.user_type === 'donor' ? 'Donor' : 'Receiver'}
-                  </Badge>
-                </div>
-                {averageRating && (
-                  <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold text-lg">{averageRating}</span>
-                    <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                  
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Badge variant="secondary">
+                      {userProfile.user_type === 'both' ? 'Donor & Receiver' : 
+                       userProfile.user_type === 'donor' ? 'Donor' : 'Receiver'}
+                    </Badge>
+                    {userProfile.reliability_score !== undefined && userProfile.reliability_score !== null && (
+                      <ReliabilityBadge 
+                        score={userProfile.reliability_score} 
+                        showLabel={true}
+                      />
+                    )}
                   </div>
-                )}
+                  
+                  {averageRating && (
+                    <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg justify-center">
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                      <span className="font-bold text-lg">{averageRating}</span>
+                      <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                    </div>
+                  )}
+                  
+                  {/* Statistics Grid */}
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                    <div className="text-center">
+                      <Calendar className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Member Since</p>
+                      <p className="font-medium">
+                        {userProfile.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          year: 'numeric' 
+                        }) : 'N/A'}
+                      </p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <User className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Total Pickups</p>
+                      <p className="font-medium">{userProfile.total_pickups || 0}</p>
+                    </div>
+                    
+                    {userProfile.total_pickups && userProfile.total_pickups > 0 && (
+                      <div className="text-center col-span-2">
+                        <p className="text-xs text-muted-foreground">On-Time Rate</p>
+                        <p className="font-medium text-green-600">
+                          {Math.round(((userProfile.on_time_count || 0) / userProfile.total_pickups) * 100)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
