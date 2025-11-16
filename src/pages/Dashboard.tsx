@@ -81,6 +81,7 @@ interface FoodRequest {
   estimated_travel_time: number | null;
   extension_requested_at: string | null;
   extension_granted: boolean;
+  extension_count: number | null;
   no_show: boolean;
   food_donations: FoodDonation;
   profiles: {
@@ -625,18 +626,28 @@ export default function Dashboard() {
       const request = requests.find(r => r.id === requestId);
       if (!request) return;
 
-      // Update the request to grant extension and add 5 minutes to timer
+      const currentExtensionCount = request.extension_count || 0;
+      
+      if (currentExtensionCount >= 3) {
+        toast.error('Maximum extensions (3) already granted');
+        return;
+      }
+
+      // Update the request to grant extension and increment count
       const { error: updateError } = await supabase
         .from('food_requests')
         .update({ 
           extension_granted: true,
-          timer_duration: (request.timer_duration || 10) + 5
+          extension_requested_at: null,
+          timer_duration: (request.timer_duration || 30) + 10,
+          extension_count: currentExtensionCount + 1
         })
         .eq('id', requestId);
 
       if (updateError) throw updateError;
 
-      toast.success('Extension granted - Timer extended by 5 minutes');
+      const remainingExtensions = 2 - currentExtensionCount;
+      toast.success(`Extension granted - Timer extended by 10 minutes (${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining)`);
       
       // Create notification for receiver
       await supabase
@@ -645,7 +656,7 @@ export default function Dashboard() {
           user_id: request.requester_id,
           type: 'extension_granted',
           title: 'Extension Granted',
-          message: 'The donor has granted your time extension request. You now have 5 more minutes.',
+          message: `The donor has granted your time extension request. You now have 10 more minutes. ${remainingExtensions > 0 ? `${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining.` : 'No more extensions available.'}`,
           related_id: requestId,
         });
       
@@ -1396,10 +1407,15 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <Clock className="h-4 w-4" />
-              <span className="font-semibold">Extension Requested (+5 minutes)</span>
+              <span className="font-semibold">Extension Requested (+10 minutes)</span>
             </div>
             <p className="text-sm text-muted-foreground">
               The receiver needs more time to reach the pickup location
+              {request.extension_count !== undefined && request.extension_count < 3 && (
+                <span className="block mt-1 font-medium">
+                  {3 - (request.extension_count || 0)} extension{3 - (request.extension_count || 0) !== 1 ? 's' : ''} remaining
+                </span>
+              )}
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="default" onClick={onGrantExtension}>
@@ -1416,7 +1432,14 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         {request.extension_granted && (
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
             <Check className="h-4 w-4" />
-            <span>Extension granted - Timer extended by 5 minutes</span>
+            <span>
+              Extension granted - Timer extended by 10 minutes
+              {request.extension_count !== undefined && request.extension_count < 3 && (
+                <span className="ml-2 text-muted-foreground">
+                  ({3 - (request.extension_count || 0)} remaining)
+                </span>
+              )}
+            </span>
           </div>
         )}
         {request.status === 'completed' && (
