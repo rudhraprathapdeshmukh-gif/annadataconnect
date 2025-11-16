@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Package, MapPin, Phone, Mail, User, KeyRound, Star } from 'lucide-react';
+import { Calendar, Clock, Package, MapPin, Phone, Mail, User, KeyRound, Star, XCircle } from 'lucide-react';
 import { useCountdown } from '@/hooks/useCountdown';
 import ChatDialog from './ChatDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,7 @@ import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchUserRating } from '@/lib/userRatings';
 import { TimerProgressBar } from './TimerProgressBar';
 import { ReliabilityBadge } from './ReliabilityBadge';
@@ -62,6 +62,7 @@ interface RequestCardProps {
 export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isConfirming, setIsConfirming] = useState(false);
   const [otp, setOtp] = useState<string | null>(null);
   const [donorRating, setDonorRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
@@ -171,6 +172,43 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       setIsConfirming(false);
     }
   };
+
+  // Cancelled request UI
+  if (request.status === 'cancelled') {
+    return (
+      <Card className="border-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <XCircle className="h-6 w-6 text-amber-600" />
+            <CardTitle className="text-amber-900 dark:text-amber-100">
+              Donation Cancelled
+            </CardTitle>
+          </div>
+          <CardDescription className="text-amber-800 dark:text-amber-200">
+            We sincerely apologize for the inconvenience
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            The donor has cancelled this donation: <strong>{request.food_donations.title}</strong>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            This can happen if the food is no longer available or circumstances changed. 
+            We appreciate your understanding and encourage you to browse other available donations.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => navigate('/dashboard')}
+          >
+            Browse Other Donations
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
 
   return (
     <Card>
