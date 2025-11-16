@@ -340,6 +340,10 @@ export type Database = {
         Returns: boolean
       }
       is_donation_claimed: { Args: { _donation_id: string }; Returns: boolean }
+      soft_delete_donation: {
+        Args: { _donation_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
