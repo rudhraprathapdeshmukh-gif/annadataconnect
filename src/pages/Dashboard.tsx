@@ -564,37 +564,8 @@ export default function Dashboard() {
       const updateData: any = { status: action };
       
       if (action === 'approved') {
-        // Fetch request details with donation and requester profile
-        const { data: requestData, error: fetchError } = await supabase
-          .from('food_requests')
-          .select(`
-            *,
-            food_donations(latitude, longitude),
-            profiles(reliability_score, average_pickup_time)
-          `)
-          .eq('id', requestId)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        // Calculate dynamic timer
-        const donorLat = requestData.food_donations.latitude;
-        const donorLon = requestData.food_donations.longitude;
-        const reliabilityScore = requestData.profiles.reliability_score || 100;
-        const averagePickupTime = requestData.profiles.average_pickup_time;
-
-        const { duration, breakdown } = calculateDynamicTimer(
-          donorLat,
-          donorLon,
-          undefined, // Receiver location not available at approval time
-          undefined,
-          reliabilityScore,
-          averagePickupTime
-        );
-
         updateData.accepted_at = new Date().toISOString();
-        updateData.timer_duration = duration;
-        updateData.estimated_travel_time = breakdown.travelTime;
+        updateData.timer_duration = 30; // Base timer is always 30 minutes
       }
 
       const { error } = await supabase
