@@ -14,15 +14,6 @@ import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft } from 'lucide-react
 import { toast } from 'sonner';
 import { getRatingLabel } from '@/lib/ratingLabels';
 
-interface Review {
-  id: string;
-  rating: number;
-  review: string | null;
-  role: 'donor' | 'receiver';
-  reviewerName: string;
-  created_at: string;
-}
-
 export default function Profile() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -41,7 +32,6 @@ export default function Profile() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [totalRatings, setTotalRatings] = useState<number>(0);
-  const [reviews, setReviews] = useState<Review[]>([]);
   
   // Determine if viewing own profile or another user's
   const isOwnProfile = !userId || userId === user?.id;
@@ -57,7 +47,6 @@ export default function Profile() {
     if (profileUserId) {
       fetchUserProfile();
       fetchAverageRating();
-      fetchReviews();
     }
   }, [profileUserId]);
 
@@ -127,93 +116,6 @@ export default function Profile() {
     }
   };
 
-  const fetchReviews = async () => {
-    if (!profileUserId) return;
-    
-    try {
-      // Get all donations by this user
-      const { data: userDonations } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', profileUserId);
-
-      const donationIds = userDonations?.map(d => d.id) || [];
-
-      // Get reviews where user was the DONOR (receiver reviewed them)
-      const { data: donorReviews } = await supabase
-        .from('food_requests')
-        .select(`
-          id,
-          receiver_rating,
-          receiver_review,
-          created_at,
-          requester_id
-        `)
-        .in('donation_id', donationIds)
-        .not('receiver_rating', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      // Get reviews where user was the RECEIVER (donor reviewed them)
-      const { data: receiverReviews } = await supabase
-        .from('food_requests')
-        .select(`
-          id,
-          donor_rating,
-          donor_review,
-          created_at,
-          food_donations(donor_id)
-        `)
-        .eq('requester_id', profileUserId)
-        .not('donor_rating', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      // Get reviewer names
-      const reviewerIds = [
-        ...(donorReviews?.map(r => r.requester_id) || []),
-        ...(receiverReviews?.map(r => (r.food_donations as any).donor_id) || [])
-      ];
-
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', reviewerIds);
-
-      // Format reviews
-      const formattedReviews: Review[] = [
-        ...(donorReviews?.map(r => {
-          const profile = profiles?.find(p => p.id === r.requester_id);
-          return {
-            id: r.id,
-            rating: r.receiver_rating!,
-            review: r.receiver_review,
-            role: 'receiver' as const,
-            reviewerName: profile ? `${profile.first_name} ${profile.last_name}` : 'Anonymous',
-            created_at: r.created_at
-          };
-        }) || []),
-        ...(receiverReviews?.map(r => {
-          const donorId = (r.food_donations as any).donor_id;
-          const profile = profiles?.find(p => p.id === donorId);
-          return {
-            id: r.id,
-            rating: r.donor_rating!,
-            review: r.donor_review,
-            role: 'donor' as const,
-            reviewerName: profile ? `${profile.first_name} ${profile.last_name}` : 'Anonymous',
-            created_at: r.created_at
-          };
-        }) || [])
-      ];
-
-      // Sort by date
-      formattedReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setReviews(formattedReviews.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to load reviews:', error);
-    }
-  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -402,53 +304,6 @@ export default function Profile() {
           </Card>
         )}
 
-        {reviews.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Reviews Received</CardTitle>
-              <CardDescription>Recent reviews from {isOwnProfile ? 'your' : 'their'} transactions</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="border-b pb-4 last:border-0 last:pb-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{review.reviewerName}</span>
-                      <Badge variant="outline" className="ml-2">
-                        {review.role === 'donor' ? 'As Donor' : 'As Receiver'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${
-                            star <= review.rating
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm font-medium text-primary">
-                      {getRatingLabel(review.rating)}
-                    </span>
-                  </div>
-                  {review.review && (
-                    <p className="text-sm text-muted-foreground italic">"{review.review}"</p>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Personal Information - Only show for own profile */}
         {isOwnProfile && (
