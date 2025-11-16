@@ -550,6 +550,29 @@ export default function Dashboard() {
         toast.error((error as any)?.message ?? 'Failed to send request');
         return;
       }
+
+      // Notify the donor about the request
+      const donationToNotify = donations.find(d => d.id === donationId);
+      if (donationToNotify) {
+        const { data: donorData } = await supabase
+          .from('food_donations')
+          .select('donor_id')
+          .eq('id', donationId)
+          .single();
+          
+        if (donorData) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: donorData.donor_id,
+              type: 'donation_requested',
+              title: 'New Food Request! 📬',
+              message: `Someone has requested your donation: "${donationToNotify.title}"`,
+              related_id: donationId,
+            });
+        }
+      }
+
       toast.success('Food request sent successfully!');
       fetchMyRequests();
     } catch (error: any) {
