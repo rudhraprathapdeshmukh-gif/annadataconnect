@@ -620,6 +620,77 @@ export default function Dashboard() {
   };
 
 
+  const handleGrantExtension = async (requestId: string) => {
+    try {
+      const request = requests.find(r => r.id === requestId);
+      if (!request) return;
+
+      // Update the request to grant extension and add 5 minutes to timer
+      const { error: updateError } = await supabase
+        .from('food_requests')
+        .update({ 
+          extension_granted: true,
+          timer_duration: (request.timer_duration || 10) + 5
+        })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Extension granted - Timer extended by 5 minutes');
+      
+      // Create notification for receiver
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: request.requester_id,
+          type: 'extension_granted',
+          title: 'Extension Granted',
+          message: 'The donor has granted your time extension request. You now have 5 more minutes.',
+          related_id: requestId,
+        });
+      
+      fetchRequests();
+    } catch (error) {
+      console.error('Error granting extension:', error);
+      toast.error('Failed to grant extension');
+    }
+  };
+
+  const handleRejectExtension = async (requestId: string) => {
+    try {
+      const request = requests.find(r => r.id === requestId);
+      if (!request) return;
+
+      // Clear the extension request
+      const { error: updateError } = await supabase
+        .from('food_requests')
+        .update({ 
+          extension_requested_at: null 
+        })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+
+      toast.info('Extension request rejected');
+      
+      // Create notification for receiver
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: request.requester_id,
+          type: 'extension_rejected',
+          title: 'Extension Request Rejected',
+          message: 'The donor has declined your time extension request.',
+          related_id: requestId,
+        });
+      
+      fetchRequests();
+    } catch (error) {
+      console.error('Error rejecting extension:', error);
+      toast.error('Failed to reject extension');
+    }
+  };
+
   const handleEditDonation = (donation: FoodDonation) => {
     setEditingDonation(donation);
     setEditForm({
@@ -844,6 +915,8 @@ export default function Dashboard() {
                       onAccept={() => handleRequestAction(request.id, 'approved')}
                       onReject={() => handleRequestAction(request.id, 'rejected')}
                       onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
+                      onGrantExtension={() => handleGrantExtension(request.id)}
+                      onRejectExtension={() => handleRejectExtension(request.id)}
                     />
                     );
                   })}
@@ -1155,9 +1228,11 @@ interface DonorRequestCardProps {
   onAccept: () => void;
   onReject: () => void;
   onRefresh: () => void;
+  onGrantExtension: () => void;
+  onRejectExtension: () => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension }: DonorRequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
@@ -1315,6 +1390,33 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh }
                 Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}
               </span>
             )}
+          </div>
+        )}
+        {request.status === 'approved' && request.extension_requested_at && !request.extension_granted && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <Clock className="h-4 w-4" />
+              <span className="font-semibold">Extension Requested (+5 minutes)</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              The receiver needs more time to reach the pickup location
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="default" onClick={onGrantExtension}>
+                <Check className="h-4 w-4 mr-1" />
+                Grant Extension
+              </Button>
+              <Button size="sm" variant="outline" onClick={onRejectExtension}>
+                <X className="h-4 w-4 mr-1" />
+                Reject
+              </Button>
+            </div>
+          </div>
+        )}
+        {request.extension_granted && (
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+            <Check className="h-4 w-4" />
+            <span>Extension granted - Timer extended by 5 minutes</span>
           </div>
         )}
         {request.status === 'completed' && (
