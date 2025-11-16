@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Popover,
@@ -18,6 +18,7 @@ export default function NotificationBell() {
     requestPermission,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
   } = useNotifications();
 
   return (
@@ -77,16 +78,18 @@ export default function NotificationBell() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                  className={`p-4 hover:bg-muted/50 transition-colors ${
                     !notification.read ? 'bg-primary/5' : ''
                   }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
                 >
                   <div className="flex items-start gap-2">
                     {!notification.read && (
                       <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => !notification.read && markAsRead(notification.id)}
+                    >
                       <p className="font-medium text-sm">{notification.title}</p>
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {notification.message}
@@ -97,6 +100,17 @@ export default function NotificationBell() {
                         })}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notification.id);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
