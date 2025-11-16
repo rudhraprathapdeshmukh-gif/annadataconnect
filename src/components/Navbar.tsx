@@ -62,27 +62,26 @@ export default function Navbar() {
 
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
-        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 font-bold text-base sm:text-xl text-primary">
-          <HeartHandshake className="h-5 w-5 sm:h-6 sm:w-6" />
-          <span className="hidden xs:inline sm:inline">Annadataconnect</span>
-          <span className="xs:hidden">ADC</span>
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
+          <HeartHandshake className="h-6 w-6" />
+          Annadataconnect
         </Link>
         
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-2">
           {user ? (
             <>
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 h-9">
+                <Button variant="ghost" size="sm" className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden md:inline">Dashboard</span>
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Button>
               </Link>
               {profile?.user_type !== 'receiver' && (
                 <Link to="/donate">
-                  <Button variant="default" size="sm" className="gap-1 sm:gap-2 h-9">
+                  <Button variant="default" size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
-                    <span className="hidden md:inline">Donate Food</span>
+                    <span className="hidden sm:inline">Donate Food</span>
                   </Button>
                 </Link>
               )}
@@ -91,8 +90,8 @@ export default function Navbar() {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9">
-                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+                  <Button variant="ghost" size="icon" className="relative rounded-full">
+                    <Avatar className="h-9 w-9">
                       <AvatarImage 
                         src={profile?.avatar_url || undefined} 
                         alt={`${capitalizeName(profile?.first_name)} ${capitalizeName(profile?.last_name)}`}
@@ -104,7 +103,7 @@ export default function Navbar() {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 sm:w-80 bg-background border-border z-50">
+                <DropdownMenuContent align="end" className="w-80 bg-background border-border z-50">
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">

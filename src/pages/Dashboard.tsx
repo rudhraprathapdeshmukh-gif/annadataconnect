@@ -645,8 +645,8 @@ export default function Dashboard() {
           <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-gradient-to-tr from-accent/25 to-primary/25 blur-3xl opacity-40" />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/.15)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.15)_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
         </div>
-        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
-          <p className="text-center text-muted-foreground text-sm sm:text-base">Loading...</p>
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -662,40 +662,35 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/.15)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.15)_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
       </div>
       
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
               <div className="relative">
-                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16">
+                <Avatar className="h-16 w-16">
                   <AvatarImage src={userProfile?.avatar_url || undefined} alt="Profile picture" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-base sm:text-lg md:text-xl">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                     {userProfile?.first_name?.[0]?.toUpperCase() || 'U'}
                     {userProfile?.last_name?.[0]?.toUpperCase() || ''}
                   </AvatarFallback>
                 </Avatar>
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <h1 className="text-3xl font-bold mb-2">
                   {(() => {
                     const firstName = userProfile?.first_name || '';
                     const lastName = userProfile?.last_name || '';
                     const fullName = `${firstName} ${lastName}`.trim();
                     const displayName = fullName || 'User';
-                    return (
-                      <>
-                        <span className="md:hidden">Hi, {firstName || 'User'}! 👋</span>
-                        <span className="hidden md:inline">Welcome, {displayName}! 👋</span>
-                      </>
-                    );
+                    return `Welcome, ${displayName}! 👋`;
                   })()}
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-muted-foreground">
                   {userProfile?.user_type === 'donor' 
-                    ? <><span className="hidden sm:inline">Manage incoming food requests from your community</span><span className="sm:hidden">Manage your donations</span></>
+                    ? 'Manage incoming food requests from your community' 
                     : userProfile?.user_type === 'receiver'
-                    ? <><span className="hidden sm:inline">Browse and request food from generous donors in your community</span><span className="sm:hidden">Find available food</span></>
-                    : <><span className="hidden sm:inline">Manage donations and browse available food in your community</span><span className="sm:hidden">Manage & browse food</span></>}
+                    ? 'Browse and request food from generous donors in your community'
+                    : 'Manage donations and browse available food in your community'}
                 </p>
               </div>
             </div>
@@ -703,32 +698,23 @@ export default function Dashboard() {
         </div>
 
         {(userProfile?.user_type === 'donor' || userProfile?.user_type === 'both') && (
-          <Tabs defaultValue="active-donations" className="space-y-4 sm:space-y-6">
-            <TabsList className="w-full grid grid-cols-2 h-auto">
-              <TabsTrigger value="active-donations" className="text-xs sm:text-sm py-2">
-                <span className="hidden sm:inline">Active Donations</span>
-                <span className="sm:hidden">Donations</span>
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="text-xs sm:text-sm py-2">
-                <span className="hidden sm:inline">Requests</span>
-                <span className="sm:hidden">Req.</span>
-                ({requests.filter(r => r.status !== 'rejected').length})
-              </TabsTrigger>
+          <Tabs defaultValue="active-donations" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
+              <TabsTrigger value="requests">Requests ({requests.filter(r => r.status !== 'rejected').length})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="active-donations" className="space-y-3 sm:space-y-4">
+            <TabsContent value="active-donations" className="space-y-4">
               {myDonations.length === 0 ? (
                 <Card>
-                  <CardContent className="py-8 sm:py-12 text-center px-3 sm:px-6">
-                    <Package className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
-                    <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">No active donations yet</p>
-                    <Button onClick={() => navigate('/donate')} size="sm" className="transition-all hover:scale-105 active:scale-95">
-                      Create Your First Donation
-                    </Button>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">No active donations yet</p>
+                    <Button onClick={() => navigate('/donate')} className="transition-all hover:scale-105 active:scale-95">Create Your First Donation</Button>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myDonations.map((donation) => (
                     <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                       {donation.image_url && (

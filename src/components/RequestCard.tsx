@@ -110,9 +110,9 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card>
       {request.food_donations.image_url && (
-        <div className="w-full h-40 sm:h-48 overflow-hidden">
+        <div className="w-full h-48 overflow-hidden">
           <img
             src={request.food_donations.image_url}
             alt={request.food_donations.title}
@@ -120,68 +120,68 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           />
         </div>
       )}
-      <CardHeader className="p-3 sm:p-6">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base sm:text-xl">{request.food_donations.title}</CardTitle>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
           <Badge variant={
             request.status === 'approved' ? 'default' :
             request.status === 'rejected' ? 'destructive' :
             'secondary'
-          } className="text-xs shrink-0">
+          }>
             {request.status}
           </Badge>
         </div>
-        <CardDescription className="line-clamp-2 text-xs sm:text-sm">
+        <CardDescription className="line-clamp-2">
           {request.food_donations.description}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 p-3 sm:p-6 pt-0">
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-          <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      <CardContent className="space-y-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Package className="h-4 w-4" />
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
         {request.food_donations.rating && (
-          <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <div className="flex items-center gap-0.5">
-              <span className="text-yellow-500 text-sm">{'★'.repeat(request.food_donations.rating)}</span>
-              <span className="text-muted-foreground text-sm">{'★'.repeat(5 - request.food_donations.rating)}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+              <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
             </div>
             <span className="text-muted-foreground">• {getFreshnessLabel(request.food_donations.rating)}</span>
           </div>
         )}
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
           <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
         </div>
         {request.status === 'approved' && request.food_donations.pickup_location && (
-          <div className="mt-2 sm:mt-3 p-2.5 sm:p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
-            <p className="text-xs sm:text-sm font-semibold text-primary">Pickup Details:</p>
-            <div className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
-              <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-              <span className="break-words">{request.food_donations.pickup_location}</span>
+          <div className="mt-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
+            <p className="text-sm font-semibold text-primary">Pickup Details:</p>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{request.food_donations.pickup_location}</span>
             </div>
             {request.food_donations.donor_profile && (
-              <div className="space-y-1 text-xs sm:text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
+              <div className="space-y-1 text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
                 <p className="font-medium text-foreground">Donor Contact:</p>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5" />
                   <span>{request.food_donations.donor_profile.first_name} {request.food_donations.donor_profile.last_name}</span>
                 </div>
                 {donorRating.average && (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                     <span>{donorRating.average} ({donorRating.count} ratings)</span>
                   </div>
                 )}
                 {request.food_donations.donor_profile.phone_number && (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5" />
                     <span>{request.food_donations.donor_profile.phone_number}</span>
                   </div>
                 )}
                 {request.food_donations.donor_profile.email && (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Mail className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5" />
                     <span>{request.food_donations.donor_profile.email}</span>
                   </div>
                 )}
@@ -196,13 +196,13 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           </div>
         )}
         {request.status === 'approved' && otp && (
-          <div className="mt-2 sm:mt-3 p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30 space-y-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-primary">
-              <KeyRound className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <div className="mt-3 p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <KeyRound className="h-4 w-4" />
               <span>Your Pickup OTP</span>
             </div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold tracking-widest text-foreground font-mono bg-background/50 rounded px-3 sm:px-4 py-2 sm:py-3 border border-border/50">
+              <p className="text-3xl font-bold tracking-widest text-foreground font-mono bg-background/50 rounded px-4 py-3 border border-border/50">
                 {otp}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
@@ -212,10 +212,10 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           </div>
         )}
         {request.status === 'approved' && expiryTime && (
-          <div className={`flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold ${
+          <div className={`flex items-center gap-2 text-sm font-semibold ${
             countdown.expired ? 'text-destructive' : 'text-primary'
           }`}>
-            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Clock className="h-4 w-4" />
             {countdown.expired ? (
               <span>Time Expired - Request will be auto-rejected</span>
             ) : (
@@ -227,7 +227,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         )}
       </CardContent>
       {request.status === 'approved' && user && (
-        <CardFooter className="flex flex-col sm:flex-row gap-2 p-3 sm:p-6">
+        <CardFooter className="flex gap-2">
           <ChatDialog
             donationId={request.food_donations.id}
             otherUserId={request.food_donations.donor_id}
@@ -236,28 +236,25 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             buttonVariant="outline"
             buttonText="Chat"
           />
-          <Button onClick={handleDealDone} disabled={isConfirming} size="sm" className="w-full sm:w-auto">
-            {isConfirming ? 'Confirming...' : 'Deal Done'}
-          </Button>
         </CardFooter>
       )}
       {request.status === 'completed' && (
-        <CardFooter className="p-3 sm:p-6">
-          <div className="w-full space-y-2 sm:space-y-3 p-2.5 sm:p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-xs sm:text-sm font-semibold text-foreground">Mutual Ratings</p>
-            <div className="space-y-1.5 sm:space-y-2">
+        <CardFooter>
+          <div className="w-full space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+            <div className="space-y-2">
               {/* Rating you gave (receiver rating donor) */}
               {request.receiver_rating ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 fill-blue-500" />
-                  <span className="text-xs sm:text-sm">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
+                  <span className="text-sm">
                     You rated donor: {request.receiver_rating}/5
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
                     You haven't rated the donor yet
                   </span>
                 </div>
