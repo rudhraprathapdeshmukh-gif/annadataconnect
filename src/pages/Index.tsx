@@ -128,45 +128,45 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 md:py-28 overflow-hidden">
+      <section className="relative py-10 sm:py-16 md:py-28 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
+        <div className="container mx-auto px-3 sm:px-4 relative z-10">
+          <div className="max-w-3xl mx-auto text-center space-y-4 sm:space-y-6 animate-slide-up">
             {user && userProfile ? (
               <>
                 <div className="flex justify-center">
-                  <Avatar className="h-24 w-24 mb-6 border-4 border-primary/20 shadow-xl">
+                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 mb-3 sm:mb-6 border-2 sm:border-4 border-primary/20 shadow-xl">
                     <AvatarImage 
                       src={userProfile.avatar_url || undefined} 
                       alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`}
                       className="object-cover"
                     />
-                    <AvatarFallback className="text-2xl bg-primary/10">
+                    <AvatarFallback className="text-lg sm:text-xl md:text-2xl bg-primary/10">
                       {capitalizeName(userProfile.first_name)?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-                  Welcome back, <span className="text-primary">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight px-2">
+                  Welcome back, <span className="text-primary hidden sm:inline">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span><span className="text-primary sm:hidden">{capitalizeName(userProfile.first_name)}</span>! 👋
                 </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground">
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground px-4">
                   Ready to make a difference today? Connect with your community and share the love.
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight leading-tight px-2">
                   Share Food, Share <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Love</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto px-4">
                   Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
                 </p>
               </>
             )}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 pt-4 sm:pt-6 px-4">
               {user ? (
                 <>
                 <Link to="/dashboard">
