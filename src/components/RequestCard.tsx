@@ -50,6 +50,7 @@ interface FoodRequest {
   timer_duration: number | null;
   extension_requested_at: string | null;
   extension_granted: boolean;
+  extension_count: number | null;
   food_donations: FoodDonation;
 }
 
@@ -85,23 +86,38 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
     if (!warningShown) {
       setWarningShown(true);
       toast.warning('⏰ Hurry! Less than 10% time remaining', {
-        description: 'Consider requesting an extension if needed'
+        description: 'Consider requesting an extension if you need more time'
       });
     }
   };
 
   const handleExtensionRequest = async (reason: string) => {
     try {
+      // Check if max extensions reached
+      const currentExtensionCount = request.extension_count || 0;
+      if (currentExtensionCount >= 3) {
+        toast.error('Maximum extension limit (3) reached');
+        return;
+      }
+
+      // Check if already requested and waiting
+      if (request.extension_requested_at && !request.extension_granted) {
+        toast.info('Extension request already pending');
+        return;
+      }
+
       const { error } = await supabase
         .from('food_requests')
         .update({
           extension_requested_at: new Date().toISOString(),
+          extension_granted: false, // Reset the granted flag for new request
         })
         .eq('id', request.id);
 
       if (error) throw error;
 
-      toast.success('Extension request sent to donor');
+      const remainingExtensions = 2 - currentExtensionCount;
+      toast.success(`Extension request sent (${remainingExtensions} remaining)`);
       
       // Create notification for donor
       await supabase
@@ -110,7 +126,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           user_id: request.food_donations.donor_id,
           type: 'extension_request',
           title: 'Time Extension Requested',
-          message: `Reason: ${reason}`,
+          message: `Reason: ${reason || 'No reason provided'}. (Extension ${currentExtensionCount + 1}/3)`,
           related_id: request.id,
         });
     } catch (error) {
@@ -265,7 +281,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               timerDuration={request.timer_duration}
               onWarningThreshold={handleWarningThreshold}
             />
-            {!countdown.expired && !request.extension_requested_at && (
+            {!countdown.expired && !request.extension_requested_at && (request.extension_count || 0) < 3 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -273,12 +289,17 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                 onClick={() => setShowExtensionDialog(true)}
               >
                 <Clock className="h-4 w-4 mr-2" />
-                Request Extension (+5 min)
+                Request Extension (+10 min) • {3 - (request.extension_count || 0)} left
               </Button>
             )}
             {request.extension_requested_at && !request.extension_granted && (
               <p className="text-sm text-muted-foreground text-center">
-                Extension requested - waiting for donor approval
+                Extension requested - waiting for donor approval ({3 - (request.extension_count || 0)} remaining)
+              </p>
+            )}
+            {request.extension_granted && (
+              <p className="text-sm text-green-600 dark:text-green-400 text-center">
+                ✓ Extension granted - Timer extended by 10 minutes ({3 - (request.extension_count || 0)} remaining)
               </p>
             )}
           </div>
@@ -326,9 +347,9 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         open={showExtensionDialog}
         onOpenChange={setShowExtensionDialog}
         onSubmit={handleExtensionRequest}
-        extensionMinutes={5}
-        maxExtensions={2}
-        currentExtensions={request.extension_requested_at ? 1 : 0}
+        extensionMinutes={10}
+        maxExtensions={3}
+        currentExtensions={request.extension_count || 0}
       />
     </Card>
   );

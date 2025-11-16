@@ -98,6 +98,7 @@ export type Database = {
           donor_rating: number | null
           donor_review: string | null
           estimated_travel_time: number | null
+          extension_count: number | null
           extension_granted: boolean | null
           extension_requested_at: string | null
           id: string
@@ -119,6 +120,7 @@ export type Database = {
           donor_rating?: number | null
           donor_review?: string | null
           estimated_travel_time?: number | null
+          extension_count?: number | null
           extension_granted?: boolean | null
           extension_requested_at?: string | null
           id?: string
@@ -140,6 +142,7 @@ export type Database = {
           donor_rating?: number | null
           donor_review?: string | null
           estimated_travel_time?: number | null
+          extension_count?: number | null
           extension_granted?: boolean | null
           extension_requested_at?: string | null
           id?: string
