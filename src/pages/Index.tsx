@@ -13,12 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 // Helper function to capitalize first letter of each word
 const capitalizeName = (name: string | null | undefined): string => {
   if (!name) return '';
-  return name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
-
 interface ActiveDonation {
   id: string;
   title: string;
@@ -30,41 +26,46 @@ interface ActiveDonation {
   image_url: string | null;
   pending_requests: number;
 }
-
 const Index = () => {
-  const { user, loading } = useAuth();
+  const {
+    user,
+    loading
+  } = useAuth();
   const [userType, setUserType] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; avatar_url: string | null } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+  } | null>(null);
   const [activeDonations, setActiveDonations] = useState<ActiveDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(false);
-
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('user_type, first_name, last_name, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-        
+        const {
+          data
+        } = await supabase.from('profiles').select('user_type, first_name, last_name, avatar_url').eq('id', user.id).maybeSingle();
         if (data) {
           setUserType(data.user_type);
-          setUserProfile({ first_name: data.first_name, last_name: data.last_name, avatar_url: data.avatar_url });
+          setUserProfile({
+            first_name: data.first_name,
+            last_name: data.last_name,
+            avatar_url: data.avatar_url
+          });
         }
       }
     };
-
     fetchUserProfile();
   }, [user]);
-
   useEffect(() => {
     const fetchActiveDonations = async () => {
       if (user && userType && userType !== 'receiver') {
         setLoadingDonations(true);
         try {
-          const { data: donations, error } = await supabase
-            .from('food_donations')
-            .select(`
+          const {
+            data: donations,
+            error
+          } = await supabase.from('food_donations').select(`
               id,
               title,
               quantity,
@@ -73,32 +74,24 @@ const Index = () => {
               pickup_location,
               expiry_date,
               image_url
-            `)
-            .eq('donor_id', user.id)
-            .eq('status', 'available')
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false })
-            .limit(6);
-
+            `).eq('donor_id', user.id).eq('status', 'available').is('deleted_at', null).order('created_at', {
+            ascending: false
+          }).limit(6);
           if (error) throw error;
-
           if (donations) {
             // Fetch pending requests count for each donation
-            const donationsWithCounts = await Promise.all(
-              donations.map(async (donation) => {
-                const { count } = await supabase
-                  .from('food_requests')
-                  .select('*', { count: 'exact', head: true })
-                  .eq('donation_id', donation.id)
-                  .eq('status', 'pending');
-
-                return {
-                  ...donation,
-                  pending_requests: count || 0
-                };
-              })
-            );
-
+            const donationsWithCounts = await Promise.all(donations.map(async donation => {
+              const {
+                count
+              } = await supabase.from('food_requests').select('*', {
+                count: 'exact',
+                head: true
+              }).eq('donation_id', donation.id).eq('status', 'pending');
+              return {
+                ...donation,
+                pending_requests: count || 0
+              };
+            }));
             setActiveDonations(donationsWithCounts);
           }
         } catch (error) {
@@ -108,42 +101,30 @@ const Index = () => {
         }
       }
     };
-
     fetchActiveDonations();
   }, [user, userType]);
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navbar />
       
       {/* Hero Section */}
       <section className="relative py-20 md:py-28 overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-10"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
+        <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{
+        backgroundImage: `url(${heroImage})`
+      }} />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
-            {user && userProfile ? (
-              <>
+            {user && userProfile ? <>
                 <div className="flex justify-center">
                   <Avatar className="h-24 w-24 mb-6 border-4 border-primary/20 shadow-xl">
-                    <AvatarImage 
-                      src={userProfile.avatar_url || undefined} 
-                      alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`}
-                      className="object-cover"
-                    />
+                    <AvatarImage src={userProfile.avatar_url || undefined} alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`} className="object-cover" />
                     <AvatarFallback className="text-2xl bg-primary/10">
                       {capitalizeName(userProfile.first_name)?.[0] || 'U'}
                     </AvatarFallback>
@@ -155,49 +136,39 @@ const Index = () => {
                 <p className="text-xl md:text-2xl text-muted-foreground">
                   Ready to make a difference today? Connect with your community and share the love.
                 </p>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
                   Share Food, Share <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Love</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
                   Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
                 </p>
-              </>
-            )}
+              </>}
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
-              {user ? (
-                <>
+              {user ? <>
                 <Link to="/dashboard">
                   <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto">
                     <Package className="mr-2 h-5 w-5" />
                     {userType === 'receiver' ? 'Available Food' : 'Your Donations'}
                   </Button>
                 </Link>
-                  {userType !== 'receiver' && (
-                    <Link to="/donate">
+                  {userType !== 'receiver' && <Link to="/donate">
                       <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto">
                         Donate Food
                       </Button>
-                    </Link>
-                  )}
-                </>
-              ) : (
-                <Link to="/auth?mode=signup">
+                    </Link>}
+                </> : <Link to="/auth?mode=signup">
                   <Button size="lg" className="shadow-lg hover-lift text-lg px-8 w-full sm:w-auto">
                     Get Started
                   </Button>
-                </Link>
-              )}
+                </Link>}
             </div>
           </div>
         </div>
       </section>
 
       {/* Active Donations Section - Only for Donors */}
-      {user && userType && userType !== 'receiver' && (
-        <section className="py-16 bg-background">
+      {user && userType && userType !== 'receiver' && <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -209,23 +180,13 @@ const Index = () => {
               </Link>
             </div>
 
-            {loadingDonations ? (
-              <div className="text-center py-12">
+            {loadingDonations ? <div className="text-center py-12">
                 <p className="text-muted-foreground">Loading donations...</p>
-              </div>
-            ) : activeDonations.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activeDonations.map((donation) => (
-                  <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    {donation.image_url && (
-                      <div className="w-full h-48 overflow-hidden">
-                        <img
-                          src={donation.image_url}
-                          alt={donation.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
+              </div> : activeDonations.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeDonations.map(donation => <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    {donation.image_url && <div className="w-full h-48 overflow-hidden">
+                        <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
+                      </div>}
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
@@ -243,30 +204,23 @@ const Index = () => {
                         <MapPin className="h-4 w-4 shrink-0" />
                         <span className="line-clamp-1">{donation.pickup_location}</span>
                       </div>
-                      {donation.expiry_date && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {donation.expiry_date && <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="h-4 w-4" />
                           <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {donation.pending_requests > 0 && (
-                        <div className="pt-2 border-t">
+                        </div>}
+                      {donation.pending_requests > 0 && <div className="pt-2 border-t">
                           <Badge variant="outline" className="w-full justify-center">
                             {donation.pending_requests} Pending Request{donation.pending_requests !== 1 ? 's' : ''}
                           </Badge>
-                        </div>
-                      )}
+                        </div>}
                       <Link to="/dashboard" className="block pt-2">
                         <Button variant="secondary" size="sm" className="w-full">
                           View Details
                         </Button>
                       </Link>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="py-12">
+                  </Card>)}
+              </div> : <Card className="py-12">
                 <CardContent className="text-center space-y-4">
                   <Package className="h-12 w-12 mx-auto text-muted-foreground" />
                   <div>
@@ -277,11 +231,9 @@ const Index = () => {
                     </Link>
                   </div>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
           </div>
-        </section>
-      )}
+        </section>}
 
       {/* Features Section */}
       <section className="py-20 gradient-warm">
@@ -332,8 +284,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      {!user && (
-        <section className="py-20">
+      {!user && <section className="py-20">
           <div className="container mx-auto px-4">
             <Card className="max-w-3xl mx-auto gradient-primary text-white border-0 shadow-2xl overflow-hidden">
               <CardContent className="py-16 text-center space-y-6 relative">
@@ -354,8 +305,7 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
-        </section>
-      )}
+        </section>}
 
       {/* Footer */}
       <footer className="bg-muted/30 border-t mt-20">
@@ -369,12 +319,10 @@ const Index = () => {
               Privacy Policy
             </Link>
             <span>•</span>
-            <span>© 2024 AnnadataConnect</span>
+            <span>© 2025 AnnadataConnect</span>
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
