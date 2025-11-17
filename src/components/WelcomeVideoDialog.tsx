@@ -9,8 +9,12 @@ interface WelcomeVideoDialogProps {
 
 export function WelcomeVideoDialog({ open, onContinue, videoId }: WelcomeVideoDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onContinue()}>
-      <DialogContent className="max-w-4xl glass-card border-2 gradient-border p-6">
+    <Dialog open={open} modal={true}>
+      <DialogContent 
+        className="max-w-4xl glass-card border-2 gradient-border p-6"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent">
             Welcome to AnnadataConnect! 🎉

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +56,7 @@ export default function Auth() {
   const [showResetPassword, setShowResetPassword] = useState(searchParams.get('mode') === 'reset');
   const [newPassword, setNewPassword] = useState('');
   const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
+  const justSignedUp = useRef(false);
 
   // Password strength indicators
   const passwordRequirements = [
@@ -120,8 +121,8 @@ export default function Auth() {
     }
 
     // Check if user signed in with Google and validate they have an account
-    // Don't auto-navigate if welcome video should be shown
-    if (user && !isRecoveryMode && !showWelcomeVideo) {
+    // Don't auto-navigate if welcome video should be shown or user just signed up
+    if (user && !isRecoveryMode && !showWelcomeVideo && !justSignedUp.current) {
       (async () => {
         // Check if user has a profile in our system
         const { data: profile, error } = await supabase
@@ -285,6 +286,7 @@ export default function Auth() {
 
   const handleWelcomeVideoContinue = () => {
     setShowWelcomeVideo(false);
+    justSignedUp.current = false;
     navigate('/dashboard');
   };
 
@@ -363,6 +365,7 @@ export default function Auth() {
             setIsSignUp(false);
           } else {
             toast.success('Welcome to Annadataconnect! 🎉');
+            justSignedUp.current = true;
             setShowWelcomeVideo(true);
           }
         }
