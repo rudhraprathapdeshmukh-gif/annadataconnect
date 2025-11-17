@@ -739,7 +739,7 @@ export default function Auth() {
       <WelcomeVideoDialog 
         open={showWelcomeVideo}
         onContinue={handleWelcomeVideoContinue}
-        videoId="dQw4w9WgXcQ"
+        videoId="GqvRbx8_XoY"
       />
     </div>
   );
