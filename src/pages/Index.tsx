@@ -115,10 +115,18 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 md:py-28 overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{
-        backgroundImage: `url(${heroImage})`
-      }} />
+      <section className="relative py-20 md:py-28 overflow-hidden mesh-gradient">
+        {/* Animated Background Blobs */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '4s' }} />
+        
+        {/* Floating Food Icons */}
+        <div className="floating-element">🍕</div>
+        <div className="floating-element">🍎</div>
+        <div className="floating-element">🍞</div>
+        <div className="floating-element">🥗</div>
+        
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
             {user && userProfile ? <>
@@ -130,15 +138,15 @@ const Index = () => {
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-                  Welcome back, <span className="text-primary">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-lg">
+                  Welcome back, <span className="text-primary drop-shadow-xl">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground">
                   Ready to make a difference today? Connect with your community and share the love.
                 </p>
               </> : <>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-                  Share Food, Share <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Love</span>
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight drop-shadow-lg">
+                  Share Food, Share <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent drop-shadow-2xl animate-pulse">Love</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
                   Connect food donors with those in need. Together, we can reduce food waste and fight hunger in our community.
@@ -147,18 +155,18 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
               {user ? <>
                 <Link to="/dashboard">
-                  <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto">
+                  <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
                     <Package className="mr-2 h-5 w-5" />
                     {userType === 'receiver' ? 'Available Food' : 'Your Donations'}
                   </Button>
                 </Link>
                   {userType !== 'receiver' && <Link to="/donate">
-                      <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto">
+                      <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
                         Donate Food
                       </Button>
                     </Link>}
                 </> : <Link to="/auth?mode=signup">
-                  <Button size="lg" className="shadow-lg hover-lift text-lg px-8 w-full sm:w-auto">
+                  <Button size="lg" className="shadow-lg glow-effect text-lg px-8 w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
                     Get Started
                   </Button>
                 </Link>}
@@ -183,9 +191,9 @@ const Index = () => {
             {loadingDonations ? <div className="text-center py-12">
                 <p className="text-muted-foreground">Loading donations...</p>
               </div> : activeDonations.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activeDonations.map(donation => <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                {activeDonations.map(donation => <Card key={donation.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 card-3d group">
                     {donation.image_url && <div className="w-full h-48 overflow-hidden">
-                        <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
+                        <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
                       </div>}
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
@@ -244,9 +252,9 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="text-center hover-lift border-0 shadow-lg">
+            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
                   <Heart className="h-8 w-8 text-white" />
                 </div>
                 <CardTitle className="text-2xl mb-3">Donate Food</CardTitle>
@@ -256,9 +264,9 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            <Card className="text-center hover-lift border-0 shadow-lg">
+            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
                   <Users className="h-8 w-8 text-secondary" />
                 </div>
                 <CardTitle className="text-2xl mb-3">Connect</CardTitle>
@@ -268,9 +276,9 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            <Card className="text-center hover-lift border-0 shadow-lg">
+            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
                   <Leaf className="h-8 w-8 text-accent" />
                 </div>
                 <CardTitle className="text-2xl mb-3">Make Impact</CardTitle>

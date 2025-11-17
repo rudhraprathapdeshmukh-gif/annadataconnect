@@ -376,10 +376,15 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-warm p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center mesh-gradient p-4 relative overflow-hidden">
+      {/* Animated Background Blobs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '4s' }} />
+      
+      <Card className="w-full max-w-md shadow-2xl border-0 animate-fade-in glass-card relative z-10">
         <CardHeader className="space-y-1 text-center pb-8 pt-8">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-full gradient-primary flex items-center justify-center shadow-lg">
+          <div className="mx-auto mb-4 w-16 h-16 rounded-full gradient-primary flex items-center justify-center shadow-lg glow-effect floating">
             <Heart className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-3xl font-bold">
@@ -413,7 +418,7 @@ export default function Auth() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="pr-10"
+                    className="pr-10 transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <Button
                     type="button"
@@ -447,7 +452,7 @@ export default function Auth() {
                   </div>
                 )}
               </div>
-              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
+              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>
             </form>
@@ -462,16 +467,17 @@ export default function Auth() {
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   required
+                  className="transition-all focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
+              <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl" disabled={loading}>
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>
               <Button
                 type="button"
                 variant="link"
                 onClick={() => setShowForgotPassword(false)}
-                className="w-full text-sm"
+                className="w-full text-sm hover:opacity-80 transition-opacity"
               >
                 Back to Sign In
               </Button>
@@ -526,6 +532,7 @@ export default function Auth() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
+                    className="transition-all focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div className="space-y-2">
@@ -537,6 +544,7 @@ export default function Auth() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
+                    className="transition-all focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div className="space-y-2">
@@ -548,6 +556,7 @@ export default function Auth() {
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     required
+                    className="transition-all focus:ring-2 focus:ring-primary/20"
                   />
                   <p className="text-xs text-muted-foreground">Format: +91 followed by 10 digits</p>
                 </div>
@@ -562,6 +571,7 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="transition-all focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="space-y-2">
@@ -575,7 +585,7 @@ export default function Auth() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="pr-10"
+                  className="pr-10 transition-all focus:ring-2 focus:ring-primary/20"
                 />
                 <Button
                   type="button"
@@ -638,7 +648,7 @@ export default function Auth() {
                 <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
               </div>
             )}
-            <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95" disabled={loading}>
+            <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl glow-effect" disabled={loading}>
               {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
             </Button>
             
@@ -656,7 +666,7 @@ export default function Auth() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full hover-lift border-2"
+                  className="w-full hover-lift border-2 hover:border-primary/50 transition-all duration-300 transform hover:scale-105"
                   onClick={handleGoogleSignIn}
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
