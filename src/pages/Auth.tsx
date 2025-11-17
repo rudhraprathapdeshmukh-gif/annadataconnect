@@ -120,7 +120,8 @@ export default function Auth() {
     }
 
     // Check if user signed in with Google and validate they have an account
-    if (user && !isRecoveryMode) {
+    // Don't auto-navigate if welcome video should be shown
+    if (user && !isRecoveryMode && !showWelcomeVideo) {
       (async () => {
         // Check if user has a profile in our system
         const { data: profile, error } = await supabase
@@ -143,7 +144,7 @@ export default function Auth() {
         navigate('/dashboard');
       })();
     }
-  }, [user, navigate, searchParams]);
+  }, [user, navigate, searchParams, showWelcomeVideo]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
