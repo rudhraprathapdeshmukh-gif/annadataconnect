@@ -714,7 +714,7 @@ export default function Auth() {
           )}
           
           <p className="text-center text-xs text-muted-foreground pt-4 border-t mt-6">
-            By continuing, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/terms" className="text-primary hover:underline">Privacy Policy</Link>
+            By continuing, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
           </p>
         </CardContent>
       </Card>

@@ -365,7 +365,7 @@ const Index = () => {
               Terms & Conditions
             </Link>
             <span>•</span>
-            <Link to="/terms" className="hover:text-primary transition-colors">
+            <Link to="/privacy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>
             <span>•</span>
