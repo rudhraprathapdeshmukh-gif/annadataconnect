@@ -323,7 +323,7 @@ export default function History() {
           <p className="text-muted-foreground">
             {userType === 'donor' 
               ? 'View your complete donation history including completed and deleted donations'
-              : 'View your completed donations and received food'}
+              : 'View your received food'}
           </p>
         </div>
 
