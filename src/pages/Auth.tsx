@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Eye, EyeOff, Upload, X, Heart } from 'lucide-react';
+import { WelcomeVideoDialog } from '@/components/WelcomeVideoDialog';
 
 const passwordSchema = z.string()
   .min(8, { message: "Password must be at least 8 characters" })
@@ -54,6 +55,7 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(searchParams.get('mode') === 'reset');
   const [newPassword, setNewPassword] = useState('');
+  const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
 
   // Password strength indicators
   const passwordRequirements = [
@@ -280,6 +282,11 @@ export default function Auth() {
     }
   };
 
+  const handleWelcomeVideoContinue = () => {
+    setShowWelcomeVideo(false);
+    navigate('/dashboard');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -355,7 +362,7 @@ export default function Auth() {
             setIsSignUp(false);
           } else {
             toast.success('Welcome to Annadataconnect! 🎉');
-            navigate('/dashboard');
+            setShowWelcomeVideo(true);
           }
         }
       } else {
@@ -728,6 +735,12 @@ export default function Auth() {
           </p>
         </CardContent>
       </Card>
+
+      <WelcomeVideoDialog 
+        open={showWelcomeVideo}
+        onContinue={handleWelcomeVideoContinue}
+        videoId="dQw4w9WgXcQ"
+      />
     </div>
   );
 }
