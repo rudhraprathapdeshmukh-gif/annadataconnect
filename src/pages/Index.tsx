@@ -356,6 +356,23 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      {/* Footer */}
+      <footer className="bg-muted/30 border-t mt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+            <Link to="/terms" className="hover:text-primary transition-colors">
+              Terms & Conditions
+            </Link>
+            <span>•</span>
+            <Link to="/terms" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <span>© 2024 AnnadataConnect</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
