@@ -14,6 +14,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import HelpChatbot from "@/components/HelpChatbot";
 
 const queryClient = new QueryClient();
 
@@ -24,20 +25,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/donate" element={<Donate />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/help" element={<Help />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/donate" element={<Donate />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/help" element={<Help />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <HelpChatbot />
+          </>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
