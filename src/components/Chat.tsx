@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { Send, Loader2, MapPin } from 'lucide-react';
+import { Send, Loader2, MapPin, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -120,7 +120,8 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   // Fetch existing messages
   useEffect(() => {
@@ -202,12 +203,22 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     };
   }, [user, donationId, otherUserId]);
 
-  // Auto-scroll to bottom
+  // Detect manual scrolling
+  const handleScroll = () => {
+    if (!scrollViewportRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollViewportRef.current;
+    const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+    
+    setAutoScroll(isAtBottom);
+  };
+
+  // Auto-scroll to bottom only when enabled
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (autoScroll && scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, autoScroll]);
 
   // Safety mechanism: reset sending state after 10 seconds
   useEffect(() => {
@@ -367,9 +378,13 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         </CardTitle>
         <p className="text-sm text-muted-foreground">with {otherUserName}</p>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0 relative">
+        <ScrollArea className="flex-1 p-4">
+          <div 
+            ref={scrollViewportRef}
+            onScroll={handleScroll}
+            className="space-y-4"
+          >
             {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No messages yet. Start the conversation!
@@ -417,6 +432,23 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
             )}
           </div>
         </ScrollArea>
+        
+        {/* Scroll to bottom button */}
+        {!autoScroll && (
+          <Button
+            size="sm"
+            className="absolute bottom-20 right-4 rounded-full shadow-lg z-10"
+            onClick={() => {
+              if (scrollViewportRef.current) {
+                scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
+                setAutoScroll(true);
+              }
+            }}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        )}
+        
         <div className="border-t p-4">
           {sending && (
             <p className="text-xs text-muted-foreground mb-2">
