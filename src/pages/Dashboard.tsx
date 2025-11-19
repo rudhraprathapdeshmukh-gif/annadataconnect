@@ -1047,7 +1047,11 @@ export default function Dashboard() {
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm font-semibold text-destructive bg-destructive/10 p-2 rounded">
                             <Calendar className="h-4 w-4" />
-                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString()}</span>
+                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}</span>
                           </div>
                         )}
                       </CardContent>
@@ -1391,7 +1395,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               <span>Time Expired - Request auto-rejected</span>
             ) : (
               <span>
-                Time remaining: {countdown.minutes}:{countdown.seconds.toString().padStart(2, '0')}
+                Time remaining: {countdown.days > 0 && `${countdown.days}d `}
+                {(countdown.days > 0 || countdown.hours > 0) && `${countdown.hours}h `}
+                {countdown.minutes}m {countdown.seconds.toString().padStart(2, '0')}s
               </span>
             )}
           </div>

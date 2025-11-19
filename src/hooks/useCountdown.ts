@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 
 export function useCountdown(targetDate: Date | null) {
   const [timeRemaining, setTimeRemaining] = useState<{
+    days: number;
+    hours: number;
     minutes: number;
     seconds: number;
     expired: boolean;
-  }>({ minutes: 0, seconds: 0, expired: true });
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
 
   useEffect(() => {
     if (!targetDate) {
-      setTimeRemaining({ minutes: 0, seconds: 0, expired: true });
+      setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
       return;
     }
 
@@ -19,14 +21,16 @@ export function useCountdown(targetDate: Date | null) {
       const difference = target - now;
 
       if (difference <= 0) {
-        setTimeRemaining({ minutes: 0, seconds: 0, expired: true });
+        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
         return;
       }
 
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-      setTimeRemaining({ minutes, seconds, expired: false });
+      setTimeRemaining({ days, hours, minutes, seconds, expired: false });
     };
 
     calculateTimeRemaining();

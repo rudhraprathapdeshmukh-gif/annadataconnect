@@ -54,7 +54,12 @@ export function TimerProgressBar({
           </span>
         </div>
         <span className="font-medium">
-          {Math.max(0, Math.ceil(percentage * timerDuration / 100))} min
+          {(() => {
+            const remainingMinutes = Math.max(0, Math.ceil(percentage * timerDuration / 100));
+            const hours = Math.floor(remainingMinutes / 60);
+            const mins = remainingMinutes % 60;
+            return hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+          })()}
         </span>
       </div>
       <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
