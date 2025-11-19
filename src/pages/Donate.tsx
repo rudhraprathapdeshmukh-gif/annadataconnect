@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, X, CalendarIcon, Clock, ShieldCheck } from 'lucide-react';
+import { Upload, X, CalendarIcon, Clock, ShieldCheck, MapPin, Loader2 } from 'lucide-react';
 import { format, addYears, addDays, addMonths, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +72,8 @@ export default function Donate() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
   const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
@@ -84,6 +86,88 @@ export default function Donate() {
     if (ampm === 'AM' && hours === 12) hours = 0;
     if (ampm === 'PM' && hours !== 12) hours += 12;
     return [hours, parseInt(minute)];
+  };
+
+  // Reverse geocoding function to convert coordinates to address
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
+          }
+        }
+      );
+      
+      if (!response.ok) throw new Error('Geocoding failed');
+      
+      const data = await response.json();
+      return {
+        city: data.address.city || data.address.town || data.address.village || '',
+        area: data.address.suburb || data.address.neighbourhood || data.address.road || '',
+        completeAddress: data.display_name || '',
+      };
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      throw error;
+    }
+  };
+
+  // Handler for using current location
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setLoadingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Store coordinates
+          setCoordinates({ lat, lng });
+          
+          // Get address from coordinates
+          const address = await reverseGeocode(lat, lng);
+          
+          // Auto-fill form fields
+          setFormData(prev => ({
+            ...prev,
+            city: address.city,
+            area: address.area,
+            complete_address: address.completeAddress,
+          }));
+          
+          toast.success('Location detected successfully!');
+        } catch (error) {
+          toast.error('Failed to get address from location');
+        } finally {
+          setLoadingLocation(false);
+        }
+      },
+      (error) => {
+        setLoadingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location permission denied. Please enable location access.');
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error('Location information unavailable');
+        } else if (error.code === error.TIMEOUT) {
+          toast.error('Location request timed out');
+        } else {
+          toast.error('Failed to get your location');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   useEffect(() => {
@@ -257,8 +341,8 @@ export default function Donate() {
           food_type: validation.data.food_type,
           phone_number: validation.data.phone_number,
           pickup_location: pickupLocation,
-          latitude: null,
-          longitude: null,
+          latitude: coordinates?.lat || null,
+          longitude: coordinates?.lng || null,
           expiry_date: validation.data.expiry_datetime.toISOString(),
           rating: validation.data.rating,
           image_url: publicUrl,
@@ -610,7 +694,29 @@ export default function Donate() {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Pickup Location *</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Pickup Location *</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUseCurrentLocation}
+                    disabled={loadingLocation}
+                    className="gap-2"
+                  >
+                    {loadingLocation ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Detecting...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-4 w-4" />
+                        Use Present Location
+                      </>
+                    )}
+                  </Button>
+                </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="city">City *</Label>
