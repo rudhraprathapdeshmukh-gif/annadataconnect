@@ -306,6 +306,48 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_addresses: {
+        Row: {
+          address_name: string
+          area: string
+          city: string
+          complete_address: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          latitude: number | null
+          longitude: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address_name: string
+          area: string
+          city: string
+          complete_address: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address_name?: string
+          area?: string
+          city?: string
+          complete_address?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
