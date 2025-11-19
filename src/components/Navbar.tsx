@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { HeartHandshake, LogOut, User, FolderClock, LayoutDashboard, Plus } from 'lucide-react';
+import { HeartHandshake, LogOut, User, FolderClock, LayoutDashboard, Plus, HelpCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,6 +138,13 @@ export default function Navbar() {
                     <DropdownMenuItem className="cursor-pointer">
                       <FolderClock className="h-4 w-4 mr-2" />
                       History
+                    </DropdownMenuItem>
+                  </Link>
+                  
+                  <Link to="/help">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      Help & Support
                     </DropdownMenuItem>
                   </Link>
                   
