@@ -287,12 +287,6 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
       return;
     }
     
-    if (sending) {
-      console.warn('Already sending a message, please wait');
-      return;
-    }
-
-    setSending(true);
     setIsGettingLocation(false); // Reset this immediately
     
     try {
@@ -316,8 +310,6 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
       console.error('Error sending location:', error);
       toast.error('Failed to share location');
     } finally {
-      // Always reset states
-      setSending(false);
       setIsGettingLocation(false);
     }
   };
@@ -436,7 +428,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
               variant="outline"
               size="icon"
               onClick={getLocation}
-              disabled={sending || isGettingLocation}
+              disabled={isGettingLocation}
               title="Share location"
             >
               {isGettingLocation ? (
