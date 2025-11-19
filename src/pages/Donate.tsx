@@ -314,10 +314,14 @@ export default function Donate() {
   // Auto-set date to today and default time when Prepared Food is selected
   useEffect(() => {
     if (formData.food_type === 'Prepared Food') {
+      // Set date to today
       setExpiryDate(new Date());
-      // Set default time to 2 hours from now
+      
+      // Set default time to 2 hours from now (with extra 15 min buffer)
       const futureTime = new Date();
       futureTime.setHours(futureTime.getHours() + 2);
+      futureTime.setMinutes(futureTime.getMinutes() + 15); // Add 15 min buffer
+      
       const hours = futureTime.getHours();
       const mins = futureTime.getMinutes();
       
@@ -366,22 +370,26 @@ export default function Donate() {
       let expiryDateTime: Date;
 
       if (isPreparedFood) {
-        // For prepared food, use today's date with selected 12-hour time
-        const today = new Date();
+        // Use the expiryDate state which was set when food type was selected
+        // If not set, use today as fallback
+        const dateToUse = expiryDate || new Date();
         const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
         expiryDateTime = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
+          dateToUse.getFullYear(),
+          dateToUse.getMonth(),
+          dateToUse.getDate(),
           hours24,
           mins,
           0,
           0
         );
-
-        // Validate that time is in the future
-        if (expiryDateTime <= new Date()) {
-          toast.error('Pickup time must be in the future');
+        
+        // Add validation with 5-minute buffer to ensure time is truly in future
+        const now = new Date();
+        const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+        
+        if (expiryDateTime < minAllowedTime) {
+          toast.error('Pickup time must be at least 5 minutes in the future. Please select a later time.');
           setSubmitting(false);
           return;
         }
