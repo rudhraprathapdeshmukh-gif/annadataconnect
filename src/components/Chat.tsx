@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import { calculateDistance } from '@/lib/geoUtils';
 
 interface Message {
   id: string;
@@ -32,16 +33,27 @@ const LocationMessage = React.memo(({
   lat, 
   lon, 
   locationName,
-  isOwnMessage 
+  isOwnMessage,
+  pickupLocation 
 }: { 
   lat: number; 
   lon: number; 
   locationName?: string | null;
   isOwnMessage: boolean;
+  pickupLocation?: {
+    latitude: number | null;
+    longitude: number | null;
+    address: string;
+  } | null;
 }) => {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
   const staticMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
+  
+  // Calculate distance if pickup coordinates exist
+  const distance = pickupLocation?.latitude && pickupLocation?.longitude
+    ? calculateDistance(lat, lon, pickupLocation.latitude, pickupLocation.longitude)
+    : null;
   
   return (
     <>
@@ -112,8 +124,30 @@ const LocationMessage = React.memo(({
           </DialogHeader>
           <div className="flex-1 flex flex-col gap-4 h-full">
             {locationName && (
-              <p className="text-sm text-muted-foreground">{locationName}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Shared Location:</p>
+                <p className="text-sm text-muted-foreground">{locationName}</p>
+              </div>
             )}
+            
+            {/* Distance to Pickup Location */}
+            {distance !== null && pickupLocation && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Distance to Pickup Location</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{pickupLocation.address}</p>
+                  </div>
+                  <div className="text-right ml-4">
+                    <p className="text-2xl font-bold text-primary">{distance} km</p>
+                    <p className="text-xs text-muted-foreground">
+                      {distance < 1 ? `${Math.round(distance * 1000)}m away` : 'away'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="flex-1 rounded-lg overflow-hidden border">
               <iframe
                 width="100%"
@@ -163,6 +197,11 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [sending, setSending] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [donationLocation, setDonationLocation] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+    address: string;
+  } | null>(null);
 
   // Fetch existing messages
   useEffect(() => {
@@ -187,6 +226,27 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
     fetchMessages();
   }, [user, donationId]);
+
+  // Fetch donation location
+  useEffect(() => {
+    const fetchDonationLocation = async () => {
+      const { data, error } = await supabase
+        .from('food_donations')
+        .select('latitude, longitude, pickup_location')
+        .eq('id', donationId)
+        .maybeSingle();
+        
+      if (!error && data) {
+        setDonationLocation({
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.pickup_location
+        });
+      }
+    };
+    
+    fetchDonationLocation();
+  }, [donationId]);
 
   // Mark messages as read
   useEffect(() => {
@@ -405,16 +465,17 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                         : 'bg-muted'
                     }`}
                   >
-                    {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
-                      <LocationMessage 
-                        lat={msg.latitude} 
-                        lon={msg.longitude} 
-                        locationName={msg.location_name}
-                        isOwnMessage={msg.sender_id === user?.id}
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    )}
+              {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
+                <LocationMessage 
+                  lat={msg.latitude} 
+                  lon={msg.longitude} 
+                  locationName={msg.location_name}
+                  isOwnMessage={msg.sender_id === user?.id}
+                  pickupLocation={donationLocation}
+                />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+              )}
                     <p
                       className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
