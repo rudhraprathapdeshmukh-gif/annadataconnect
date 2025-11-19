@@ -68,7 +68,7 @@ const LocationMessage = React.memo(({
 
       {/* Inline full map – stays inside the chat bubble */}
       {showFullMap && (
-        <div className="rounded-lg overflow-hidden border h-56">
+        <div className="rounded-lg overflow-hidden border h-40 sm:h-56">
           <iframe
             width="100%"
             height="100%"
@@ -334,7 +334,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   }
 
   return (
-    <Card className="w-full h-[500px] flex flex-col">
+    <Card className="w-full h-[500px] flex flex-col overflow-hidden">
       <CardHeader className="border-b">
         <CardTitle className="text-lg">
           Chat about: {donationTitle}
@@ -357,7 +357,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                   }`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    className={`max-w-[70%] rounded-lg px-4 py-2 overflow-hidden ${
                       msg.sender_id === user?.id
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
