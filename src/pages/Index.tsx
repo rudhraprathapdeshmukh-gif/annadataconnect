@@ -327,6 +327,10 @@ const Index = () => {
               Privacy Policy
             </Link>
             <span>•</span>
+            <Link to="/help" className="hover:text-primary transition-colors">
+              Help & Support
+            </Link>
+            <span>•</span>
             <span>© 2025 AnnadataConnect</span>
           </div>
         </div>
