@@ -209,6 +209,19 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     }
   }, [messages]);
 
+  // Safety mechanism: reset sending state after 10 seconds
+  useEffect(() => {
+    if (sending) {
+      const timeout = setTimeout(() => {
+        setSending(false);
+        setIsGettingLocation(false);
+        console.warn('Force-reset sending state due to timeout');
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [sending]);
+
   const sendMessage = async () => {
     if (!user || !newMessage.trim() || sending) return;
 
@@ -241,27 +254,47 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
   const reverseGeocode = async (lat: number, lon: number): Promise<string | null> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
         {
           headers: {
             'User-Agent': 'AnnadataConnect'
-          }
+          },
+          signal: controller.signal
         }
       );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       const data = await response.json();
       return data.display_name || null;
     } catch (error) {
       console.error('Geocoding error:', error);
-      return null;
+      return null; // Always return null on error, don't throw
     }
   };
 
   const sendLocation = async (lat: number, lon: number) => {
-    if (!user || sending) return;
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
+    
+    if (sending) {
+      console.warn('Already sending a message, please wait');
+      return;
+    }
 
     setSending(true);
+    setIsGettingLocation(false); // Reset this immediately
+    
     try {
       const locationName = await reverseGeocode(lat, lon);
       
@@ -283,6 +316,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
       console.error('Error sending location:', error);
       toast.error('Failed to share location');
     } finally {
+      // Always reset states
       setSending(false);
       setIsGettingLocation(false);
     }
@@ -392,6 +426,11 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
           </div>
         </ScrollArea>
         <div className="border-t p-4">
+          {sending && (
+            <p className="text-xs text-muted-foreground mb-2">
+              Sending message...
+            </p>
+          )}
           <div className="flex gap-2">
             <Button
               variant="outline"
