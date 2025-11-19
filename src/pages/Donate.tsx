@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, X, CalendarIcon, Clock, ShieldCheck } from 'lucide-react';
-import { format, addYears, addDays, isAfter, isBefore } from 'date-fns';
+import { format, addYears, addDays, addMonths, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const phoneSchema = z.string()
@@ -66,7 +66,6 @@ export default function Donate() {
     rating: 0,
   });
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
-  const [expiryTime, setExpiryTime] = useState('12:00');
   const [hour12, setHour12] = useState('12');
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState('PM');
@@ -77,6 +76,7 @@ export default function Donate() {
   const isPreparedFood = formData.food_type === 'Prepared Food';
   const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
   const isDairy = formData.food_type === 'Dairy';
+  const isGrains = formData.food_type === 'Grains';
 
   // Helper function to convert 12-hour time to 24-hour format
   const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
@@ -190,16 +190,23 @@ export default function Donate() {
           return;
         }
       } else {
-        // For other food types, use selected date + time
+        // For other food types, use selected date + 12-hour time
         if (!expiryDate) {
           toast.error('Please select an expiry date');
           setSubmitting(false);
           return;
         }
 
-        const [hours, minutes] = expiryTime.split(':').map(Number);
-        expiryDateTime = new Date(expiryDate);
-        expiryDateTime.setHours(hours, minutes, 0, 0);
+        const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
+        expiryDateTime = new Date(
+          expiryDate.getFullYear(),
+          expiryDate.getMonth(),
+          expiryDate.getDate(),
+          hours24,
+          mins,
+          0,
+          0
+        );
       }
 
       // Validate input including image, expiry datetime, and safety confirmation
@@ -526,6 +533,8 @@ export default function Donate() {
                           maxDate = addDays(today, 4);
                         } else if (isDairy) {
                           maxDate = addDays(today, 2);
+                        } else if (isGrains) {
+                          maxDate = addMonths(today, 5);
                         } else {
                           maxDate = addYears(today, 2);
                         }
@@ -538,19 +547,50 @@ export default function Donate() {
                     </Popover>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="time"
-                        value={expiryTime}
-                        onChange={(e) => setExpiryTime(e.target.value)}
-                        required
-                        className="flex-1"
-                      />
+                      <div className="flex gap-2 flex-1">
+                        <Select value={hour12} onValueChange={setHour12}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="Hour" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                              <SelectItem key={hour} value={String(hour)}>
+                                {String(hour).padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={minute} onValueChange={setMinute}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="Min" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['00', '15', '30', '45'].map((min) => (
+                              <SelectItem key={min} value={min}>
+                                {min}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={ampm} onValueChange={setAmpm}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="AM/PM" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {isVegetableOrFruit && 'Vegetables/Fruits: Select expiry within the next 4 days'}
                     {isDairy && 'Dairy: Select expiry within the next 2 days'}
-                    {!isVegetableOrFruit && !isDairy && 'Food expires between now and up to 2 years from today'}
+                    {isGrains && 'Grains: Select expiry within the next 5 months'}
+                    {!isVegetableOrFruit && !isDairy && !isGrains && 'Food expires between now and up to 2 years from today'}
                   </p>
                 </div>
               )}
