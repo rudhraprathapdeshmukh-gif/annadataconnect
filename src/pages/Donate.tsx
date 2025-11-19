@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import type { SavedAddress } from '@/types/savedAddress';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +75,8 @@ export default function Donate() {
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState<string>('');
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
   const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
@@ -89,6 +92,48 @@ export default function Donate() {
   };
 
   // Reverse geocoding function to convert coordinates to address
+  const fetchSavedAddresses = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('saved_addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setSavedAddresses(data);
+      // Auto-select default address if exists and form is empty
+      const defaultAddr = data.find(addr => addr.is_default);
+      if (defaultAddr && !formData.city && !formData.area) {
+        handleSelectSavedAddress(defaultAddr.id);
+      }
+    }
+  };
+
+  const handleSelectSavedAddress = (addressId: string) => {
+    const address = savedAddresses.find(addr => addr.id === addressId);
+    if (!address) return;
+    
+    setSelectedSavedAddress(addressId);
+    setFormData(prev => ({
+      ...prev,
+      city: address.city,
+      area: address.area,
+      complete_address: address.complete_address,
+    }));
+    
+    if (address.latitude && address.longitude) {
+      setCoordinates({
+        lat: address.latitude,
+        lng: address.longitude
+      });
+    }
+    
+    toast.success(`Address "${address.address_name}" loaded`);
+  };
+
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await fetch(
@@ -236,6 +281,12 @@ export default function Donate() {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSavedAddresses();
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchUserType = async () => {
@@ -778,6 +829,33 @@ export default function Donate() {
                     )}
                   </Button>
                 </div>
+
+                {/* Saved addresses dropdown */}
+                {savedAddresses.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="saved-address">Quick Select Saved Address</Label>
+                    <Select value={selectedSavedAddress} onValueChange={handleSelectSavedAddress}>
+                      <SelectTrigger id="saved-address">
+                        <SelectValue placeholder="Select a saved address..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedAddresses.map((addr) => (
+                          <SelectItem key={addr.id} value={addr.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{addr.address_name}</span>
+                              {addr.is_default && (
+                                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">Default</span>
+                              )}
+                              <span className="text-muted-foreground text-sm">
+                                - {addr.area}, {addr.city}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="city">City *</Label>
