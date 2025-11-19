@@ -103,10 +103,48 @@ export default function Donate() {
       if (!response.ok) throw new Error('Geocoding failed');
       
       const data = await response.json();
+      const addr = data.address;
+      
+      // Extract detailed components
+      const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+      const state = addr.state || addr.state_district || '';
+      const postalCode = addr.postcode || '';
+      const district = addr.state_district || addr.county || '';
+      
+      // Build detailed locality/area string
+      const areaComponents = [
+        addr.suburb,
+        addr.neighbourhood, 
+        addr.quarter,
+        addr.road,
+        addr.hamlet
+      ].filter(Boolean);
+      
+      const area = areaComponents.length > 0 
+        ? areaComponents.join(', ')
+        : addr.locality || '';
+      
+      // Build comprehensive complete address
+      const addressParts = [
+        addr.house_number,
+        addr.road,
+        addr.suburb || addr.neighbourhood,
+        addr.village || addr.town || addr.city,
+        addr.state_district || addr.county,
+        addr.state,
+        addr.country,
+        addr.postcode
+      ].filter(Boolean);
+      
+      const completeAddress = addressParts.join(', ');
+      
       return {
-        city: data.address.city || data.address.town || data.address.village || '',
-        area: data.address.suburb || data.address.neighbourhood || data.address.road || '',
-        completeAddress: data.display_name || '',
+        city,
+        area,
+        completeAddress,
+        state,
+        postalCode,
+        district,
       };
     } catch (error) {
       console.error('Reverse geocoding error:', error);
@@ -132,16 +170,26 @@ export default function Donate() {
           // Store coordinates
           setCoordinates({ lat, lng });
           
-          // Get address from coordinates
-          const address = await reverseGeocode(lat, lng);
-          
-          // Auto-fill form fields
-          setFormData(prev => ({
-            ...prev,
-            city: address.city,
-            area: address.area,
-            complete_address: address.completeAddress,
-          }));
+        // Get address from coordinates
+        const address = await reverseGeocode(lat, lng);
+        
+        // Log for debugging
+        console.log('Detected location:', {
+          coordinates: { lat, lng },
+          city: address.city,
+          area: address.area,
+          state: address.state,
+          postalCode: address.postalCode,
+          completeAddress: address.completeAddress
+        });
+        
+        // Auto-fill form fields with detailed information
+        setFormData(prev => ({
+          ...prev,
+          city: address.city,
+          area: address.area,
+          complete_address: address.completeAddress,
+        }));
           
           toast.success('Location detected successfully!');
         } catch (error) {
