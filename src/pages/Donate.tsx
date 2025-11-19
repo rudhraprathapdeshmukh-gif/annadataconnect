@@ -106,13 +106,16 @@ export default function Donate() {
       const addr = data.address;
       
       // Extract detailed components
-      const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+      const rawCity = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+      // Remove "mandal" keyword (case insensitive) from city name
+      const city = rawCity.replace(/\s*mandal\s*/gi, '').trim();
       const state = addr.state || addr.state_district || '';
       const postalCode = addr.postcode || '';
       const district = addr.state_district || addr.county || '';
       
       // Build detailed locality/area string
       const areaComponents = [
+        addr.locality,
         addr.suburb,
         addr.neighbourhood, 
         addr.quarter,
@@ -122,7 +125,7 @@ export default function Donate() {
       
       const area = areaComponents.length > 0 
         ? areaComponents.join(', ')
-        : addr.locality || '';
+        : '';
       
       // Build comprehensive complete address
       const addressParts = [
