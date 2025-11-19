@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, X, CalendarIcon, Clock, ShieldCheck } from 'lucide-react';
-import { format, addYears, isAfter, isBefore } from 'date-fns';
+import { format, addYears, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const phoneSchema = z.string()
@@ -75,6 +75,7 @@ export default function Donate() {
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
+  const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
 
   // Helper function to convert 12-hour time to 24-hour format
   const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
@@ -516,12 +517,14 @@ export default function Donate() {
                           mode="single"
                           selected={expiryDate}
                           onSelect={setExpiryDate}
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const twoYearsFromNow = addYears(today, 2);
-                            return date < today || date > twoYearsFromNow;
-                          }}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const maxDate = isVegetableOrFruit 
+                          ? addDays(today, 5) 
+                          : addYears(today, 2);
+                        return date < today || date > maxDate;
+                      }}
                           initialFocus
                           className={cn("p-3 pointer-events-auto")}
                         />
@@ -539,7 +542,10 @@ export default function Donate() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Food expires between now and up to 2 years from today
+                    {isVegetableOrFruit 
+                      ? 'Vegetables/Fruits: Select expiry within the next 5 days'
+                      : 'Food expires between now and up to 2 years from today'
+                    }
                   </p>
                 </div>
               )}
