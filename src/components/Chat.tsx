@@ -30,12 +30,14 @@ interface Message {
 
 // Memoized LocationMessage component to prevent re-rendering
 const LocationMessage = React.memo(({ 
+  messageId,
   lat, 
   lon, 
   locationName,
   isOwnMessage,
   pickupLocation 
 }: { 
+  messageId: string;
   lat: number; 
   lon: number; 
   locationName?: string | null;
@@ -117,7 +119,7 @@ const LocationMessage = React.memo(({
       </div>
 
       {/* Full Map Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog key={messageId} open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl h-[80vh]">
           <DialogHeader>
             <DialogTitle>Location Map</DialogTitle>
@@ -131,22 +133,37 @@ const LocationMessage = React.memo(({
             )}
             
             {/* Distance to Pickup Location */}
-            {distance !== null && pickupLocation && (
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Distance to Pickup Location</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{pickupLocation.address}</p>
-                  </div>
-                  <div className="text-right ml-4">
-                    <p className="text-2xl font-bold text-primary">{distance} km</p>
-                    <p className="text-xs text-muted-foreground">
-                      {distance < 1 ? `${Math.round(distance * 1000)}m away` : 'away'}
-                    </p>
+            {pickupLocation ? (
+              distance !== null ? (
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Distance to Pickup Location</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{pickupLocation.address}</p>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="text-2xl font-bold text-primary">{distance} km</p>
+                      <p className="text-xs text-muted-foreground">
+                        {distance < 1 ? `${Math.round(distance * 1000)}m away` : 'away'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="p-3 bg-muted border border-border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Pickup Location</p>
+                      <p className="text-xs text-muted-foreground">{pickupLocation.address}</p>
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        Distance unavailable (GPS coordinates not stored)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : null}
             
             <div className="flex-1 rounded-lg overflow-hidden border">
               <iframe
@@ -227,6 +244,32 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     fetchMessages();
   }, [user, donationId]);
 
+  // Geocode address to get coordinates
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lon: number } | null> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'AnnadataConnect'
+          }
+        }
+      );
+      
+      const data = await response.json();
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon)
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return null;
+    }
+  };
+
   // Fetch donation location
   useEffect(() => {
     const fetchDonationLocation = async () => {
@@ -237,9 +280,21 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         .maybeSingle();
         
       if (!error && data) {
+        let lat = data.latitude;
+        let lon = data.longitude;
+        
+        // If coordinates are null, try to geocode the address
+        if (!lat || !lon) {
+          const coords = await geocodeAddress(data.pickup_location);
+          if (coords) {
+            lat = coords.lat;
+            lon = coords.lon;
+          }
+        }
+        
         setDonationLocation({
-          latitude: data.latitude,
-          longitude: data.longitude,
+          latitude: lat,
+          longitude: lon,
           address: data.pickup_location
         });
       }
@@ -467,6 +522,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                   >
               {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
                 <LocationMessage 
+                  messageId={msg.id}
                   lat={msg.latitude} 
                   lon={msg.longitude} 
                   locationName={msg.location_name}
