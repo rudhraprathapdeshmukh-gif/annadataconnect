@@ -67,9 +67,22 @@ export default function Donate() {
   });
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [expiryTime, setExpiryTime] = useState('12:00');
+  const [hour12, setHour12] = useState('12');
+  const [minute, setMinute] = useState('00');
+  const [ampm, setAmpm] = useState('PM');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
+
+  const isPreparedFood = formData.food_type === 'Prepared Food';
+
+  // Helper function to convert 12-hour time to 24-hour format
+  const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
+    let hours = parseInt(hour12);
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    return [hours, parseInt(minute)];
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -99,6 +112,24 @@ export default function Donate() {
 
     fetchUserType();
   }, [user, navigate]);
+
+  // Auto-set date to today and default time when Prepared Food is selected
+  useEffect(() => {
+    if (formData.food_type === 'Prepared Food') {
+      setExpiryDate(new Date());
+      // Set default time to 2 hours from now
+      const futureTime = new Date();
+      futureTime.setHours(futureTime.getHours() + 2);
+      const hours = futureTime.getHours();
+      const mins = futureTime.getMinutes();
+      
+      // Convert to 12-hour format
+      const hour12Val = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      setHour12(String(hour12Val));
+      setMinute(String(Math.floor(mins / 15) * 15).padStart(2, '0')); // Round to nearest 15 min
+      setAmpm(hours >= 12 ? 'PM' : 'AM');
+    }
+  }, [formData.food_type]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -134,15 +165,40 @@ export default function Donate() {
     setSubmitting(true);
     try {
       // Combine date and time into a single Date object
-      if (!expiryDate) {
-        toast.error('Please select an expiry date');
-        setSubmitting(false);
-        return;
-      }
+      let expiryDateTime: Date;
 
-      const [hours, minutes] = expiryTime.split(':').map(Number);
-      const expiryDateTime = new Date(expiryDate);
-      expiryDateTime.setHours(hours, minutes, 0, 0);
+      if (isPreparedFood) {
+        // For prepared food, use today's date with selected 12-hour time
+        const today = new Date();
+        const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
+        expiryDateTime = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+          hours24,
+          mins,
+          0,
+          0
+        );
+
+        // Validate that time is in the future
+        if (expiryDateTime <= new Date()) {
+          toast.error('Pickup time must be in the future');
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        // For other food types, use selected date + time
+        if (!expiryDate) {
+          toast.error('Please select an expiry date');
+          setSubmitting(false);
+          return;
+        }
+
+        const [hours, minutes] = expiryTime.split(':').map(Number);
+        expiryDateTime = new Date(expiryDate);
+        expiryDateTime.setHours(hours, minutes, 0, 0);
+      }
 
       // Validate input including image, expiry datetime, and safety confirmation
       const validation = donationSchema.safeParse({ 
@@ -398,53 +454,95 @@ export default function Donate() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Expiry Date & Time *</Label>
-                <div className="grid gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "justify-start text-left font-normal",
-                          !expiryDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={expiryDate}
-                        onSelect={setExpiryDate}
-                        disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const twoYearsFromNow = addYears(today, 2);
-                          return date < today || date > twoYearsFromNow;
-                        }}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+              {isPreparedFood ? (
+                <div className="space-y-2">
+                  <Label>Pickup Time (Same Day) *</Label>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={expiryTime}
-                      onChange={(e) => setExpiryTime(e.target.value)}
-                      required
-                      className="flex-1"
-                    />
+                    <Select value={hour12} onValueChange={setHour12}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, '0')}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">:</span>
+                    <Select value={minute} onValueChange={setMinute}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['00', '15', '30', '45'].map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={ampm} onValueChange={setAmpm}>
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Prepared food must be picked up today. Select a time in the next 24 hours.
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Food expires between now and up to 2 years from today
-                </p>
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Expiry Date & Time *</Label>
+                  <div className="grid gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !expiryDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={expiryDate}
+                          onSelect={setExpiryDate}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const twoYearsFromNow = addYears(today, 2);
+                            return date < today || date > twoYearsFromNow;
+                          }}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        value={expiryTime}
+                        onChange={(e) => setExpiryTime(e.target.value)}
+                        required
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Food expires between now and up to 2 years from today
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="phone_number">Contact Phone Number *</Label>
