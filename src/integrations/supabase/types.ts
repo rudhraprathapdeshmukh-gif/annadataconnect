@@ -177,7 +177,11 @@ export type Database = {
           created_at: string
           donation_id: string
           id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
           message: string
+          message_type: string
           read: boolean
           receiver_id: string
           sender_id: string
@@ -186,7 +190,11 @@ export type Database = {
           created_at?: string
           donation_id: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           message: string
+          message_type?: string
           read?: boolean
           receiver_id: string
           sender_id: string
@@ -195,7 +203,11 @@ export type Database = {
           created_at?: string
           donation_id?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           message?: string
+          message_type?: string
           read?: boolean
           receiver_id?: string
           sender_id?: string
