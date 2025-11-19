@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -13,6 +13,10 @@ interface Message {
   sender_id: string;
   receiver_id: string;
   message: string;
+  message_type: 'text' | 'location';
+  latitude?: number | null;
+  longitude?: number | null;
+  location_name?: string | null;
   created_at: string;
   read: boolean;
 }
@@ -30,6 +34,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch existing messages
@@ -48,7 +53,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         console.error('Error fetching messages:', error);
         toast.error('Failed to load messages');
       } else {
-        setMessages(data || []);
+        setMessages((data as Message[]) || []);
       }
       setLoading(false);
     };
@@ -149,6 +154,152 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     }
   };
 
+  const reverseGeocode = async (lat: number, lon: number): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'AnnadataConnect'
+          }
+        }
+      );
+      
+      const data = await response.json();
+      return data.display_name || null;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return null;
+    }
+  };
+
+  const sendLocation = async (lat: number, lon: number) => {
+    if (!user || sending) return;
+
+    setSending(true);
+    try {
+      const locationName = await reverseGeocode(lat, lon);
+      
+      const { error } = await supabase.from('messages').insert({
+        donation_id: donationId,
+        sender_id: user.id,
+        receiver_id: otherUserId,
+        message: locationName || `Location: ${lat.toFixed(6)}, ${lon.toFixed(6)}`,
+        message_type: 'location',
+        latitude: lat,
+        longitude: lon,
+        location_name: locationName,
+      });
+
+      if (error) throw error;
+      
+      toast.success('Location shared successfully');
+    } catch (error) {
+      console.error('Error sending location:', error);
+      toast.error('Failed to share location');
+    } finally {
+      setSending(false);
+      setIsGettingLocation(false);
+    }
+  };
+
+  const getLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        sendLocation(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Location access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Location information unavailable.');
+            break;
+          case error.TIMEOUT:
+            toast.error('Location request timed out.');
+            break;
+          default:
+            toast.error('Failed to get location.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const LocationMessage = ({ lat, lon, locationName, isSender }: { 
+    lat: number; 
+    lon: number; 
+    locationName?: string | null;
+    isSender: boolean;
+  }) => {
+    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+    const staticMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex items-start gap-2">
+          <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Shared Location</p>
+            {locationName && (
+              <p className="text-xs opacity-80 mt-1">{locationName}</p>
+            )}
+            <p className="text-xs opacity-70 mt-1">
+              {lat.toFixed(6)}, {lon.toFixed(6)}
+            </p>
+          </div>
+        </div>
+        
+        <div className="rounded-lg overflow-hidden border-2 border-background/20">
+          <iframe
+            width="100%"
+            height="150"
+            frameBorder="0"
+            scrolling="no"
+            src={staticMapUrl}
+            className="pointer-events-none"
+            title="Location map"
+          />
+        </div>
+        
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(googleMapsUrl, '_blank')}
+            className={`text-xs ${isSender ? 'border-primary-foreground/20 hover:bg-primary-foreground/10' : ''}`}
+          >
+            Open in Maps
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(`${lat}, ${lon}`);
+              toast.success('Coordinates copied');
+            }}
+            className={`text-xs ${isSender ? 'border-primary-foreground/20 hover:bg-primary-foreground/10' : ''}`}
+          >
+            Copy Coords
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <Card className="w-full h-[500px] flex items-center justify-center">
@@ -187,7 +338,16 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
+                      <LocationMessage 
+                        lat={msg.latitude} 
+                        lon={msg.longitude} 
+                        locationName={msg.location_name}
+                        isSender={msg.sender_id === user?.id}
+                      />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
@@ -208,12 +368,26 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         </ScrollArea>
         <div className="border-t p-4">
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={getLocation}
+              disabled={sending || isGettingLocation}
+              title="Share location"
+            >
+              {isGettingLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+            </Button>
             <Input
               placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={sending}
+              className="flex-1"
             />
             <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
               {sending ? (
