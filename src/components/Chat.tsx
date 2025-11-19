@@ -1,12 +1,18 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { Send, Loader2, MapPin } from 'lucide-react';
+import { Send, Loader2, MapPin, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface Message {
   id: string;
@@ -20,6 +26,127 @@ interface Message {
   created_at: string;
   read: boolean;
 }
+
+// Memoized LocationMessage component to prevent re-rendering
+const LocationMessage = React.memo(({ 
+  lat, 
+  lon, 
+  locationName,
+  isOwnMessage 
+}: { 
+  lat: number; 
+  lon: number; 
+  locationName?: string | null;
+  isOwnMessage: boolean;
+}) => {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+  const staticMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
+  
+  return (
+    <>
+      <div className="space-y-2">
+        <div className="flex items-start gap-2">
+          <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Shared Location</p>
+            {locationName && (
+              <p className="text-xs opacity-80 mt-1">{locationName}</p>
+            )}
+            <p className="text-xs opacity-70 mt-1">
+              {lat.toFixed(6)}, {lon.toFixed(6)}
+            </p>
+          </div>
+        </div>
+        
+        {/* Map Preview */}
+        <div className="rounded-lg overflow-hidden border-2 border-background/20 relative group">
+          <iframe
+            width="100%"
+            height="150"
+            frameBorder="0"
+            scrolling="no"
+            src={staticMapUrl}
+            title="Location preview"
+            className="w-full"
+          />
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => setIsDialogOpen(true)}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(googleMapsUrl, '_blank')}
+            className="text-xs"
+          >
+            Open in Google Maps
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(`${lat}, ${lon}`);
+              toast.success('Coordinates copied');
+            }}
+            className="text-xs"
+          >
+            Copy Coordinates
+          </Button>
+        </div>
+      </div>
+
+      {/* Full Map Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Location Map</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 flex flex-col gap-4 h-full">
+            {locationName && (
+              <p className="text-sm text-muted-foreground">{locationName}</p>
+            )}
+            <div className="flex-1 rounded-lg overflow-hidden border">
+              <iframe
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                src={staticMapUrl}
+                title="Full location map"
+                className="w-full h-full"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => window.open(googleMapsUrl, '_blank')}
+              >
+                Open in Google Maps
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${lat}, ${lon}`);
+                  toast.success('Coordinates copied');
+                }}
+              >
+                Copy Coordinates
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+});
 
 interface ChatProps {
   donationId: string;
@@ -239,66 +366,6 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     );
   };
 
-  const LocationMessage = ({ lat, lon, locationName, isSender }: { 
-    lat: number; 
-    lon: number; 
-    locationName?: string | null;
-    isSender: boolean;
-  }) => {
-    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-    const staticMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
-    
-    return (
-      <div className="space-y-2">
-        <div className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">Shared Location</p>
-            {locationName && (
-              <p className="text-xs opacity-80 mt-1">{locationName}</p>
-            )}
-            <p className="text-xs opacity-70 mt-1">
-              {lat.toFixed(6)}, {lon.toFixed(6)}
-            </p>
-          </div>
-        </div>
-        
-        <div className="rounded-lg overflow-hidden border-2 border-background/20">
-          <iframe
-            width="100%"
-            height="150"
-            frameBorder="0"
-            scrolling="no"
-            src={staticMapUrl}
-            className="pointer-events-none"
-            title="Location map"
-          />
-        </div>
-        
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(googleMapsUrl, '_blank')}
-            className={`text-xs ${isSender ? 'border-primary-foreground/20 hover:bg-primary-foreground/10' : ''}`}
-          >
-            Open in Maps
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              navigator.clipboard.writeText(`${lat}, ${lon}`);
-              toast.success('Coordinates copied');
-            }}
-            className={`text-xs ${isSender ? 'border-primary-foreground/20 hover:bg-primary-foreground/10' : ''}`}
-          >
-            Copy Coords
-          </Button>
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -343,7 +410,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                         lat={msg.latitude} 
                         lon={msg.longitude} 
                         locationName={msg.location_name}
-                        isSender={msg.sender_id === user?.id}
+                        isOwnMessage={msg.sender_id === user?.id}
                       />
                     ) : (
                       <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
