@@ -105,27 +105,37 @@ export default function Donate() {
       const data = await response.json();
       const addr = data.address;
       
+      // Helper to clean "mandal" from any component
+      const cleanComponent = (value?: string) => {
+        if (!value) return '';
+        return value.replace(/\bmandal\b/gi, '').trim();
+      };
+      
       // Extract detailed components
       const rawCity = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
-      // Remove "mandal" keyword (case insensitive) from city name
-      const city = rawCity.replace(/\s*mandal\s*/gi, '').trim();
+      const city = cleanComponent(rawCity);
       const state = addr.state || addr.state_district || '';
       const postalCode = addr.postcode || '';
       const district = addr.state_district || addr.county || '';
       
-      // Build detailed locality/area string
-      const areaComponents = [
+      // Build detailed locality/area string with multiple candidates
+      const areaComponentsRaw = [
         addr.locality,
         addr.suburb,
-        addr.neighbourhood, 
+        addr.neighbourhood,
         addr.quarter,
-        addr.road,
-        addr.hamlet
-      ].filter(Boolean);
+        addr.hamlet,
+        addr.city_district,
+      ];
       
+      const areaComponents = areaComponentsRaw
+        .map(cleanComponent)
+        .filter((val, idx, arr) => val && arr.indexOf(val) === idx);
+      
+      // Fall back to city if no area components found
       const area = areaComponents.length > 0 
         ? areaComponents.join(', ')
-        : '';
+        : city;
       
       // Build comprehensive complete address
       const addressParts = [
