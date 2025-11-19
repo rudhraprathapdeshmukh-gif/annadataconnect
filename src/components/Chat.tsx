@@ -59,25 +59,16 @@ const LocationMessage = React.memo(({
           </div>
         </div>
         
-        {/* Map Preview */}
-        <div className="rounded-lg overflow-hidden border-2 border-background/20 relative group">
-          <iframe
-            width="100%"
-            height="150"
-            frameBorder="0"
-            scrolling="no"
-            src={staticMapUrl}
-            title="Location preview"
-            className="w-full"
-          />
-          <Button
-            size="icon"
-            variant="secondary"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
+        {/* Lightweight Map Preview Placeholder - No iframe! */}
+        <div 
+          className="rounded-lg overflow-hidden border-2 border-background/20 bg-muted/50 hover:bg-muted transition-colors cursor-pointer p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]"
+          onClick={() => setIsDialogOpen(true)}
+        >
+          <MapPin className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-medium text-center">Click to view map</p>
+          <p className="text-xs text-muted-foreground text-center">
+            {lat.toFixed(4)}, {lon.toFixed(4)}
+          </p>
         </div>
         
         {/* Action Buttons */}
