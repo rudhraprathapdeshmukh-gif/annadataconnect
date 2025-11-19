@@ -154,6 +154,25 @@ export const useNotifications = () => {
     });
   };
 
+  const deleteAllNotifications = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting all notifications:', error);
+      toast.error('Failed to delete notifications');
+      return;
+    }
+
+    setNotifications([]);
+    setUnreadCount(0);
+    toast.success('All notifications removed');
+  };
+
   return {
     notifications,
     unreadCount,
@@ -162,5 +181,6 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteAllNotifications,
   };
 };
