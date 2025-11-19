@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import RequestCard from '@/components/RequestCard';
 import ChatDialog from '@/components/ChatDialog';
+import HelpChatbot from '@/components/HelpChatbot';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -1562,6 +1563,8 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <HelpChatbot />
     </>
   );
 }
