@@ -1564,7 +1564,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
       </DialogContent>
     </Dialog>
 
-    <HelpChatbot />
+    
     </>
   );
 }
