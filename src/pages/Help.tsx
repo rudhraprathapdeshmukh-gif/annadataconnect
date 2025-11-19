@@ -6,37 +6,24 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Mail, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useState } from 'react';
 import { toast } from 'sonner';
-
 const Help = () => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const supportEmail = "annadataconnectgptwgl@gmail.com";
-
   const copyEmail = () => {
     navigator.clipboard.writeText(supportEmail);
     setCopied(true);
     toast.success("Email copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(-1)}
-            className="mb-6"
-          >
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
@@ -48,9 +35,7 @@ const Help = () => {
                   <CardTitle className="text-4xl font-bold">
                     💬 Help & Support
                   </CardTitle>
-                  <Badge variant="secondary">
-                    Last Updated: November 17, 2024
-                  </Badge>
+                  
                 </div>
               </div>
             </CardHeader>
@@ -59,28 +44,20 @@ const Help = () => {
                 <div className="space-y-8">
                   {/* Contact Us Section */}
                   <section>
-                    <h2 className="text-2xl font-semibold mb-4">📧 Contact Us</h2>
+                    <h2 className="text-2xl font-semibold mb-4">     Contact Us</h2>
                     <Card className="bg-primary/5 border-primary/20">
                       <CardContent className="pt-6">
                         <div className="flex items-start gap-4">
-                          <Mail className="h-6 w-6 text-primary mt-1" />
+                          
                           <div className="flex-1 space-y-3">
                             <p className="text-muted-foreground">
                               Need help? Have questions? We're here to assist you!
                             </p>
                             <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                              <a 
-                                href={`mailto:${supportEmail}?subject=AnnadataConnect Support Request`}
-                                className="text-lg font-semibold text-primary hover:underline"
-                              >
+                              <a href={`mailto:${supportEmail}?subject=AnnadataConnect Support Request`} className="text-lg font-semibold text-primary hover:underline">
                                 {supportEmail}
                               </a>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={copyEmail}
-                                className="gap-2"
-                              >
+                              <Button variant="outline" size="sm" onClick={copyEmail} className="gap-2">
                                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                                 {copied ? "Copied!" : "Copy"}
                               </Button>
@@ -460,10 +437,7 @@ const Help = () => {
                             Don't hesitate to reach out! We're here to help make your experience better.
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
-                            <a 
-                              href={`mailto:${supportEmail}`}
-                              className="inline-block"
-                            >
+                            <a href={`mailto:${supportEmail}`} className="inline-block">
                               <Button size="lg" className="gap-2">
                                 <Mail className="h-5 w-5" />
                                 Email Support
@@ -480,8 +454,6 @@ const Help = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Help;
