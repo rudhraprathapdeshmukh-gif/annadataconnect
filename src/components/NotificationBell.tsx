@@ -1,4 +1,4 @@
-import { Bell, X } from 'lucide-react';
+import { Bell, X, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Popover,
@@ -7,8 +7,25 @@ import {
 } from './ui/popover';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 
 export default function NotificationBell() {
   const {
@@ -19,7 +36,10 @@ export default function NotificationBell() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteAllNotifications,
   } = useNotifications();
+  
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   return (
     <Popover>
@@ -39,15 +59,28 @@ export default function NotificationBell() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs"
-            >
-              Mark all as read
-            </Button>
+          {notifications.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {unreadCount > 0 && (
+                  <DropdownMenuItem onClick={markAllAsRead}>
+                    Mark all as read
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem 
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove all
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
 
@@ -117,6 +150,31 @@ export default function NotificationBell() {
             </div>
           )}
         </ScrollArea>
+
+        {/* Confirmation dialog for removing all notifications */}
+        <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove all notifications?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete all {notifications.length} notification{notifications.length !== 1 ? 's' : ''}. 
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  deleteAllNotifications();
+                  setShowDeleteAllDialog(false);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remove all
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PopoverContent>
     </Popover>
   );
