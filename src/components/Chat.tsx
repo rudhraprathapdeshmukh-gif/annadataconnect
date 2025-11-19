@@ -30,172 +30,80 @@ interface Message {
 
 // Memoized LocationMessage component to prevent re-rendering
 const LocationMessage = React.memo(({ 
-  messageId,
   lat, 
   lon, 
   locationName,
   isOwnMessage,
-  pickupLocation 
+  onMaximize,
 }: { 
-  messageId: string;
   lat: number; 
   lon: number; 
   locationName?: string | null;
   isOwnMessage: boolean;
-  pickupLocation?: {
-    latitude: number | null;
-    longitude: number | null;
-    address: string;
-  } | null;
+  onMaximize: () => void;
 }) => {
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
   const staticMapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
   
-  // Calculate distance if pickup coordinates exist
-  const distance = pickupLocation?.latitude && pickupLocation?.longitude
-    ? calculateDistance(lat, lon, pickupLocation.latitude, pickupLocation.longitude)
-    : null;
-  
   return (
-    <>
-      <div className="space-y-2">
-        <div className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">Shared Location</p>
-            {locationName && (
-              <p className="text-xs opacity-80 mt-1">{locationName}</p>
-            )}
-            <p className="text-xs opacity-70 mt-1">
-              {lat.toFixed(6)}, {lon.toFixed(6)}
-            </p>
-          </div>
-        </div>
-        
-        {/* Map Preview */}
-        <div className="rounded-lg overflow-hidden border-2 border-background/20 relative group">
-          <iframe
-            width="100%"
-            height="150"
-            frameBorder="0"
-            scrolling="no"
-            src={staticMapUrl}
-            title="Location preview"
-            className="w-full"
-          />
-          <Button
-            size="icon"
-            variant="secondary"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(googleMapsUrl, '_blank')}
-            className="text-xs"
-          >
-            Open in Google Maps
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              navigator.clipboard.writeText(`${lat}, ${lon}`);
-              toast.success('Coordinates copied');
-            }}
-            className="text-xs"
-          >
-            Copy Coordinates
-          </Button>
+    <div className="space-y-2">
+      <div className="flex items-start gap-2">
+        <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Shared Location</p>
+          {locationName && (
+            <p className="text-xs opacity-80 mt-1">{locationName}</p>
+          )}
+          <p className="text-xs opacity-70 mt-1">
+            {lat.toFixed(6)}, {lon.toFixed(6)}
+          </p>
         </div>
       </div>
-
-      {/* Full Map Dialog */}
-      <Dialog key={messageId} open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Location Map</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 flex flex-col gap-4 h-full">
-            {locationName && (
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Shared Location:</p>
-                <p className="text-sm text-muted-foreground">{locationName}</p>
-              </div>
-            )}
-            
-            {/* Distance to Pickup Location */}
-            {pickupLocation ? (
-              distance !== null ? (
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Distance to Pickup Location</p>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{pickupLocation.address}</p>
-                    </div>
-                    <div className="text-right ml-4">
-                      <p className="text-2xl font-bold text-primary">{distance} km</p>
-                      <p className="text-xs text-muted-foreground">
-                        {distance < 1 ? `${Math.round(distance * 1000)}m away` : 'away'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-muted border border-border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Pickup Location</p>
-                      <p className="text-xs text-muted-foreground">{pickupLocation.address}</p>
-                      <p className="text-xs text-muted-foreground mt-1 italic">
-                        Distance unavailable (GPS coordinates not stored)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : null}
-            
-            <div className="flex-1 rounded-lg overflow-hidden border">
-              <iframe
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                src={staticMapUrl}
-                title="Full location map"
-                className="w-full h-full"
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => window.open(googleMapsUrl, '_blank')}
-              >
-                Open in Google Maps
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${lat}, ${lon}`);
-                  toast.success('Coordinates copied');
-                }}
-              >
-                Copy Coordinates
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      
+      {/* Map Preview */}
+      <div className="rounded-lg overflow-hidden border-2 border-background/20 relative group">
+        <iframe
+          width="100%"
+          height="150"
+          frameBorder="0"
+          scrolling="no"
+          src={staticMapUrl}
+          title="Location preview"
+          className="w-full"
+        />
+        <Button
+          size="icon"
+          variant="secondary"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={onMaximize}
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => window.open(googleMapsUrl, '_blank')}
+          className="text-xs"
+        >
+          Open in Google Maps
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            navigator.clipboard.writeText(`${lat}, ${lon}`);
+            toast.success('Coordinates copied');
+          }}
+          className="text-xs"
+        >
+          Copy Coordinates
+        </Button>
+      </div>
+    </div>
   );
 });
 
@@ -219,6 +127,12 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     longitude: number | null;
     address: string;
   } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    lat: number;
+    lon: number;
+    locationName?: string | null;
+  } | null>(null);
+  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
 
   // Fetch existing messages
   useEffect(() => {
@@ -520,18 +434,24 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                         : 'bg-muted'
                     }`}
                   >
-              {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
-                <LocationMessage 
-                  messageId={msg.id}
-                  lat={msg.latitude} 
-                  lon={msg.longitude} 
-                  locationName={msg.location_name}
-                  isOwnMessage={msg.sender_id === user?.id}
-                  pickupLocation={donationLocation}
-                />
-              ) : (
-                <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-              )}
+                    {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
+                      <LocationMessage 
+                        lat={msg.latitude} 
+                        lon={msg.longitude} 
+                        locationName={msg.location_name}
+                        isOwnMessage={msg.sender_id === user?.id}
+                        onMaximize={() => {
+                          setSelectedLocation({
+                            lat: msg.latitude!,
+                            lon: msg.longitude!,
+                            locationName: msg.location_name,
+                          });
+                          setIsLocationDialogOpen(true);
+                        }}
+                      />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         msg.sender_id === user?.id
@@ -583,6 +503,122 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
           </div>
         </div>
       </CardContent>
+      {selectedLocation && (
+        <Dialog
+          open={isLocationDialogOpen}
+          onOpenChange={(open) => {
+            setIsLocationDialogOpen(open);
+            if (!open) setSelectedLocation(null);
+          }}
+        >
+          <DialogContent className="max-w-4xl h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Location Map</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 flex flex-col gap-4 h-full">
+              {selectedLocation.locationName && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Shared Location:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedLocation.locationName}
+                  </p>
+                </div>
+              )}
+
+              {/* Distance to Pickup Location */}
+              {donationLocation
+                ? (() => {
+                    const distance =
+                      donationLocation.latitude != null &&
+                      donationLocation.longitude != null
+                        ? calculateDistance(
+                            selectedLocation.lat,
+                            selectedLocation.lon,
+                            donationLocation.latitude,
+                            donationLocation.longitude
+                          )
+                        : null;
+
+                    if (distance !== null) {
+                      return (
+                        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Distance to Pickup Location</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {donationLocation.address}
+                              </p>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-2xl font-bold text-primary">{distance} km</p>
+                              <p className="text-xs text-muted-foreground">
+                                {distance < 1
+                                  ? `${Math.round(distance * 1000)}m away`
+                                  : 'away'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="p-3 bg-muted border border-border rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Pickup Location</p>
+                            <p className="text-xs text-muted-foreground">
+                              {donationLocation.address}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 italic">
+                              Distance unavailable (GPS coordinates not stored)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                : null}
+
+              <div className="flex-1 rounded-lg overflow-hidden border">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedLocation.lon-0.01},${selectedLocation.lat-0.01},${selectedLocation.lon+0.01},${selectedLocation.lat+0.01}&layer=mapnik&marker=${selectedLocation.lat},${selectedLocation.lon}`}
+                  title="Full location map"
+                  className="w-full h-full"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps?q=${selectedLocation.lat},${selectedLocation.lon}`,
+                      '_blank'
+                    )
+                  }
+                >
+                  Open in Google Maps
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${selectedLocation.lat}, ${selectedLocation.lon}`
+                    );
+                    toast.success('Coordinates copied');
+                  }}
+                >
+                  Copy Coordinates
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
