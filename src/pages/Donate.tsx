@@ -28,7 +28,7 @@ const donationSchema = z.object({
   title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
   description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
-  quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings', 'plates', 'boxes', 'bags'], { message: "Please select a unit" }),
+  quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
   phone_number: phoneSchema,
   city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
@@ -596,9 +596,6 @@ export default function Donate() {
                         <SelectItem value="liters">Liters</SelectItem>
                         <SelectItem value="pieces">Pieces</SelectItem>
                         <SelectItem value="servings">Servings</SelectItem>
-                        <SelectItem value="plates">Plates</SelectItem>
-                        <SelectItem value="boxes">Boxes</SelectItem>
-                        <SelectItem value="bags">Bags</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
