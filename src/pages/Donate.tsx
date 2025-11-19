@@ -76,6 +76,7 @@ export default function Donate() {
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
   const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
+  const isDairy = formData.food_type === 'Dairy';
 
   // Helper function to convert 12-hour time to 24-hour format
   const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
@@ -520,9 +521,14 @@ export default function Donate() {
                       disabled={(date) => {
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        const maxDate = isVegetableOrFruit 
-                          ? addDays(today, 5) 
-                          : addYears(today, 2);
+                        let maxDate;
+                        if (isVegetableOrFruit) {
+                          maxDate = addDays(today, 4);
+                        } else if (isDairy) {
+                          maxDate = addDays(today, 2);
+                        } else {
+                          maxDate = addYears(today, 2);
+                        }
                         return date < today || date > maxDate;
                       }}
                           initialFocus
@@ -542,10 +548,9 @@ export default function Donate() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {isVegetableOrFruit 
-                      ? 'Vegetables/Fruits: Select expiry within the next 5 days'
-                      : 'Food expires between now and up to 2 years from today'
-                    }
+                    {isVegetableOrFruit && 'Vegetables/Fruits: Select expiry within the next 4 days'}
+                    {isDairy && 'Dairy: Select expiry within the next 2 days'}
+                    {!isVegetableOrFruit && !isDairy && 'Food expires between now and up to 2 years from today'}
                   </p>
                 </div>
               )}
