@@ -21,7 +21,7 @@ const Help = () => {
   };
   return <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 overflow-x-hidden">
         <div className="max-w-4xl mx-auto">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -30,9 +30,9 @@ const Help = () => {
 
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <CardTitle className="text-4xl font-bold">
+                  <CardTitle className="text-3xl sm:text-4xl font-bold break-words">
                     💬 Help & Support
                   </CardTitle>
                   
@@ -40,7 +40,7 @@ const Help = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[600px] pr-4">
+              <ScrollArea className="h-[calc(100vh-16rem)] md:h-[600px] pr-4">
                 <div className="space-y-8">
                   {/* Contact Us Section */}
                   <section>

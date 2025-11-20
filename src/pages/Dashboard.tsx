@@ -779,20 +779,20 @@ export default function Dashboard() {
       </div>
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
+        <div className="mb-8 overflow-x-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
                   <AvatarImage src={userProfile?.avatar_url || undefined} alt="Profile picture" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-base sm:text-xl">
                     {userProfile?.first_name?.[0]?.toUpperCase() || 'U'}
                     {userProfile?.last_name?.[0]?.toUpperCase() || ''}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">
                   {(() => {
                     const firstName = userProfile?.first_name || '';
                     const lastName = userProfile?.last_name || '';
@@ -801,7 +801,7 @@ export default function Dashboard() {
                     return `Welcome, ${displayName}! 👋`;
                   })()}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground break-words">
                   {userProfile?.user_type === 'donor' 
                     ? 'Manage incoming food requests from your community' 
                     : userProfile?.user_type === 'receiver'
