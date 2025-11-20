@@ -6,6 +6,14 @@ import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from './ui/drawer';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -15,6 +23,7 @@ interface ChatMessage {
 
 export default function HelpChatbot() {
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
@@ -74,20 +83,104 @@ export default function HelpChatbot() {
     }
   };
 
+  const ChatMessages = () => (
+    <ScrollArea className="flex-1 p-4">
+      <div className="space-y-4">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[85%] md:max-w-[80%] rounded-lg p-3 ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted'
+              }`}
+            >
+              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <p className="text-xs opacity-70 mt-1">
+                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-lg p-3">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+
+  const ChatInput = () => (
+    <div className="border-t p-4">
+      <div className="flex gap-2">
+        <Input
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Ask a question..."
+          disabled={isLoading}
+          className="flex-1 h-11"
+        />
+        <Button
+          onClick={sendMessage}
+          disabled={!inputMessage.trim() || isLoading}
+          size="icon"
+          className="h-11 w-11 shrink-0"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-[999] hover:scale-110 transition-transform"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg z-[999] hover:scale-110 transition-transform"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
         </Button>
       )}
 
-      {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-[999] flex flex-col">
+      {isOpen && isMobile ? (
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+          <DrawerContent className="h-[90vh] flex flex-col">
+            <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4">
+              <DrawerTitle className="text-lg flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Help Assistant
+              </DrawerTitle>
+              <DrawerClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            <div className="flex-1 flex flex-col min-h-0">
+              <ChatMessages />
+              <ChatInput />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : isOpen ? (
+        <Card className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-full md:w-96 h-[calc(100vh-8rem)] md:h-[500px] shadow-2xl z-[999] flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
@@ -97,70 +190,18 @@ export default function HelpChatbot() {
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8"
+              className="h-9 w-9 md:h-8 md:w-8"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5 md:h-4 md:w-4" />
             </Button>
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg p-3">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            <div className="border-t p-4">
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask a question..."
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={sendMessage}
-                  disabled={!inputMessage.trim() || isLoading}
-                  size="icon"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
+            <ChatMessages />
+            <ChatInput />
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </>
   );
 }
