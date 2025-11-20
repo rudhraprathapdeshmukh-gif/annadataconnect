@@ -41,20 +41,20 @@ const Help = () => {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[calc(100vh-16rem)] md:h-[600px] pr-4">
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-8">
                   {/* Contact Us Section */}
                   <section>
                     <h2 className="text-2xl font-semibold mb-4">     Contact Us</h2>
                     <Card className="bg-primary/5 border-primary/20">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start gap-4">
+                      <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+                        <div className="flex items-start gap-2 sm:gap-4">
                           
-                          <div className="flex-1 space-y-3">
-                            <p className="text-muted-foreground">
+                          <div className="flex-1 space-y-2 sm:space-y-3">
+                            <p className="text-sm sm:text-base text-muted-foreground">
                               Need help? Have questions? We're here to assist you!
                             </p>
                             <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                              <a href={`mailto:${supportEmail}?subject=AnnadataConnect Support Request`} className="text-lg font-semibold text-primary hover:underline">
+                              <a href={`mailto:${supportEmail}?subject=AnnadataConnect Support Request`} className="text-base sm:text-lg font-semibold text-primary hover:underline break-all">
                                 {supportEmail}
                               </a>
                               <Button variant="outline" size="sm" onClick={copyEmail} className="gap-2">
@@ -62,7 +62,7 @@ const Help = () => {
                                 {copied ? "Copied!" : "Copy"}
                               </Button>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               💡 We typically respond within 24-48 hours
                             </p>
                           </div>
@@ -75,14 +75,14 @@ const Help = () => {
 
                   {/* FAQ Section */}
                   <section>
-                    <h2 className="text-2xl font-semibold mb-4">❓ Frequently Asked Questions</h2>
+                    <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">❓ Frequently Asked Questions</h2>
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="item-1">
-                        <AccordionTrigger>How do I donate food?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">How do I donate food?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>To donate food:</p>
-                            <ol className="list-decimal list-inside space-y-1 ml-4">
+                            <ol className="list-decimal list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Sign in to your account</li>
                               <li>Click "Donate Food" button in the navbar</li>
                               <li>Fill in food details (title, quantity, type, location)</li>
@@ -90,17 +90,17 @@ const Help = () => {
                               <li>Set expiry date if applicable</li>
                               <li>Submit your donation</li>
                             </ol>
-                            <p className="mt-2">Your donation will be visible to receivers immediately!</p>
+                            <p className="mt-1 sm:mt-2 text-sm">Your donation will be visible to receivers immediately!</p>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
 
                       <AccordionItem value="item-2">
-                        <AccordionTrigger>How do I request food?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">How do I request food?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>To request food:</p>
-                            <ol className="list-decimal list-inside space-y-1 ml-4">
+                            <ol className="list-decimal list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Go to Dashboard to see available donations</li>
                               <li>Browse nearby food donations</li>
                               <li>Click on a donation to view details</li>
@@ -108,41 +108,41 @@ const Help = () => {
                               <li>Add a message to the donor (optional)</li>
                               <li>Wait for donor approval</li>
                             </ol>
-                            <p className="mt-2">Once approved, you'll receive the pickup location and OTP!</p>
+                            <p className="mt-1 sm:mt-2 text-sm">Once approved, you'll receive the pickup location and OTP!</p>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
 
                       <AccordionItem value="item-3">
-                        <AccordionTrigger>What is the OTP system?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">What is the OTP system?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>The OTP (One-Time Password) system ensures secure food pickups:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>When a donor accepts your request, they generate a 6-digit OTP</li>
                               <li>The OTP is shown to both donor and receiver</li>
                               <li>During pickup, the receiver must provide the correct OTP</li>
                               <li>This prevents unauthorized people from claiming the food</li>
                               <li>Once verified, the donation is marked as completed</li>
                             </ul>
-                            <p className="mt-2 font-medium">💡 Keep your OTP private and only share during actual pickup!</p>
+                            <p className="mt-1 sm:mt-2 text-sm font-medium">💡 Keep your OTP private and only share during actual pickup!</p>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
 
                       <AccordionItem value="item-4">
-                        <AccordionTrigger>How does the reliability score work?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">How does the reliability score work?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>The reliability score helps build trust in the community:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li><strong>Excellent (90-100%):</strong> Highly reliable, rarely misses pickups</li>
                               <li><strong>Good (75-89%):</strong> Generally reliable with occasional issues</li>
                               <li><strong>Fair (60-74%):</strong> Some reliability concerns</li>
                               <li><strong>Poor (Below 60%):</strong> Frequently misses pickups</li>
                             </ul>
-                            <p className="mt-2">Factors affecting your score:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <p className="mt-1 sm:mt-2 text-sm">Factors affecting your score:</p>
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>On-time pickups improve your score</li>
                               <li>No-shows significantly decrease your score</li>
                               <li>Average pickup time is tracked</li>
@@ -153,18 +153,18 @@ const Help = () => {
                       </AccordionItem>
 
                       <AccordionItem value="item-5">
-                        <AccordionTrigger>What happens if I miss a pickup?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">What happens if I miss a pickup?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>Missing a pickup has consequences:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Your reliability score will decrease</li>
                               <li>The donor can mark you as a "no-show"</li>
                               <li>Repeated no-shows may affect your ability to request food</li>
                               <li>It wastes the donor's time and potentially the food</li>
                             </ul>
-                            <p className="mt-2 font-medium">If you can't make it:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <p className="mt-1 sm:mt-2 text-sm font-medium">If you can't make it:</p>
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Request a time extension through the platform</li>
                               <li>Contact the donor through the chat feature</li>
                               <li>Cancel the request early so others can claim it</li>
@@ -174,19 +174,19 @@ const Help = () => {
                       </AccordionItem>
 
                       <AccordionItem value="item-6">
-                        <AccordionTrigger>How do I rate a transaction?</AccordionTrigger>
+                        <AccordionTrigger className="text-sm sm:text-base">How do I rate a transaction?</AccordionTrigger>
                         <AccordionContent>
-                          <div className="space-y-2 text-muted-foreground">
+                          <div className="space-y-1.5 sm:space-y-2 text-sm sm:text-base text-muted-foreground">
                             <p>After completing a pickup, both parties can rate each other:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Go to History page</li>
                               <li>Find the completed transaction</li>
                               <li>Click "Rate" button</li>
                               <li>Give a star rating (1-5 stars)</li>
                               <li>Optionally add a written review</li>
                             </ul>
-                            <p className="mt-2">Ratings help:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-4">
+                            <p className="mt-1 sm:mt-2 text-sm">Ratings help:</p>
+                            <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 ml-2 sm:ml-4 text-sm">
                               <li>Build trust in the community</li>
                               <li>Highlight reliable users</li>
                               <li>Improve the overall experience</li>
