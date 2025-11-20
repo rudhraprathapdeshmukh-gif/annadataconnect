@@ -103,7 +103,7 @@ export default function Navbar() {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 bg-background border-border z-50">
+                <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)] bg-background border-border z-[1000]">
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">

@@ -26,16 +26,16 @@ export default function Privacy() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-4xl font-bold">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <CardTitle className="text-3xl sm:text-4xl font-bold break-words">
                 ⭐ AnnadataConnect – Privacy Policy
               </CardTitle>
-              <Badge variant="secondary">Last Updated: November 17, 2024</Badge>
+              <Badge variant="secondary" className="w-fit">Last Updated: November 17, 2024</Badge>
             </div>
           </CardHeader>
           
           <CardContent>
-            <ScrollArea className="h-[600px] pr-4">
+            <ScrollArea className="h-[calc(100vh-16rem)] md:h-[600px] pr-4">
               <div className="space-y-8">
                 {/* Section 1 */}
                 <section>
