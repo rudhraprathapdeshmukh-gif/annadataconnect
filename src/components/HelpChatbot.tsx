@@ -157,7 +157,7 @@ export default function HelpChatbot() {
 
       {isOpen && isMobile ? (
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerContent className="h-[90vh] flex flex-col">
+          <DrawerContent className="h-[95vh] flex flex-col pb-6">
             <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4">
               <DrawerTitle className="text-lg flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
@@ -180,7 +180,7 @@ export default function HelpChatbot() {
           </DrawerContent>
         </Drawer>
       ) : isOpen ? (
-        <Card className="fixed bottom-4 right-4 left-4 md:left-auto md:bottom-6 md:right-6 w-full md:w-96 h-[calc(100vh-8rem)] md:h-[500px] shadow-2xl z-[999] flex flex-col">
+        <Card className="hidden md:flex fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-[999] flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
