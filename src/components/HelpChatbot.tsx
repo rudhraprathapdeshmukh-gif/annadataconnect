@@ -21,6 +21,85 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface ChatMessagesProps {
+  messages: ChatMessage[];
+  isLoading: boolean;
+}
+
+interface ChatInputProps {
+  inputMessage: string;
+  setInputMessage: (value: string) => void;
+  handleKeyPress: (e: React.KeyboardEvent) => void;
+  sendMessage: () => void;
+  isLoading: boolean;
+}
+
+const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => (
+  <ScrollArea className="flex-1 p-4">
+    <div className="space-y-4">
+      {messages.map((msg, idx) => (
+        <div
+          key={idx}
+          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+        >
+          <div
+            className={`max-w-[85%] md:max-w-[80%] rounded-lg p-3 ${
+              msg.role === 'user'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted'
+            }`}
+          >
+            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+            <p className="text-xs opacity-70 mt-1">
+              {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+        </div>
+      ))}
+      {isLoading && (
+        <div className="flex justify-start">
+          <div className="bg-muted rounded-lg p-3">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </div>
+        </div>
+      )}
+    </div>
+  </ScrollArea>
+);
+
+const ChatInput = ({ 
+  inputMessage, 
+  setInputMessage, 
+  handleKeyPress, 
+  sendMessage, 
+  isLoading 
+}: ChatInputProps) => (
+  <div className="border-t p-4">
+    <div className="flex gap-2">
+      <Input
+        value={inputMessage}
+        onChange={(e) => setInputMessage(e.target.value)}
+        onKeyPress={handleKeyPress}
+        placeholder="Ask a question..."
+        disabled={isLoading}
+        className="flex-1 h-11"
+      />
+      <Button
+        onClick={sendMessage}
+        disabled={!inputMessage.trim() || isLoading}
+        size="icon"
+        className="h-11 w-11 shrink-0"
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  </div>
+);
+
 export default function HelpChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -83,66 +162,6 @@ export default function HelpChatbot() {
     }
   };
 
-  const ChatMessages = () => (
-    <ScrollArea className="flex-1 p-4">
-      <div className="space-y-4">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] md:max-w-[80%] rounded-lg p-3 ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted'
-              }`}
-            >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              <p className="text-xs opacity-70 mt-1">
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg p-3">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
-          </div>
-        )}
-      </div>
-    </ScrollArea>
-  );
-
-  const ChatInput = () => (
-    <div className="border-t p-4">
-      <div className="flex gap-2">
-        <Input
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Ask a question..."
-          disabled={isLoading}
-          className="flex-1 h-11"
-        />
-        <Button
-          onClick={sendMessage}
-          disabled={!inputMessage.trim() || isLoading}
-          size="icon"
-          className="h-11 w-11 shrink-0"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
     <>
       {!isOpen && (
@@ -174,8 +193,14 @@ export default function HelpChatbot() {
               </DrawerClose>
             </DrawerHeader>
             <div className="flex-1 flex flex-col min-h-0">
-              <ChatMessages />
-              <ChatInput />
+              <ChatMessages messages={messages} isLoading={isLoading} />
+              <ChatInput 
+                inputMessage={inputMessage}
+                setInputMessage={setInputMessage}
+                handleKeyPress={handleKeyPress}
+                sendMessage={sendMessage}
+                isLoading={isLoading}
+              />
             </div>
           </DrawerContent>
         </Drawer>
@@ -197,8 +222,14 @@ export default function HelpChatbot() {
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-            <ChatMessages />
-            <ChatInput />
+            <ChatMessages messages={messages} isLoading={isLoading} />
+            <ChatInput 
+              inputMessage={inputMessage}
+              setInputMessage={setInputMessage}
+              handleKeyPress={handleKeyPress}
+              sendMessage={sendMessage}
+              isLoading={isLoading}
+            />
           </CardContent>
         </Card>
       ) : null}
