@@ -323,7 +323,9 @@ export default function History() {
           <p className="text-muted-foreground">
             {userType === 'donor' 
               ? 'View your complete donation history including completed and deleted donations'
-              : 'View your completed donations and received food'}
+              : userType === 'receiver'
+              ? 'View your received food history'
+              : 'View your complete donation history and received food'}
           </p>
         </div>
 
@@ -332,7 +334,7 @@ export default function History() {
             {userType !== 'receiver' && (
               <TabsTrigger value="donated">Donated Food ({donations.length})</TabsTrigger>
             )}
-            {userType === 'receiver' && (
+            {userType !== 'donor' && (
               <TabsTrigger value="received">Received Food ({requests.length})</TabsTrigger>
             )}
           </TabsList>
