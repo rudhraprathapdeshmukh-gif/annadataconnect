@@ -351,7 +351,7 @@ export default function Dashboard() {
         .from('food_donations')
         .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
         .eq('donor_id', user.id)
-        .not('status', 'in', '(claimed,completed)')
+        .not('status', 'eq', 'completed')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
