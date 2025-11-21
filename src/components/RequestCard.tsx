@@ -315,11 +315,12 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         {request.status === 'approved' && expiryTime && request.accepted_at && request.timer_duration && (
           <div className="space-y-2">
             <TimerProgressBar
+              key={`timer-${request.id}-${request.timer_duration}`}
               acceptedAt={new Date(request.accepted_at)}
               timerDuration={request.timer_duration}
               onWarningThreshold={handleWarningThreshold}
             />
-            {!countdown.expired && !request.extension_requested_at && (request.extension_count || 0) < 3 && (
+            {!countdown.expired && !request.extension_requested_at && !request.extension_granted && (request.extension_count || 0) < 3 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -336,9 +337,24 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               </p>
             )}
             {request.extension_granted && (
-              <p className="text-sm text-green-600 dark:text-green-400 text-center">
-                ✓ Extension granted - Timer extended by 10 minutes ({3 - (request.extension_count || 0)} remaining)
-              </p>
+              <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  ✓ Extension granted - Timer extended by 10 minutes
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    await supabase
+                      .from('food_requests')
+                      .update({ extension_granted: false })
+                      .eq('id', request.id);
+                  }}
+                  className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                >
+                  Got it
+                </Button>
+              </div>
             )}
           </div>
         )}
