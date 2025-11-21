@@ -401,7 +401,7 @@ export default function Dashboard() {
         .from('food_donations')
         .select('id')
         .eq('donor_id', user.id)
-        .not('status', 'in', '(claimed,completed)')
+        .not('status', 'eq', 'completed')
         .is('deleted_at', null);
 
       if (myDonationsError) throw myDonationsError;
@@ -442,11 +442,11 @@ export default function Dashboard() {
 
       if (error) throw error;
       
-      // Filter out requests for completed, claimed, or deleted donations
+      // Filter out requests for completed or deleted donations, and rejected requests
       const filtered = (data || []).filter(r =>
+        !r.food_donations.deleted_at &&
         r.food_donations.status !== 'completed' &&
-        r.food_donations.status !== 'claimed' &&
-        !r.food_donations.deleted_at
+        r.status !== 'rejected'
       );
       setRequests(filtered);
     } catch (error) {
