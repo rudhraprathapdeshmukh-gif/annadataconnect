@@ -482,9 +482,9 @@ export default function Dashboard() {
       // Filter out requests for claimed or deleted donations and hide completed ones for UI
       // But keep cancelled requests so users see the apology message
       const activeRequests = (data || []).filter(request => 
-        request.food_donations.status !== 'claimed' && 
         !request.food_donations.deleted_at &&
-        request.status !== 'completed'
+        request.status !== 'completed' &&
+        (request.status === 'approved' || request.food_donations.status !== 'claimed')
       );
       
       setMyRequests(activeRequests);
