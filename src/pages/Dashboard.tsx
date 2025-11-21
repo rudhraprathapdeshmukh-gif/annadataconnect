@@ -895,7 +895,7 @@ export default function Dashboard() {
                     
                     return (
                     <DonorRequestCard 
-                      key={request.id} 
+                      key={`${request.id}-${request.timer_duration}-${request.extension_count}-${request.extension_granted}`}
                       request={request} 
                       expiryTime={expiryTime}
                       onAccept={() => handleRequestAction(request.id, 'approved')}
@@ -1415,16 +1415,28 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           </div>
         )}
         {request.extension_granted && (
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <Check className="h-4 w-4" />
-            <span>
-              Extension granted - Timer extended by 10 minutes
+          <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
+            <p className="text-sm text-green-600 dark:text-green-400">
+              ✓ Extension granted - Timer extended by 10 minutes
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="ml-2 text-muted-foreground">
                   ({3 - (request.extension_count || 0)} remaining)
                 </span>
               )}
-            </span>
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await supabase
+                  .from('food_requests')
+                  .update({ extension_granted: false })
+                  .eq('id', request.id);
+              }}
+              className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+            >
+              Got it
+            </Button>
           </div>
         )}
         {request.status === 'completed' && (
