@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -29,10 +29,9 @@ interface ChatMessagesProps {
 interface ChatInputProps {
   inputMessage: string;
   setInputMessage: (value: string) => void;
-  handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  handleKeyPress: (e: React.KeyboardEvent) => void;
   sendMessage: () => void;
   isLoading: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
 }
 
 const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => (
@@ -73,16 +72,14 @@ const ChatInput = ({
   setInputMessage, 
   handleKeyPress, 
   sendMessage, 
-  isLoading,
-  inputRef,
+  isLoading 
 }: ChatInputProps) => (
   <div className="border-t p-4">
     <div className="flex gap-2">
       <Input
-        ref={inputRef}
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
-        onKeyDown={handleKeyPress}
+        onKeyPress={handleKeyPress}
         placeholder="Ask a question..."
         disabled={isLoading}
         className="flex-1 h-11"
@@ -115,8 +112,6 @@ export default function HelpChatbot() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -157,28 +152,15 @@ export default function HelpChatbot() {
       }]);
     } finally {
       setIsLoading(false);
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      const id = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-
-      return () => clearTimeout(id);
-    }
-  }, [isOpen]);
 
   return (
     <>
@@ -218,7 +200,6 @@ export default function HelpChatbot() {
                 handleKeyPress={handleKeyPress}
                 sendMessage={sendMessage}
                 isLoading={isLoading}
-                inputRef={inputRef}
               />
             </div>
           </DrawerContent>
@@ -248,7 +229,6 @@ export default function HelpChatbot() {
               handleKeyPress={handleKeyPress}
               sendMessage={sendMessage}
               isLoading={isLoading}
-              inputRef={inputRef}
             />
           </CardContent>
         </Card>

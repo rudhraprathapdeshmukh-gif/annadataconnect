@@ -351,7 +351,7 @@ export default function Dashboard() {
         .from('food_donations')
         .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
         .eq('donor_id', user.id)
-        .not('status', 'eq', 'completed')
+        .not('status', 'in', '(claimed,completed)')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
@@ -401,7 +401,7 @@ export default function Dashboard() {
         .from('food_donations')
         .select('id')
         .eq('donor_id', user.id)
-        .not('status', 'eq', 'completed')
+        .not('status', 'in', '(claimed,completed)')
         .is('deleted_at', null);
 
       if (myDonationsError) throw myDonationsError;
@@ -442,9 +442,10 @@ export default function Dashboard() {
 
       if (error) throw error;
       
-      // Filter out requests for completed or deleted donations
+      // Filter out requests for completed, claimed, or deleted donations
       const filtered = (data || []).filter(r =>
         r.food_donations.status !== 'completed' &&
+        r.food_donations.status !== 'claimed' &&
         !r.food_donations.deleted_at
       );
       setRequests(filtered);
@@ -478,9 +479,10 @@ export default function Dashboard() {
       // Keep a full copy for rating checks
       setMyRequestsAll(data || []);
       
-      // Filter out requests for deleted donations and hide completed ones for UI
+      // Filter out requests for claimed or deleted donations and hide completed ones for UI
       // But keep cancelled requests so users see the apology message
       const activeRequests = (data || []).filter(request => 
+        request.food_donations.status !== 'claimed' && 
         !request.food_donations.deleted_at &&
         request.status !== 'completed'
       );
