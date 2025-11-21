@@ -368,92 +368,73 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
-      // 1) Fetch ALL donation IDs for rating checks (no filters)
-      const { data: allDonationRows, error: allDonationsError } = await supabase
+      // 1) Get ALL donations for this donor (any status)
+      const { data: donationRows, error: donationsError } = await supabase
         .from('food_donations')
         .select('id')
         .eq('donor_id', user.id);
 
-      if (allDonationsError) throw allDonationsError;
+      if (donationsError) throw donationsError;
 
-      const allDonationIds = allDonationRows?.map(d => d.id) ?? [];
-      
-      // 2) Fetch ALL requests for these donations for rating checks
-      if (allDonationIds.length > 0) {
-        const { data: allRequests, error: allRequestsError } = await supabase
-          .from('food_requests')
-          .select(`
-            *,
-            food_donations(*),
-            profiles(first_name, last_name, email, phone_number)
-          `)
-          .in('donation_id', allDonationIds)
-          .order('created_at', { ascending: false });
+      const donationIds = donationRows?.map(d => d.id) ?? [];
 
-        if (allRequestsError) throw allRequestsError;
-        setDonorRequestsAll(allRequests || []);
-      } else {
+      // If donor has no donations, clear state and exit
+      if (donationIds.length === 0) {
         setDonorRequestsAll([]);
-      }
-
-      // 3) Get all active donation IDs for which the current user is the donor (not claimed, not deleted)
-      const { data: myDonationRows, error: myDonationsError } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', user.id)
-        .not('status', 'eq', 'completed')
-        .is('deleted_at', null);
-
-      if (myDonationsError) throw myDonationsError;
-
-      const myDonationIds = myDonationRows?.map(d => d.id) ?? [];
-      if (myDonationIds.length === 0) {
         setRequests([]);
         return;
       }
 
-      // Auto-reject expired approved requests for my donations only
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      const { data: expiredRequests } = await supabase
-        .from('food_requests')
-        .select('id')
-        .eq('status', 'approved')
-        .lt('accepted_at', tenMinutesAgo)
-        .in('donation_id', myDonationIds);
-      
-      if (expiredRequests && expiredRequests.length > 0) {
-        await supabase
-          .from('food_requests')
-          .update({ status: 'rejected' })
-          .in('id', expiredRequests.map(r => r.id));
-        
-        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
-      }
-
-      const { data, error } = await supabase
+      // 2) Fetch ALL requests for these donations (used for ratings + UI)
+      const { data: allRequests, error: allRequestsError } = await supabase
         .from('food_requests')
         .select(`
           *,
           food_donations(*),
           profiles(first_name, last_name, email, phone_number)
         `)
-        .in('donation_id', myDonationIds)
+        .in('donation_id', donationIds)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Filter out requests for completed or deleted donations, and rejected requests
-      const filtered = (data || []).filter(r =>
-        !r.food_donations.deleted_at &&
-        r.food_donations.status !== 'completed' &&
+      if (allRequestsError) throw allRequestsError;
+
+      // Keep full copy for rating logic
+      setDonorRequestsAll(allRequests || []);
+
+      // 3) Auto-reject expired approved requests (10 minutes since accepted_at)
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: expiredRequests } = await supabase
+        .from('food_requests')
+        .select('id')
+        .eq('status', 'approved')
+        .lt('accepted_at', tenMinutesAgo)
+        .in('donation_id', donationIds);
+
+      if (expiredRequests && expiredRequests.length > 0) {
+        await supabase
+          .from('food_requests')
+          .update({ status: 'rejected' })
+          .in('id', expiredRequests.map(r => r.id));
+
+        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
+      }
+
+      // 4) Derive ACTIVE requests for donor UI
+      // - Show: pending + approved
+      // - Hide: completed, rejected
+      // - Hide: requests whose donation has been soft-deleted
+      const activeRequests = (allRequests || []).filter((r: any) =>
+        !r.food_donations?.deleted_at &&
+        r.status !== 'completed' &&
         r.status !== 'rejected'
       );
-      setRequests(filtered);
+
+      setRequests(activeRequests);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load requests:', error);
       }
-      // Avoid noisy toasts on initial load; silently fail and keep UI stable
+      // Silent fail to keep UI stable
     }
   };
 
@@ -817,7 +798,7 @@ export default function Dashboard() {
           <Tabs defaultValue="active-donations" className="space-y-6">
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
-              <TabsTrigger value="requests">Requests ({requests.filter(r => r.status !== 'rejected').length})</TabsTrigger>
+              <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -896,7 +877,7 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="requests" className="space-y-4">
-              {requests.filter(r => r.status !== 'rejected').length === 0 ? (
+              {requests.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -905,7 +886,7 @@ export default function Dashboard() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {requests.filter(r => r.status !== 'rejected').map((request) => {
+                  {requests.map((request) => {
                     const expiryTime = request.accepted_at && request.timer_duration
                       ? calculateExpiryTime(new Date(request.accepted_at), request.timer_duration)
                       : request.accepted_at 
