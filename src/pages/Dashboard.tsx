@@ -401,7 +401,7 @@ export default function Dashboard() {
         .from('food_donations')
         .select('id')
         .eq('donor_id', user.id)
-        .not('status', 'in', '(claimed,completed)')
+        .not('status', 'eq', 'completed')
         .is('deleted_at', null);
 
       if (myDonationsError) throw myDonationsError;
