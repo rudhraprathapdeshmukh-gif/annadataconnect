@@ -937,7 +937,11 @@ export default function Dashboard() {
                         : null;
                     
                     return (
-                      <RequestCard key={request.id} request={request} expiryTime={expiryTime} />
+                      <RequestCard 
+                        key={`${request.id}-${request.timer_duration}-${request.extension_count}`} 
+                        request={request} 
+                        expiryTime={expiryTime} 
+                      />
                     );
                   })}
                 </div>
