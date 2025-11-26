@@ -113,6 +113,18 @@ interface ChatProps {
   donationTitle: string;
 }
 
+// Typing Indicator Component
+const TypingIndicator = React.memo(({ userName }: { userName: string }) => (
+  <div className="flex items-center gap-2 px-4 py-2 animate-fade-in">
+    <span className="text-sm text-muted-foreground">{userName} is typing</span>
+    <div className="flex gap-1">
+      <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
+      <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
+      <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
+    </div>
+  </div>
+));
+
 export default function Chat({ donationId, otherUserId, otherUserName, donationTitle }: ChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -121,7 +133,10 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [sending, setSending] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceChannelRef = useRef<any>(null);
 
   // Fetch existing messages
   useEffect(() => {
@@ -171,7 +186,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     markAsRead();
   }, [messages, user]);
 
-  // Real-time subscription
+  // Real-time subscription for messages
   useEffect(() => {
     if (!user) return;
 
@@ -200,6 +215,40 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [user, donationId, otherUserId]);
+
+  // Presence channel for typing indicator
+  useEffect(() => {
+    if (!user) return;
+
+    const presenceChannel = supabase
+      .channel(`typing_${donationId}`)
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        // Check if other user is typing
+        const otherUserPresence = Object.values(state).flat().find(
+          (presence: any) => presence.user_id === otherUserId && presence.is_typing
+        );
+        setOtherUserTyping(!!otherUserPresence);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: user.id,
+            is_typing: false,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    presenceChannelRef.current = presenceChannel;
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [user, donationId, otherUserId]);
 
@@ -233,10 +282,50 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     }
   }, [sending]);
 
+  const handleTyping = () => {
+    if (!user || !presenceChannelRef.current) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Update presence to show typing
+    presenceChannelRef.current.track({
+      user_id: user.id,
+      is_typing: true,
+      online_at: new Date().toISOString(),
+    });
+
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      if (presenceChannelRef.current) {
+        presenceChannelRef.current.track({
+          user_id: user.id,
+          is_typing: false,
+          online_at: new Date().toISOString(),
+        });
+      }
+    }, 2000);
+  };
+
   const sendMessage = async () => {
     if (!user || !newMessage.trim() || sending) return;
 
     setSending(true);
+    
+    // Reset typing state immediately
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (presenceChannelRef.current) {
+      presenceChannelRef.current.track({
+        user_id: user.id,
+        is_typing: false,
+        online_at: new Date().toISOString(),
+      });
+    }
+
     try {
       const { error } = await supabase.from('messages').insert({
         donation_id: donationId,
@@ -450,6 +539,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         )}
         
         <div className="border-t p-4">
+          {otherUserTyping && <TypingIndicator userName={otherUserName} />}
           {sending && (
             <p className="text-xs text-muted-foreground mb-2">
               Sending message...
@@ -472,7 +562,10 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
             <Input
               placeholder="Type your message..."
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                handleTyping();
+              }}
               onKeyPress={handleKeyPress}
               disabled={sending}
               className="flex-1"
