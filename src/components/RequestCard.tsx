@@ -230,18 +230,14 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                 request.food_donations.diet_type === 'veg' 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-                  : request.food_donations.diet_type === 'non-veg'
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
               }`}>
                 <span className={`w-2 h-2 rounded-full ${
                   request.food_donations.diet_type === 'veg' 
                     ? 'bg-green-500' 
-                    : request.food_donations.diet_type === 'non-veg'
-                    ? 'bg-red-500'
-                    : 'bg-emerald-500'
+                    : 'bg-red-500'
                 }`} />
-                {request.food_donations.diet_type === 'veg' ? 'Veg' : request.food_donations.diet_type === 'non-veg' ? 'Non-Veg' : 'Vegan'}
+                {request.food_donations.diet_type === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
               </span>
             )}
             <Badge variant={

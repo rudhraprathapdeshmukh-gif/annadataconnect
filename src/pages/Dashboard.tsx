@@ -979,18 +979,14 @@ export default function Dashboard() {
                               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                                 donation.diet_type === 'veg' 
                                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-                                  : donation.diet_type === 'non-veg'
-                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                               }`}>
                                 <span className={`w-2 h-2 rounded-full ${
                                   donation.diet_type === 'veg' 
                                     ? 'bg-green-500' 
-                                    : donation.diet_type === 'non-veg'
-                                    ? 'bg-red-500'
-                                    : 'bg-emerald-500'
+                                    : 'bg-red-500'
                                 }`} />
-                                {donation.diet_type === 'veg' ? 'Veg' : donation.diet_type === 'non-veg' ? 'Non-Veg' : 'Vegan'}
+                                {donation.diet_type === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
                               </span>
                             )}
                             <Badge variant="secondary">{donation.food_type}</Badge>
