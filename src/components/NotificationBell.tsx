@@ -69,9 +69,15 @@ export default function NotificationBell() {
 
         const { data: donation } = await supabase
           .from('food_donations')
-          .select('title')
+          .select('title, status')
           .eq('id', message.donation_id)
           .single();
+
+        // Check if donation is completed - don't open chat
+        if (donation?.status === 'completed') {
+          toast.info('This donation has been completed. Chat is no longer available.');
+          return;
+        }
 
         const otherUserName = notification.title.replace('New Message from ', '');
 
