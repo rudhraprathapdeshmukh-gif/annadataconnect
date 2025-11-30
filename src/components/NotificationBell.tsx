@@ -23,9 +23,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Dialog, DialogContent } from './ui/dialog';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import Chat from './Chat';
 
 export default function NotificationBell() {
   const {
@@ -40,6 +44,50 @@ export default function NotificationBell() {
   } = useNotifications();
   
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatData, setChatData] = useState<{
+    donationId: string;
+    otherUserId: string;
+    otherUserName: string;
+    donationTitle: string;
+  } | null>(null);
+
+  const handleNotificationClick = async (notification: typeof notifications[0]) => {
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+
+    if (notification.type === 'message_received' && notification.related_id) {
+      try {
+        const { data: message } = await supabase
+          .from('messages')
+          .select('donation_id, sender_id')
+          .eq('id', notification.related_id)
+          .single();
+
+        if (!message) return;
+
+        const { data: donation } = await supabase
+          .from('food_donations')
+          .select('title')
+          .eq('id', message.donation_id)
+          .single();
+
+        const otherUserName = notification.title.replace('New Message from ', '');
+
+        setChatData({
+          donationId: message.donation_id,
+          otherUserId: message.sender_id,
+          otherUserName,
+          donationTitle: donation?.title || 'Donation',
+        });
+        setChatOpen(true);
+      } catch (error) {
+        console.error('Error opening chat:', error);
+        toast.error('Failed to open chat');
+      }
+    }
+  };
 
   return (
     <Popover>
@@ -121,7 +169,7 @@ export default function NotificationBell() {
                     )}
                     <div 
                       className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => !notification.read && markAsRead(notification.id)}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <p className="font-medium text-sm">{notification.title}</p>
                       <p className="text-sm text-muted-foreground line-clamp-2">
@@ -176,6 +224,20 @@ export default function NotificationBell() {
           </AlertDialogContent>
         </AlertDialog>
       </PopoverContent>
+
+      {/* Chat Dialog for message notifications */}
+      <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 animate-scale-in">
+          {chatData && (
+            <Chat
+              donationId={chatData.donationId}
+              otherUserId={chatData.otherUserId}
+              otherUserName={chatData.otherUserName}
+              donationTitle={chatData.donationTitle}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 }
