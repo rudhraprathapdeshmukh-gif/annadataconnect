@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, X, CalendarIcon, Clock, ShieldCheck, MapPin, Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { format, addYears, addDays, addMonths, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ const donationSchema = z.object({
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
   quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
+  diet_type: z.enum(['veg', 'non-veg', 'vegan'], { message: "Please select diet type" }),
   phone_number: phoneSchema,
   city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
   area: z.string().trim().min(1, { message: "Area is required" }).max(100, { message: "Area name must be less than 100 characters" }),
@@ -60,6 +62,7 @@ export default function Donate() {
     quantity: '',
     quantity_unit: 'kg',
     food_type: '',
+    diet_type: 'veg',
     phone_number: '',
     city: '',
     area: '',
@@ -459,6 +462,7 @@ export default function Donate() {
           quantity: validation.data.quantity,
           quantity_unit: validation.data.quantity_unit,
           food_type: validation.data.food_type,
+          diet_type: validation.data.diet_type,
           phone_number: validation.data.phone_number,
           pickup_location: pickupLocation,
           latitude: coordinates?.lat || null,
@@ -620,6 +624,37 @@ export default function Donate() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Diet Type *</Label>
+                <RadioGroup
+                  value={formData.diet_type}
+                  onValueChange={(value) => setFormData({ ...formData, diet_type: value })}
+                  className="flex flex-wrap gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="veg" id="veg" />
+                    <Label htmlFor="veg" className="flex items-center gap-2 cursor-pointer">
+                      <span className="w-4 h-4 rounded-full bg-green-500 border-2 border-green-700" />
+                      Vegetarian
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="non-veg" id="non-veg" />
+                    <Label htmlFor="non-veg" className="flex items-center gap-2 cursor-pointer">
+                      <span className="w-4 h-4 rounded-full bg-red-500 border-2 border-red-700" />
+                      Non-Vegetarian
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="vegan" id="vegan" />
+                    <Label htmlFor="vegan" className="flex items-center gap-2 cursor-pointer">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-emerald-700" />
+                      Vegan
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               <div className="space-y-2">

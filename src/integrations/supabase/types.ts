@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          diet_type: string | null
           donor_id: string
           expiry_date: string | null
           food_type: string
@@ -40,6 +41,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          diet_type?: string | null
           donor_id: string
           expiry_date?: string | null
           food_type: string
@@ -61,6 +63,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          diet_type?: string | null
           donor_id?: string
           expiry_date?: string | null
           food_type?: string
@@ -360,6 +363,7 @@ export type Database = {
           approx_longitude: number
           created_at: string
           description: string
+          diet_type: string
           expiry_date: string
           food_type: string
           id: string

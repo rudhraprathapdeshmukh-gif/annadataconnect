@@ -25,6 +25,7 @@ interface FoodDonation {
   quantity: string;
   quantity_unit: string;
   food_type: string;
+  diet_type?: string;
   rating: number | null;
   donor_id: string;
   image_url?: string | null;
@@ -222,15 +223,35 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         </div>
       )}
       <CardHeader>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
-          <Badge variant={
-            request.status === 'approved' ? 'default' :
-            request.status === 'rejected' ? 'destructive' :
-            'secondary'
-          }>
-            {request.status}
-          </Badge>
+          <div className="flex gap-2 flex-wrap">
+            {request.food_donations.diet_type && (
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                request.food_donations.diet_type === 'veg' 
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
+                  : request.food_donations.diet_type === 'non-veg'
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  request.food_donations.diet_type === 'veg' 
+                    ? 'bg-green-500' 
+                    : request.food_donations.diet_type === 'non-veg'
+                    ? 'bg-red-500'
+                    : 'bg-emerald-500'
+                }`} />
+                {request.food_donations.diet_type === 'veg' ? 'Veg' : request.food_donations.diet_type === 'non-veg' ? 'Non-Veg' : 'Vegan'}
+              </span>
+            )}
+            <Badge variant={
+              request.status === 'approved' ? 'default' :
+              request.status === 'rejected' ? 'destructive' :
+              'secondary'
+            }>
+              {request.status}
+            </Badge>
+          </div>
         </div>
         <CardDescription className="line-clamp-2">
           {request.food_donations.description}
