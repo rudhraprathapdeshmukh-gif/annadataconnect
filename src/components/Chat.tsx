@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { Send, Loader2, MapPin, ChevronDown } from 'lucide-react';
+import { Send, Loader2, MapPin, ChevronDown, Check, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -125,6 +125,23 @@ const TypingIndicator = React.memo(({ userName }: { userName: string }) => (
   </div>
 ));
 
+// Seen Indicator Component
+const SeenIndicator = React.memo(({ read }: { read: boolean }) => (
+  <div className="flex items-center gap-1 mt-0.5">
+    {read ? (
+      <>
+        <CheckCheck className="h-3 w-3 text-primary-foreground/70" />
+        <span className="text-[10px] text-primary-foreground/70">Seen</span>
+      </>
+    ) : (
+      <>
+        <Check className="h-3 w-3 text-primary-foreground/50" />
+        <span className="text-[10px] text-primary-foreground/50">Sent</span>
+      </>
+    )}
+  </div>
+));
+
 export default function Chat({ donationId, otherUserId, otherUserName, donationTitle }: ChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -209,6 +226,22 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
           ) {
             setMessages(prev => [...prev, newMsg]);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `donation_id=eq.${donationId}`,
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message;
+          // Update the message in local state to reflect read status
+          setMessages(prev => prev.map(msg => 
+            msg.id === updatedMsg.id ? updatedMsg : msg
+          ));
         }
       )
       .subscribe();
@@ -552,6 +585,9 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                         minute: '2-digit',
                       })}
                     </p>
+                    {msg.sender_id === user?.id && (
+                      <SeenIndicator read={msg.read} />
+                    )}
                   </div>
                 </div>
               ))
