@@ -33,6 +33,7 @@ interface PublicDonation {
   quantity: string;
   quantity_unit: string;
   food_type: string;
+  diet_type?: string;
   expiry_date: string;
   pickup_location: string;
   status: string;
@@ -50,6 +51,7 @@ interface FoodDonation {
   quantity: string;
   quantity_unit: string;
   food_type: string;
+  diet_type?: string;
   expiry_date: string;
   pickup_location: string;
   status: string;
@@ -330,7 +332,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, created_at, expiry_date, rating, image_url')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, created_at, expiry_date, rating, image_url')
         .eq('status', 'available')
         .is('deleted_at', null);
 
@@ -349,7 +351,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
+        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, donor_id, created_at, expiry_date, rating, image_url, phone_number')
         .eq('donor_id', user.id)
         .not('status', 'eq', 'completed')
         .is('deleted_at', null)
@@ -970,9 +972,29 @@ export default function Dashboard() {
                         </div>
                       )}
                       <CardHeader>
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-xl">{donation.title}</CardTitle>
-                          <Badge variant="secondary">{donation.food_type}</Badge>
+                          <div className="flex gap-2 flex-wrap">
+                            {donation.diet_type && (
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                donation.diet_type === 'veg' 
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
+                                  : donation.diet_type === 'non-veg'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                  : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                              }`}>
+                                <span className={`w-2 h-2 rounded-full ${
+                                  donation.diet_type === 'veg' 
+                                    ? 'bg-green-500' 
+                                    : donation.diet_type === 'non-veg'
+                                    ? 'bg-red-500'
+                                    : 'bg-emerald-500'
+                                }`} />
+                                {donation.diet_type === 'veg' ? 'Veg' : donation.diet_type === 'non-veg' ? 'Non-Veg' : 'Vegan'}
+                              </span>
+                            )}
+                            <Badge variant="secondary">{donation.food_type}</Badge>
+                          </div>
                         </div>
                         <CardDescription className="line-clamp-2">
                           {donation.description}
