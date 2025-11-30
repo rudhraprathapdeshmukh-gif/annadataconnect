@@ -631,29 +631,49 @@ export default function Donate() {
                 <RadioGroup
                   value={formData.diet_type}
                   onValueChange={(value) => setFormData({ ...formData, diet_type: value })}
-                  className="flex flex-wrap gap-4"
+                  className="grid grid-cols-3 gap-3"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="veg" id="veg" />
-                    <Label htmlFor="veg" className="flex items-center gap-2 cursor-pointer">
-                      <span className="w-4 h-4 rounded-full bg-green-500 border-2 border-green-700" />
-                      Vegetarian
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="non-veg" id="non-veg" />
-                    <Label htmlFor="non-veg" className="flex items-center gap-2 cursor-pointer">
-                      <span className="w-4 h-4 rounded-full bg-red-500 border-2 border-red-700" />
-                      Non-Vegetarian
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="vegan" id="vegan" />
-                    <Label htmlFor="vegan" className="flex items-center gap-2 cursor-pointer">
-                      <span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-emerald-700" />
-                      Vegan
-                    </Label>
-                  </div>
+                  <Label
+                    htmlFor="veg"
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      formData.diet_type === 'veg' 
+                        ? "border-green-500 bg-green-50 dark:bg-green-950" 
+                        : "border-muted hover:border-green-300"
+                    )}
+                  >
+                    <RadioGroupItem value="veg" id="veg" className="sr-only" />
+                    <span className="w-6 h-6 rounded-full bg-green-500 border-2 border-green-700" />
+                    <span className="text-sm font-medium">Vegetarian</span>
+                  </Label>
+                  
+                  <Label
+                    htmlFor="non-veg"
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      formData.diet_type === 'non-veg' 
+                        ? "border-red-500 bg-red-50 dark:bg-red-950" 
+                        : "border-muted hover:border-green-300"
+                    )}
+                  >
+                    <RadioGroupItem value="non-veg" id="non-veg" className="sr-only" />
+                    <span className="w-6 h-6 rounded-full bg-red-500 border-2 border-red-700" />
+                    <span className="text-sm font-medium">Non-Veg</span>
+                  </Label>
+                  
+                  <Label
+                    htmlFor="vegan"
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      formData.diet_type === 'vegan' 
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950" 
+                        : "border-muted hover:border-emerald-300"
+                    )}
+                  >
+                    <RadioGroupItem value="vegan" id="vegan" className="sr-only" />
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-emerald-700" />
+                    <span className="text-sm font-medium">Vegan</span>
+                  </Label>
                 </RadioGroup>
               </div>
 
