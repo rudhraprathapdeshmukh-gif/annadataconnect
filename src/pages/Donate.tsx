@@ -721,42 +721,80 @@ export default function Donate() {
 
               {isPreparedFood ? (
                 <div className="space-y-2">
-                  <Label>Pickup Time (Same Day) *</Label>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Select value={hour12} onValueChange={setHour12}>
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
-                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, '0')}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-muted-foreground">:</span>
-                    <Select value={minute} onValueChange={setMinute}>
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['00', '15', '30', '45'].map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={ampm} onValueChange={setAmpm}>
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AM">AM</SelectItem>
-                        <SelectItem value="PM">PM</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Label>Pickup Date & Time (Within 2 Days) *</Label>
+                  <div className="grid gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !expiryDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={expiryDate}
+                          onSelect={setExpiryDate}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const maxDate = addDays(today, 2);
+                            return date < today || date > maxDate;
+                          }}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex gap-2 flex-1">
+                        <Select value={hour12} onValueChange={setHour12}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="Hour" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                              <SelectItem key={hour} value={String(hour)}>
+                                {String(hour).padStart(2, '0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={minute} onValueChange={setMinute}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="Min" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['00', '15', '30', '45'].map((min) => (
+                              <SelectItem key={min} value={min}>
+                                {min}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={ampm} onValueChange={setAmpm}>
+                          <SelectTrigger className="w-[80px]">
+                            <SelectValue placeholder="AM/PM" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Prepared food must be picked up today. Select a time in the next 24 hours.
+                    Prepared food: Select pickup date within the next 2 days.
                   </p>
                 </div>
               ) : (
