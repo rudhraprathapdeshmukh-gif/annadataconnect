@@ -31,7 +31,7 @@ const donationSchema = z.object({
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
   quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
-  diet_type: z.enum(['veg', 'non-veg', 'vegan'], { message: "Please select diet type" }),
+  diet_type: z.enum(['veg', 'non-veg'], { message: "Please select diet type" }),
   phone_number: phoneSchema,
   city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
   area: z.string().trim().min(1, { message: "Area is required" }).max(100, { message: "Area name must be less than 100 characters" }),
@@ -631,7 +631,7 @@ export default function Donate() {
                 <RadioGroup
                   value={formData.diet_type}
                   onValueChange={(value) => setFormData({ ...formData, diet_type: value })}
-                  className="grid grid-cols-3 gap-3"
+                  className="grid grid-cols-2 gap-3"
                 >
                   <Label
                     htmlFor="veg"
@@ -658,21 +658,7 @@ export default function Donate() {
                   >
                     <RadioGroupItem value="non-veg" id="non-veg" className="sr-only" />
                     <span className="w-6 h-6 rounded-full bg-red-500 border-2 border-red-700" />
-                    <span className="text-sm font-medium">Non-Veg</span>
-                  </Label>
-                  
-                  <Label
-                    htmlFor="vegan"
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      formData.diet_type === 'vegan' 
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950" 
-                        : "border-muted hover:border-emerald-300"
-                    )}
-                  >
-                    <RadioGroupItem value="vegan" id="vegan" className="sr-only" />
-                    <span className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-emerald-700" />
-                    <span className="text-sm font-medium">Vegan</span>
+                    <span className="text-sm font-medium">Non-Vegetarian</span>
                   </Label>
                 </RadioGroup>
               </div>
