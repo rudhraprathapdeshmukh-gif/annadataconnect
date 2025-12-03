@@ -149,3 +149,10 @@ export function getNextBadge(completedDonations: number): { badge: ImpactBadge; 
     remaining: nextBadge.requirement - completedDonations
   };
 }
+
+export function getCurrentLevel(completedDonations: number): ImpactBadge | null {
+  const donationBadges = IMPACT_BADGES.filter(b => b.type === 'donations')
+    .sort((a, b) => b.requirement - a.requirement);
+  
+  return donationBadges.find(badge => completedDonations >= badge.requirement) || null;
+}
