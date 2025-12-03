@@ -359,7 +359,56 @@
     "ratingSubmitted": "రేటింగ్ విజయవంతంగా సమర్పించబడింది!",
     "failedSubmitRating": "రేటింగ్ సమర్పించడంలో విఫలమైంది",
     "selectRating": "దయచేసి రేటింగ్ ఎంచుకోండి",
-    "donated": "దానం చేసినది"
+    "donated": "దానం చేసినది",
+    "achievements": "విజయాలు"
+  },
+  "achievements": {
+    "impactScore": "మీ ప్రభావ స్కోర్",
+    "points": "పాయింట్లు",
+    "badgesLabel": "బ్యాడ్జ్‌లు",
+    "next": "తదుపరి:",
+    "moreToGo": "ఇంకా మిగిలి ఉన్నాయి!",
+    "donations": "దానాలు",
+    "mealsShared": "పంచుకున్న భోజనాలు",
+    "peopleHelped": "సహాయపడిన వ్యక్తులు",
+    "reliability": "విశ్వసనీయత",
+    "needDonations": "{{count}} దానాలు అవసరం",
+    "needReliability": "{{percent}}% విశ్వసనీయత అవసరం",
+    "topDonorRequirement": "టాప్ 10% దాతలలో",
+    "badges": {
+      "first_meal": {
+        "name": "మొదటి భోజనం",
+        "description": "మీ మొదటి భోజనం దానం చేసారు!"
+      },
+      "rising_star": {
+        "name": "ఉదయిస్తున్న నక్షత్రం",
+        "description": "5 భోజనాలు దానం చేసారు"
+      },
+      "community_champion": {
+        "name": "కమ్యూనిటీ ఛాంపియన్",
+        "description": "10 భోజనాలు దానం చేసారు"
+      },
+      "food_hero": {
+        "name": "ఆహార హీరో",
+        "description": "25 భోజనాలు దానం చేసారు"
+      },
+      "hunger_fighter": {
+        "name": "ఆకలి పోరాట యోధుడు",
+        "description": "50 భోజనాలు దానం చేసారు"
+      },
+      "legendary_giver": {
+        "name": "ఇతిహాస దాత",
+        "description": "100 భోజనాలు దానం చేసారు"
+      },
+      "perfect_score": {
+        "name": "ఖచ్చితమైన స్కోర్",
+        "description": "100% విశ్వసనీయత రేటింగ్"
+      },
+      "top_donor": {
+        "name": "టాప్ దాత",
+        "description": "టాప్ 10% దాతలలో"
+      }
+    }
   },
   "help": {
     "title": "సహాయం & మద్దతు",

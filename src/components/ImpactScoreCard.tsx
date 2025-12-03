@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -24,12 +25,22 @@ export function ImpactScoreCard({
   peopleHelped,
   isTopDonor = false 
 }: ImpactScoreCardProps) {
+  const { t } = useTranslation();
   const [animatedScore, setAnimatedScore] = useState(0);
   const [showBadges, setShowBadges] = useState(false);
   
   const impactScore = calculateImpactScore(completedDonations, reliabilityScore, peopleHelped);
   const earnedBadges = getEarnedBadges(completedDonations, reliabilityScore, isTopDonor);
   const nextBadge = getNextBadge(completedDonations);
+  
+  // Get badge translations
+  const getBadgeName = (badgeId: string): string => {
+    return t(`achievements.badges.${badgeId}.name`, { defaultValue: IMPACT_BADGES.find(b => b.id === badgeId)?.name });
+  };
+  
+  const getBadgeDescription = (badgeId: string): string => {
+    return t(`achievements.badges.${badgeId}.description`, { defaultValue: IMPACT_BADGES.find(b => b.id === badgeId)?.description });
+  };
   
   // Animated counter effect
   useEffect(() => {
@@ -78,7 +89,7 @@ export function ImpactScoreCard({
             {badge.icon}
           </span>
           <span className={`text-xs font-medium mt-1 text-center ${earned ? badge.color : 'text-muted-foreground'}`}>
-            {badge.name}
+            {getBadgeName(badge.id)}
           </span>
           {!earned && (
             <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5">
@@ -95,14 +106,14 @@ export function ImpactScoreCard({
       <PopoverContent className="w-48 p-3">
         <div className="space-y-1">
           <p className="font-semibold flex items-center gap-2">
-            <span>{badge.icon}</span> {badge.name}
+            <span>{badge.icon}</span> {getBadgeName(badge.id)}
           </p>
-          <p className="text-sm text-muted-foreground">{badge.description}</p>
+          <p className="text-sm text-muted-foreground">{getBadgeDescription(badge.id)}</p>
           {!earned && (
             <p className="text-xs text-primary font-medium mt-2">
-              {badge.type === 'donations' && `Need ${badge.requirement} donations`}
-              {badge.type === 'reliability' && `Need ${badge.requirement}% reliability`}
-              {badge.type === 'special' && 'Top 10% of donors'}
+              {badge.type === 'donations' && t('achievements.needDonations', { count: badge.requirement })}
+              {badge.type === 'reliability' && t('achievements.needReliability', { percent: badge.requirement })}
+              {badge.type === 'special' && t('achievements.topDonorRequirement')}
             </p>
           )}
         </div>
@@ -115,7 +126,7 @@ export function ImpactScoreCard({
       <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-          Your Impact Score
+          {t('achievements.impactScore')}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-6">
@@ -127,7 +138,7 @@ export function ImpactScoreCard({
                 <span className="text-4xl font-bold text-primary animate-count-up">
                   {animatedScore}
                 </span>
-                <span className="text-xs text-muted-foreground">points</span>
+                <span className="text-xs text-muted-foreground">{t('achievements.points')}</span>
               </div>
             </div>
             <div className="absolute -top-2 -right-2 animate-bounce">
@@ -139,7 +150,7 @@ export function ImpactScoreCard({
         {/* Badge Grid */}
         <div className="space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
-            🏅 Badges ({earnedBadges.length}/{IMPACT_BADGES.length})
+            🏅 {t('achievements.badgesLabel')} ({earnedBadges.length}/{IMPACT_BADGES.length})
           </h4>
           <div className="grid grid-cols-4 gap-2">
             {IMPACT_BADGES.map((badge, index) => (
@@ -159,15 +170,15 @@ export function ImpactScoreCard({
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium flex items-center gap-2">
                 <span>{nextBadge.badge.icon}</span>
-                Next: {nextBadge.badge.name}
+                {t('achievements.next')} {getBadgeName(nextBadge.badge.id)}
               </span>
               <span className="text-muted-foreground">
-                {nextBadge.remaining} more to go!
+                {nextBadge.remaining} {t('achievements.moreToGo')}
               </span>
             </div>
             <Progress value={nextBadge.progress} className="h-2" />
             <p className="text-xs text-muted-foreground text-center">
-              {completedDonations}/{nextBadge.badge.requirement} donations
+              {completedDonations}/{nextBadge.badge.requirement} {t('achievements.donations')}
             </p>
           </div>
         )}
@@ -177,17 +188,17 @@ export function ImpactScoreCard({
           <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
             <Heart className="h-5 w-5 text-red-500 mb-1" />
             <span className="text-xl font-bold">{completedDonations}</span>
-            <span className="text-xs text-muted-foreground">Meals Shared</span>
+            <span className="text-xs text-muted-foreground text-center">{t('achievements.mealsShared')}</span>
           </div>
           <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '400ms' }}>
             <Users className="h-5 w-5 text-blue-500 mb-1" />
             <span className="text-xl font-bold">{peopleHelped}</span>
-            <span className="text-xs text-muted-foreground">People Helped</span>
+            <span className="text-xs text-muted-foreground text-center">{t('achievements.peopleHelped')}</span>
           </div>
           <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '600ms' }}>
             <TrendingUp className="h-5 w-5 text-green-500 mb-1" />
             <span className="text-xl font-bold">{Math.round(reliabilityScore)}%</span>
-            <span className="text-xs text-muted-foreground">Reliability</span>
+            <span className="text-xs text-muted-foreground text-center">{t('achievements.reliability')}</span>
           </div>
         </div>
       </CardContent>

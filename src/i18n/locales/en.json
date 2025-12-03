@@ -312,7 +312,56 @@
     "howWasExperience": "How was your experience with",
     "ratingSubmitted": "Rating submitted successfully!",
     "failedSubmitRating": "Failed to submit rating",
-    "selectRating": "Please select a rating"
+    "selectRating": "Please select a rating",
+    "achievements": "Achievements"
+  },
+  "achievements": {
+    "impactScore": "Your Impact Score",
+    "points": "points",
+    "badgesLabel": "Badges",
+    "next": "Next:",
+    "moreToGo": "more to go!",
+    "donations": "donations",
+    "mealsShared": "Meals Shared",
+    "peopleHelped": "People Helped",
+    "reliability": "Reliability",
+    "needDonations": "Need {{count}} donations",
+    "needReliability": "Need {{percent}}% reliability",
+    "topDonorRequirement": "Top 10% of donors",
+    "badges": {
+      "first_meal": {
+        "name": "First Meal",
+        "description": "Donated your first meal!"
+      },
+      "rising_star": {
+        "name": "Rising Star",
+        "description": "Donated 5 meals"
+      },
+      "community_champion": {
+        "name": "Community Champion",
+        "description": "Donated 10 meals"
+      },
+      "food_hero": {
+        "name": "Food Hero",
+        "description": "Donated 25 meals"
+      },
+      "hunger_fighter": {
+        "name": "Hunger Fighter",
+        "description": "Donated 50 meals"
+      },
+      "legendary_giver": {
+        "name": "Legendary Giver",
+        "description": "Donated 100 meals"
+      },
+      "perfect_score": {
+        "name": "Perfect Score",
+        "description": "100% reliability rating"
+      },
+      "top_donor": {
+        "name": "Top Donor",
+        "description": "In the top 10% of donors"
+      }
+    }
   },
   "help": {
     "title": "Help & Support",
