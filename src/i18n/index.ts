@@ -10,19 +10,25 @@ const resources = {
   te: { translation: te },
 };
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false,
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-    },
-  });
+// Only initialize if not already initialized
+if (!i18n.isInitialized) {
+  i18n
+    .use(LanguageDetector)
+    .use(initReactI18next)
+    .init({
+      resources,
+      fallbackLng: 'en',
+      interpolation: {
+        escapeValue: false,
+      },
+      detection: {
+        order: ['localStorage', 'navigator'],
+        caches: ['localStorage'],
+      },
+      react: {
+        useSuspense: false,
+      },
+    });
+}
 
 export default i18n;
