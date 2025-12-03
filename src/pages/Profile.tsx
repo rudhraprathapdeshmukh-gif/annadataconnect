@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
@@ -21,6 +22,7 @@ import type { SavedAddress } from '@/types/savedAddress';
 export default function Profile() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   
   const [userProfile, setUserProfile] = useState<{

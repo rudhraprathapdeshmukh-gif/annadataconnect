@@ -5,18 +5,20 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Mail, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/Navbar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useState } from 'react';
 import { toast } from 'sonner';
 const Help = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const supportEmail = "annadataconnectgptwgl@gmail.com";
   const copyEmail = () => {
     navigator.clipboard.writeText(supportEmail);
     setCopied(true);
-    toast.success("Email copied to clipboard!");
+    toast.success(t('help.emailCopied'));
     setTimeout(() => setCopied(false), 2000);
   };
   return <div className="min-h-screen bg-background">
