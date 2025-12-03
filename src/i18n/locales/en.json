@@ -328,6 +328,23 @@
     "needDonations": "Need {{count}} donations",
     "needReliability": "Need {{percent}}% reliability",
     "topDonorRequirement": "Top 10% of donors",
+    "shareAchievements": "Share Achievements",
+    "downloadCertificate": "Download Certificate",
+    "shareOn": "Share on",
+    "whatsapp": "WhatsApp",
+    "twitter": "Twitter",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
+    "copyLink": "Copy Link",
+    "certificateTitle": "Certificate of Achievement",
+    "issuedTo": "This certificate is proudly presented to",
+    "forContributing": "For outstanding contribution to reducing food waste",
+    "issuedOn": "Issued on",
+    "poweredBy": "Powered by Annadataconnect",
+    "shareMessage": "🎉 I just earned the {{badge}} badge on Annadataconnect! I've shared {{meals}} meals and helped {{people}} people. Join me in fighting hunger! 🍲",
+    "linkCopied": "Link copied to clipboard!",
+    "certificateDownloaded": "Certificate downloaded!",
+    "failedGenerateImage": "Failed to generate certificate image",
     "badges": {
       "first_meal": {
         "name": "First Meal",
@@ -453,7 +470,8 @@
     "warning": "Warning",
     "info": "Info",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "share": "Share"
   },
   "toast": {
     "languageUpdated": "Language updated",

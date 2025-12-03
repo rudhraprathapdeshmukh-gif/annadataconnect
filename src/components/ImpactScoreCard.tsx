@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { 
   ImpactBadge, 
   IMPACT_BADGES, 
@@ -9,25 +10,29 @@ import {
   calculateImpactScore, 
   getNextBadge 
 } from '@/lib/impactBadges';
-import { Heart, Users, TrendingUp, Lock, Sparkles } from 'lucide-react';
+import { Heart, Users, TrendingUp, Lock, Sparkles, Share2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ShareAchievementsDialog } from './ShareAchievementsDialog';
 
 interface ImpactScoreCardProps {
   completedDonations: number;
   reliabilityScore: number;
   peopleHelped: number;
   isTopDonor?: boolean;
+  userName?: string;
 }
 
 export function ImpactScoreCard({ 
   completedDonations, 
   reliabilityScore, 
   peopleHelped,
-  isTopDonor = false 
+  isTopDonor = false,
+  userName = 'Donor'
 }: ImpactScoreCardProps) {
   const { t } = useTranslation();
   const [animatedScore, setAnimatedScore] = useState(0);
   const [showBadges, setShowBadges] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   
   const impactScore = calculateImpactScore(completedDonations, reliabilityScore, peopleHelped);
   const earnedBadges = getEarnedBadges(completedDonations, reliabilityScore, isTopDonor);
@@ -201,6 +206,30 @@ export function ImpactScoreCard({
             <span className="text-xs text-muted-foreground text-center">{t('achievements.reliability')}</span>
           </div>
         </div>
+
+        {/* Share Button */}
+        {earnedBadges.length > 0 && (
+          <Button 
+            onClick={() => setShowShareDialog(true)}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <Share2 className="h-4 w-4" />
+            {t('achievements.shareAchievements')}
+          </Button>
+        )}
+
+        {/* Share Dialog */}
+        <ShareAchievementsDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          userName={userName}
+          completedDonations={completedDonations}
+          reliabilityScore={reliabilityScore}
+          peopleHelped={peopleHelped}
+          earnedBadges={earnedBadges}
+          impactScore={impactScore}
+        />
       </CardContent>
     </Card>
   );

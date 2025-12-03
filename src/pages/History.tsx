@@ -94,6 +94,7 @@ export default function History() {
     peopleHelped: 0
   });
   const [reliabilityScore, setReliabilityScore] = useState(100);
+  const [userName, setUserName] = useState('');
 
   const getFreshnessLabel = (rating: number): string => {
     switch (rating) {
@@ -230,9 +231,11 @@ export default function History() {
       const {
         data,
         error
-      } = await supabase.from('profiles').select('user_type').eq('id', user.id).single();
+      } = await supabase.from('profiles').select('user_type, first_name, last_name').eq('id', user.id).single();
       if (error) throw error;
       setUserType(data?.user_type);
+      const fullName = [data?.first_name, data?.last_name].filter(Boolean).join(' ') || 'Donor';
+      setUserName(fullName);
     } catch (error) {
       console.error('Failed to load user type:', error);
     }
@@ -406,6 +409,7 @@ export default function History() {
                 reliabilityScore={reliabilityScore}
                 peopleHelped={donationStats.peopleHelped}
                 isTopDonor={donationStats.completedDonations >= 50}
+                userName={userName}
               />
             </TabsContent>
           )}

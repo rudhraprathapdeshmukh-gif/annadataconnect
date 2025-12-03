@@ -12,11 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home, Trophy } from 'lucide-react';
+import { Upload, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
-import { ImpactScoreCard } from '@/components/ImpactScoreCard';
-import { getCurrentLevel } from '@/lib/impactBadges';
 import type { SavedAddress } from '@/types/savedAddress';
 
 export default function Profile() {
@@ -55,14 +53,9 @@ export default function Profile() {
   });
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [deleteConfirmAddress, setDeleteConfirmAddress] = useState<SavedAddress | null>(null);
-  const [donationStats, setDonationStats] = useState({
-    completedDonations: 0,
-    peopleHelped: 0
-  });
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
-  const isDonor = userProfile?.user_type === 'donor' || userProfile?.user_type === 'both';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,7 +69,6 @@ export default function Profile() {
       fetchAverageRating();
       if (isOwnProfile) {
         fetchSavedAddresses();
-        fetchDonationStats();
       }
     }
   }, [profileUserId, isOwnProfile]);
@@ -152,40 +144,6 @@ export default function Profile() {
     
     if (!error && data) {
       setSavedAddresses(data);
-    }
-  };
-
-  const fetchDonationStats = async () => {
-    if (!user?.id) return;
-    try {
-      const { data: donations, error: donationsError } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', user.id)
-        .eq('status', 'completed');
-      
-      if (donationsError) throw donationsError;
-      
-      const completedDonations = donations?.length || 0;
-      const donationIds = donations?.map(d => d.id) || [];
-      let peopleHelped = 0;
-      
-      if (donationIds.length > 0) {
-        const { data: requests, error: requestsError } = await supabase
-          .from('food_requests')
-          .select('requester_id')
-          .in('donation_id', donationIds)
-          .eq('status', 'completed');
-        
-        if (!requestsError && requests) {
-          const uniqueReceivers = new Set(requests.map(r => r.requester_id));
-          peopleHelped = uniqueReceivers.size;
-        }
-      }
-      
-      setDonationStats({ completedDonations, peopleHelped });
-    } catch (error) {
-      console.error('Error fetching donation stats:', error);
     }
   };
 
@@ -401,8 +359,6 @@ export default function Profile() {
       toast.error('Failed to set default address');
     }
   };
-
-  const currentLevel = getCurrentLevel(donationStats.completedDonations);
 
   if (loading) {
     return (
@@ -622,39 +578,6 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Achievements Card - Only for Donors */}
-            {isDonor && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5" />
-                    Achievements
-                  </CardTitle>
-                  <CardDescription>Your donation milestones and impact</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Current Level */}
-                  {currentLevel && (
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                      <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Level</p>
-                        <p className="text-xl font-bold">{currentLevel.name}</p>
-                        <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Impact Score Card */}
-                  <ImpactScoreCard
-                    completedDonations={donationStats.completedDonations}
-                    reliabilityScore={userProfile?.reliability_score ?? 100}
-                    peopleHelped={donationStats.peopleHelped}
-                  />
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
 
