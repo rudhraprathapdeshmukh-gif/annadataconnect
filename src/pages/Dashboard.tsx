@@ -100,6 +100,7 @@ export default function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [donations, setDonations] = useState<PublicDonation[]>([]);
+  const [dietFilter, setDietFilter] = useState<'all' | 'veg' | 'non-veg'>('all');
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [donorRequestsAll, setDonorRequestsAll] = useState<FoodRequest[]>([]);
   const [myRequests, setMyRequests] = useState<FoodRequest[]>([]);
@@ -951,16 +952,67 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-              {donations.filter(d => user?.id).length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No donations available at the moment</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {donations.map((donation) => (
+              {/* Diet Type Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant={dietFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDietFilter('all')}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={dietFilter === 'veg' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDietFilter('veg')}
+                    className="gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    Vegetarian
+                  </Button>
+                  <Button
+                    variant={dietFilter === 'non-veg' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDietFilter('non-veg')}
+                    className="gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    Non-Vegetarian
+                  </Button>
+                </div>
+              </div>
+
+              {(() => {
+                const filteredDonations = donations.filter(d => {
+                  if (dietFilter === 'all') return true;
+                  return d.diet_type === dietFilter;
+                });
+
+                return filteredDonations.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        {dietFilter === 'all' 
+                          ? 'No donations available at the moment'
+                          : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
+                      </p>
+                      {dietFilter !== 'all' && (
+                        <Button 
+                          variant="link" 
+                          className="mt-2"
+                          onClick={() => setDietFilter('all')}
+                        >
+                          View all donations
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredDonations.map((donation) => (
                     <Card key={donation.id} className="flex flex-col">
                       {donation.image_url && (
                         <div className="w-full h-48 overflow-hidden">
@@ -1069,8 +1121,9 @@ export default function Dashboard() {
                       </CardFooter>
                     </Card>
                   ))}
-                </div>
-              )}
+                    </div>
+                  );
+                })()}
             </TabsContent>
           </Tabs>
         )}
