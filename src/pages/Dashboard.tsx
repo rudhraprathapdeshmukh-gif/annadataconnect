@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -953,34 +953,41 @@ export default function Dashboard() {
             
             <TabsContent value="list" className="space-y-4">
               {/* Diet Type Filter */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-muted-foreground">Filter:</span>
-                <div className="flex gap-2">
-                  <Button
-                    variant={dietFilter === 'all' ? 'default' : 'outline'}
-                    size="sm"
+              <div className="flex items-center gap-1.5">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex gap-1">
+                  <button
                     onClick={() => setDietFilter('all')}
+                    className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
+                      dietFilter === 'all' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
                     All
-                  </Button>
-                  <Button
-                    variant={dietFilter === 'veg' ? 'default' : 'outline'}
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setDietFilter('veg')}
-                    className="gap-1.5"
+                    className={`px-2.5 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                      dietFilter === 'veg' 
+                        ? 'bg-green-500/20 text-green-700 dark:text-green-400' 
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    Vegetarian
-                  </Button>
-                  <Button
-                    variant={dietFilter === 'non-veg' ? 'default' : 'outline'}
-                    size="sm"
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Veg
+                  </button>
+                  <button
                     onClick={() => setDietFilter('non-veg')}
-                    className="gap-1.5"
+                    className={`px-2.5 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                      dietFilter === 'non-veg' 
+                        ? 'bg-red-500/20 text-red-700 dark:text-red-400' 
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    Non-Vegetarian
-                  </Button>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Non-Veg
+                  </button>
                 </div>
               </div>
 
