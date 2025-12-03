@@ -1,33 +1,27 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useTheme } from 'next-themes';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home, Trophy, Settings, Shield, Bell, Mail, MessageSquare, Globe, Key, LogOut, History, ChevronRight } from 'lucide-react';
+import { Upload, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
-import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 import { getCurrentLevel } from '@/lib/impactBadges';
 import type { SavedAddress } from '@/types/savedAddress';
 
 export default function Profile() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-  const { theme, setTheme } = useTheme();
   
   const [userProfile, setUserProfile] = useState<{
     first_name: string;
@@ -40,10 +34,6 @@ export default function Profile() {
     total_pickups?: number;
     on_time_count?: number;
     created_at?: string;
-    notification_push?: boolean;
-    notification_email?: boolean;
-    notification_sms?: boolean;
-    language?: string;
   } | null>(null);
   
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -67,10 +57,6 @@ export default function Profile() {
     completedDonations: 0,
     peopleHelped: 0
   });
-  
-  // Dialog states
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
@@ -98,7 +84,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at, notification_push, notification_email, notification_sms, language')
+        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at')
         .eq('id', profileUserId)
         .maybeSingle();
       
@@ -261,51 +247,6 @@ export default function Profile() {
     } finally {
       setUploadingAvatar(false);
     }
-  };
-
-  const handleNotificationChange = async (type: 'push' | 'email' | 'sms', value: boolean) => {
-    if (!user?.id) return;
-    try {
-      const updateField = `notification_${type}` as const;
-      const { error } = await supabase
-        .from('profiles')
-        .update({ [updateField]: value })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      setUserProfile({
-        ...userProfile!,
-        [`notification_${type}`]: value
-      });
-      toast.success('Notification settings updated');
-    } catch (error) {
-      console.error('Error updating notifications:', error);
-      toast.error('Failed to update notification settings');
-    }
-  };
-
-  const handleLanguageChange = async (value: string) => {
-    if (!user?.id) return;
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ language: value })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      setUserProfile({ ...userProfile!, language: value });
-      toast.success('Language updated');
-    } catch (error) {
-      console.error('Error updating language:', error);
-      toast.error('Failed to update language');
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
   };
 
   const capitalizeName = (name: string | null | undefined): string => {
@@ -484,7 +425,7 @@ export default function Profile() {
         )}
         
         <h1 className="text-3xl font-bold">
-          {isOwnProfile ? 'Profile Settings' : `${userProfile?.first_name}'s Profile`}
+          {isOwnProfile ? 'Profile' : `${userProfile?.first_name}'s Profile`}
         </h1>
 
         {/* Public Profile View - Show for other users */}
@@ -537,354 +478,185 @@ export default function Profile() {
           </Card>
         )}
 
-        {/* Own Profile with Tab Navigation */}
+        {/* Own Profile View */}
         {isOwnProfile && (
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className={`grid w-full ${isDonor ? 'grid-cols-4' : 'grid-cols-4'}`}>
-              <TabsTrigger value="profile" className="flex items-center gap-1.5">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Profile</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-1.5">
-                {isDonor ? <Trophy className="h-4 w-4" /> : <History className="h-4 w-4" />}
-                <span className="hidden sm:inline">{isDonor ? 'Achievements' : 'History'}</span>
-              </TabsTrigger>
-              <TabsTrigger value="preferences" className="flex items-center gap-1.5">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Preferences</span>
-              </TabsTrigger>
-              <TabsTrigger value="account" className="flex items-center gap-1.5">
-                <Shield className="h-4 w-4" />
-                <span className="hidden sm:inline">Account</span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="space-y-6">
+            {/* Personal Information Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>Your profile and contact details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Profile Picture */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
+                      {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-center sm:items-start gap-2">
+                    <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
+                      <Upload className="h-4 w-4" />
+                      Change Photo
+                      <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Max size: 5MB</p>
+                    {avatarFile && (
+                      <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
+                        {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
-            {/* =========== TAB 1: Personal Information =========== */}
-            <TabsContent value="profile">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Personal Information
-                  </CardTitle>
-                  <CardDescription>Your profile and contact details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Profile Picture */}
-                  <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
-                        {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col items-center sm:items-start gap-2">
-                      <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
-                        <Upload className="h-4 w-4" />
-                        Change Photo
-                        <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                      </Label>
-                      <p className="text-xs text-muted-foreground">Max size: 5MB</p>
-                      {avatarFile && (
-                        <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
-                          {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                {/* Name, Email, Phone - View Only */}
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Name</Label>
+                    <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Email</Label>
+                    <p className="font-medium">{userProfile?.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Phone</Label>
+                    <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                  </div>
+                </div>
+
+                {/* Saved Addresses */}
+                {userProfile?.user_type !== 'receiver' && (
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Saved Addresses
+                      </h4>
+                      {!showAddressForm && (
+                        <Button variant="outline" size="sm" onClick={() => setShowAddressForm(true)}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
                         </Button>
                       )}
                     </div>
-                  </div>
 
-                  {/* Name, Email, Phone - View Only */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Name</Label>
-                      <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Email</Label>
-                      <p className="font-medium">{userProfile?.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Phone</Label>
-                      <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
-                    </div>
-                  </div>
+                    {savedAddresses.length === 0 && !showAddressForm && (
+                      <p className="text-muted-foreground text-sm text-center py-4">No saved addresses yet</p>
+                    )}
 
-                  {/* Saved Addresses */}
-                  {userProfile?.user_type !== 'receiver' && (
-                    <div className="pt-4 border-t">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-medium flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Saved Addresses
-                        </h4>
-                        {!showAddressForm && (
-                          <Button variant="outline" size="sm" onClick={() => setShowAddressForm(true)}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add
+                    {savedAddresses.map((address) => (
+                      <div key={address.id} className="border rounded-lg p-3 mb-2">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Home className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{address.address_name}</span>
+                              {address.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{address.complete_address}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => handleEditAddress(address)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmAddress(address)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {!address.is_default && (
+                          <Button size="sm" variant="link" onClick={() => handleSetDefaultAddress(address.id)} className="mt-2 p-0 h-auto">
+                            Set as Default
                           </Button>
                         )}
                       </div>
+                    ))}
 
-                      {savedAddresses.length === 0 && !showAddressForm && (
-                        <p className="text-muted-foreground text-sm text-center py-4">No saved addresses yet</p>
-                      )}
-
-                      {savedAddresses.map((address) => (
-                        <div key={address.id} className="border rounded-lg p-3 mb-2">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1 flex-1">
-                              <div className="flex items-center gap-2">
-                                <Home className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{address.address_name}</span>
-                                {address.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{address.complete_address}</p>
-                            </div>
-                            <div className="flex gap-1">
-                              <Button size="icon" variant="ghost" onClick={() => handleEditAddress(address)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmAddress(address)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          {!address.is_default && (
-                            <Button size="sm" variant="link" onClick={() => handleSetDefaultAddress(address.id)} className="mt-2 p-0 h-auto">
-                              Set as Default
-                            </Button>
-                          )}
+                    {showAddressForm && (
+                      <div className="border rounded-lg p-4 space-y-4 mt-2">
+                        <h4 className="font-medium">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
+                        <div className="space-y-2">
+                          <Label>Address Name *</Label>
+                          <Input
+                            placeholder="e.g., Home, Restaurant, Office"
+                            value={addressFormData.address_name}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
+                          />
                         </div>
-                      ))}
-
-                      {showAddressForm && (
-                        <div className="border rounded-lg p-4 space-y-4 mt-2">
-                          <h4 className="font-medium">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
+                        <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={loadingLocation} className="w-full gap-2">
+                          {loadingLocation ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting...</> : <><MapPin className="h-4 w-4" />Use Current Location</>}
+                        </Button>
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>Address Name *</Label>
-                            <Input
-                              placeholder="e.g., Home, Restaurant, Office"
-                              value={addressFormData.address_name}
-                              onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
-                            />
-                          </div>
-                          <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={loadingLocation} className="w-full gap-2">
-                            {loadingLocation ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting...</> : <><MapPin className="h-4 w-4" />Use Current Location</>}
-                          </Button>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>City *</Label>
-                              <Input value={addressFormData.city} onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Area *</Label>
-                              <Input value={addressFormData.area} onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })} />
-                            </div>
+                            <Label>City *</Label>
+                            <Input value={addressFormData.city} onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })} />
                           </div>
                           <div className="space-y-2">
-                            <Label>Complete Address *</Label>
-                            <Textarea rows={2} value={addressFormData.complete_address} onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })} />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input type="checkbox" id="is_default" checked={addressFormData.is_default} onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })} className="h-4 w-4" />
-                            <Label htmlFor="is_default" className="cursor-pointer text-sm">Set as default address</Label>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button onClick={handleSaveAddress} className="flex-1">{editingAddress ? 'Update' : 'Save'}</Button>
-                            <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddress(null); setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false }); }}>Cancel</Button>
+                            <Label>Area *</Label>
+                            <Input value={addressFormData.area} onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })} />
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                        <div className="space-y-2">
+                          <Label>Complete Address *</Label>
+                          <Textarea rows={2} value={addressFormData.complete_address} onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" id="is_default" checked={addressFormData.is_default} onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })} className="h-4 w-4" />
+                          <Label htmlFor="is_default" className="cursor-pointer text-sm">Set as default address</Label>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleSaveAddress} className="flex-1">{editingAddress ? 'Update' : 'Save'}</Button>
+                          <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddress(null); setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false }); }}>Cancel</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* =========== TAB 2: History & Achievements (Donors) OR History (Receivers) =========== */}
-            <TabsContent value="history">
+            {/* Achievements Card - Only for Donors */}
+            {isDonor && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {isDonor ? <Trophy className="h-5 w-5" /> : <History className="h-5 w-5" />}
-                    {isDonor ? 'History & Achievements' : 'History'}
+                    <Trophy className="h-5 w-5" />
+                    Achievements
                   </CardTitle>
-                  <CardDescription>
-                    {isDonor ? 'Your donation milestones and impact' : 'Your food request history'}
-                  </CardDescription>
+                  <CardDescription>Your donation milestones and impact</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Donor: Current Level + Impact Score */}
-                  {isDonor && (
-                    <>
-                      {/* Current Level */}
-                      {currentLevel && (
-                        <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                          <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Current Level</p>
-                            <p className="text-xl font-bold">{currentLevel.name}</p>
-                            <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Impact Score Card */}
-                      <ImpactScoreCard
-                        completedDonations={donationStats.completedDonations}
-                        reliabilityScore={userProfile?.reliability_score ?? 100}
-                        peopleHelped={donationStats.peopleHelped}
-                      />
-                    </>
+                  {/* Current Level */}
+                  {currentLevel && (
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                      <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Current Level</p>
+                        <p className="text-xl font-bold">{currentLevel.name}</p>
+                        <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
+                      </div>
+                    </div>
                   )}
 
-                  {/* View History Link */}
-                  <Link to="/history" className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
-                    <div className="flex items-center gap-3">
-                      <History className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium">View Full History</span>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </Link>
+                  {/* Impact Score Card */}
+                  <ImpactScoreCard
+                    completedDonations={donationStats.completedDonations}
+                    reliabilityScore={userProfile?.reliability_score ?? 100}
+                    peopleHelped={donationStats.peopleHelped}
+                  />
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* =========== TAB 3: App Preferences =========== */}
-            <TabsContent value="preferences">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    App Preferences
-                  </CardTitle>
-                  <CardDescription>Customize your app experience</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Dark Mode */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
-                      <div>
-                        <Label className="font-medium">Dark Mode</Label>
-                        <p className="text-sm text-muted-foreground">{theme === 'dark' ? 'Enabled' : 'Disabled'}</p>
-                      </div>
-                    </div>
-                    <Switch checked={theme === 'dark'} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />
-                  </div>
-
-                  {/* Language */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Globe className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <Label className="font-medium">Language</Label>
-                        <p className="text-sm text-muted-foreground">Select your preferred language</p>
-                      </div>
-                    </div>
-                    <Select value={userProfile?.language || 'en'} onValueChange={handleLanguageChange}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="hi">हिंदी</SelectItem>
-                        <SelectItem value="te">తెలుగు</SelectItem>
-                        <SelectItem value="ta">தமிழ்</SelectItem>
-                        <SelectItem value="kn">ಕನ್ನಡ</SelectItem>
-                        <SelectItem value="mr">मराठी</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Notification Settings */}
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                      <Label className="font-medium">Notifications</Label>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Bell className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Push Notifications</span>
-                        </div>
-                        <Switch
-                          checked={userProfile?.notification_push ?? true}
-                          onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Email Notifications</span>
-                        </div>
-                        <Switch
-                          checked={userProfile?.notification_email ?? true}
-                          onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">SMS Notifications</span>
-                        </div>
-                        <Switch
-                          checked={userProfile?.notification_sms ?? false}
-                          onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* =========== TAB 4: Account Management =========== */}
-            <TabsContent value="account">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Account Management
-                  </CardTitle>
-                  <CardDescription>Manage your account security</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setShowChangePassword(true)}>
-                    <Key className="h-4 w-4" />
-                    Change Password
-                  </Button>
-                  <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => setShowLogoutConfirm(true)}>
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         )}
 
-        {/* Dialogs */}
-        <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
-
-        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to logout? You'll need to sign in again to access your account.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Logout
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
+        {/* Delete Address Confirmation Dialog */}
         <AlertDialog open={!!deleteConfirmAddress} onOpenChange={(open) => !open && setDeleteConfirmAddress(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
