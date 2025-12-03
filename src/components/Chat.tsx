@@ -144,6 +144,7 @@ const SeenIndicator = React.memo(({ read }: { read: boolean }) => (
 
 export default function Chat({ donationId, otherUserId, otherUserName, donationTitle }: ChatProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -154,7 +155,6 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const presenceChannelRef = useRef<any>(null);
-
   // Fetch existing messages
   useEffect(() => {
     if (!user) return;

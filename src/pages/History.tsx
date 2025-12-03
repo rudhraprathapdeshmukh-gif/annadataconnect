@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
@@ -7,8 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MapPin, Package, Star, User, ArrowUpDown } from 'lucide-react';
-import { getFreshnessLabel } from '@/lib/freshnessLabels';
-import { getRatingLabel } from '@/lib/ratingLabels';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -69,6 +68,7 @@ export default function History() {
     loading
   } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [donations, setDonations] = useState<FoodDonation[]>([]);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -88,6 +88,28 @@ export default function History() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
+
+  const getFreshnessLabel = (rating: number): string => {
+    switch (rating) {
+      case 1: return t('freshness.aged');
+      case 2: return t('freshness.poor');
+      case 3: return t('freshness.okay');
+      case 4: return t('freshness.fresh');
+      case 5: return t('freshness.justMade');
+      default: return '';
+    }
+  };
+
+  const getRatingLabel = (rating: number): string => {
+    switch (rating) {
+      case 5: return t('ratings.excellent');
+      case 4: return t('ratings.good');
+      case 3: return t('ratings.average');
+      case 2: return t('ratings.poor');
+      case 1: return t('ratings.veryPoor');
+      default: return t('ratings.rate');
+    }
+  };
   const sortDonations = (donations: FoodDonation[], sortType: string) => {
     const sorted = [...donations];
     switch (sortType) {

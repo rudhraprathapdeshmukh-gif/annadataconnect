@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
@@ -23,7 +24,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
-import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
 import { shouldBlockUser } from '@/lib/reliabilityScore';
 
@@ -100,6 +100,7 @@ interface FoodRequest {
 export default function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [donations, setDonations] = useState<PublicDonation[]>([]);
   const [dietFilter, setDietFilter] = useState<'all' | 'veg' | 'non-veg'>('all');
   const [requests, setRequests] = useState<FoodRequest[]>([]);
@@ -153,12 +154,23 @@ export default function Dashboard() {
 
   const getRatingLabel = (rating: number): string => {
     switch(rating) {
-      case 5: return "Excellent";
-      case 4: return "Good";
-      case 3: return "Average";
-      case 2: return "Poor";
-      case 1: return "Very Poor";
-      default: return "Rate";
+      case 5: return t('ratings.excellent');
+      case 4: return t('ratings.good');
+      case 3: return t('ratings.average');
+      case 2: return t('ratings.poor');
+      case 1: return t('ratings.veryPoor');
+      default: return t('ratings.rate');
+    }
+  };
+
+  const getFreshnessLabel = (rating: number): string => {
+    switch (rating) {
+      case 1: return t('freshness.aged');
+      case 2: return t('freshness.poor');
+      case 3: return t('freshness.okay');
+      case 4: return t('freshness.fresh');
+      case 5: return t('freshness.justMade');
+      default: return '';
     }
   };
 
