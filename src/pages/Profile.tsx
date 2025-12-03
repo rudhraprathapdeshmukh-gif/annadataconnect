@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home, Trophy, Settings, Shield, Bell, Mail, MessageSquare, Globe, Key, LogOut, History, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,20 +68,13 @@ export default function Profile() {
     peopleHelped: 0
   });
   
-  // Edit mode states
-  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    first_name: '',
-    last_name: '',
-    phone_number: ''
-  });
-  
   // Dialog states
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
+  const isDonor = userProfile?.user_type === 'donor' || userProfile?.user_type === 'both';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -111,11 +105,6 @@ export default function Profile() {
       if (error) throw error;
       if (data) {
         setUserProfile(data);
-        setEditFormData({
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          phone_number: data.phone_number || ''
-        });
       }
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -271,34 +260,6 @@ export default function Profile() {
       toast.error('Failed to update profile picture');
     } finally {
       setUploadingAvatar(false);
-    }
-  };
-
-  const handleSavePersonalInfo = async () => {
-    if (!user?.id) return;
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: editFormData.first_name,
-          last_name: editFormData.last_name,
-          phone_number: editFormData.phone_number
-        })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      setUserProfile({
-        ...userProfile!,
-        first_name: editFormData.first_name,
-        last_name: editFormData.last_name,
-        phone_number: editFormData.phone_number
-      });
-      setIsEditingPersonal(false);
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
     }
   };
 
@@ -576,343 +537,332 @@ export default function Profile() {
           </Card>
         )}
 
-        {/* =========== SECTION A: Personal Information =========== */}
+        {/* Own Profile with Tab Navigation */}
         {isOwnProfile && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Information
-              </CardTitle>
-              <CardDescription>Your profile and contact details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Profile Picture */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
-                    {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col items-center sm:items-start gap-2">
-                  <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
-                    <Upload className="h-4 w-4" />
-                    Change Photo
-                    <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                  </Label>
-                  <p className="text-xs text-muted-foreground">Max size: 5MB</p>
-                  {avatarFile && (
-                    <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
-                      {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
-                    </Button>
-                  )}
-                </div>
-              </div>
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className={`grid w-full ${isDonor ? 'grid-cols-4' : 'grid-cols-4'}`}>
+              <TabsTrigger value="profile" className="flex items-center gap-1.5">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-1.5">
+                {isDonor ? <Trophy className="h-4 w-4" /> : <History className="h-4 w-4" />}
+                <span className="hidden sm:inline">{isDonor ? 'Achievements' : 'History'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="preferences" className="flex items-center gap-1.5">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Preferences</span>
+              </TabsTrigger>
+              <TabsTrigger value="account" className="flex items-center gap-1.5">
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Account</span>
+              </TabsTrigger>
+            </TabsList>
 
-              {/* Name, Email, Phone */}
-              {isEditingPersonal ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name">First Name</Label>
-                      <Input
-                        id="first_name"
-                        value={editFormData.first_name}
-                        onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name">Last Name</Label>
-                      <Input
-                        id="last_name"
-                        value={editFormData.last_name}
-                        onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone_number">Phone Number</Label>
-                    <Input
-                      id="phone_number"
-                      value={editFormData.phone_number}
-                      onChange={(e) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleSavePersonalInfo}>Save Changes</Button>
-                    <Button variant="outline" onClick={() => setIsEditingPersonal(false)}>Cancel</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-3 flex-1">
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Name</Label>
-                        <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Email</Label>
-                        <p className="font-medium">{userProfile?.email}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Phone</Label>
-                        <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditingPersonal(true)}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Saved Addresses */}
-              {userProfile?.user_type !== 'receiver' && (
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Saved Addresses
-                    </h4>
-                    {!showAddressForm && (
-                      <Button variant="outline" size="sm" onClick={() => setShowAddressForm(true)}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
-                      </Button>
-                    )}
-                  </div>
-
-                  {savedAddresses.length === 0 && !showAddressForm && (
-                    <p className="text-muted-foreground text-sm text-center py-4">No saved addresses yet</p>
-                  )}
-
-                  {savedAddresses.map((address) => (
-                    <div key={address.id} className="border rounded-lg p-3 mb-2">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <div className="flex items-center gap-2">
-                            <Home className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{address.address_name}</span>
-                            {address.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{address.complete_address}</p>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => handleEditAddress(address)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmAddress(address)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {!address.is_default && (
-                        <Button size="sm" variant="link" onClick={() => handleSetDefaultAddress(address.id)} className="mt-2 p-0 h-auto">
-                          Set as Default
+            {/* =========== TAB 1: Personal Information =========== */}
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Personal Information
+                  </CardTitle>
+                  <CardDescription>Your profile and contact details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Profile Picture */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
+                        {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-center sm:items-start gap-2">
+                      <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
+                        <Upload className="h-4 w-4" />
+                        Change Photo
+                        <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                      </Label>
+                      <p className="text-xs text-muted-foreground">Max size: 5MB</p>
+                      {avatarFile && (
+                        <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
+                          {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
                         </Button>
                       )}
                     </div>
-                  ))}
+                  </div>
 
-                  {showAddressForm && (
-                    <div className="border rounded-lg p-4 space-y-4 mt-2">
-                      <h4 className="font-medium">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
-                      <div className="space-y-2">
-                        <Label>Address Name *</Label>
-                        <Input
-                          placeholder="e.g., Home, Restaurant, Office"
-                          value={addressFormData.address_name}
-                          onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
-                        />
+                  {/* Name, Email, Phone - View Only */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Name</Label>
+                      <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Email</Label>
+                      <p className="font-medium">{userProfile?.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Phone</Label>
+                      <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                    </div>
+                  </div>
+
+                  {/* Saved Addresses */}
+                  {userProfile?.user_type !== 'receiver' && (
+                    <div className="pt-4 border-t">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Saved Addresses
+                        </h4>
+                        {!showAddressForm && (
+                          <Button variant="outline" size="sm" onClick={() => setShowAddressForm(true)}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add
+                          </Button>
+                        )}
                       </div>
-                      <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={loadingLocation} className="w-full gap-2">
-                        {loadingLocation ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting...</> : <><MapPin className="h-4 w-4" />Use Current Location</>}
-                      </Button>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>City *</Label>
-                          <Input value={addressFormData.city} onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })} />
+
+                      {savedAddresses.length === 0 && !showAddressForm && (
+                        <p className="text-muted-foreground text-sm text-center py-4">No saved addresses yet</p>
+                      )}
+
+                      {savedAddresses.map((address) => (
+                        <div key={address.id} className="border rounded-lg p-3 mb-2">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Home className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{address.address_name}</span>
+                                {address.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{address.complete_address}</p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => handleEditAddress(address)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmAddress(address)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          {!address.is_default && (
+                            <Button size="sm" variant="link" onClick={() => handleSetDefaultAddress(address.id)} className="mt-2 p-0 h-auto">
+                              Set as Default
+                            </Button>
+                          )}
                         </div>
-                        <div className="space-y-2">
-                          <Label>Area *</Label>
-                          <Input value={addressFormData.area} onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })} />
+                      ))}
+
+                      {showAddressForm && (
+                        <div className="border rounded-lg p-4 space-y-4 mt-2">
+                          <h4 className="font-medium">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
+                          <div className="space-y-2">
+                            <Label>Address Name *</Label>
+                            <Input
+                              placeholder="e.g., Home, Restaurant, Office"
+                              value={addressFormData.address_name}
+                              onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
+                            />
+                          </div>
+                          <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={loadingLocation} className="w-full gap-2">
+                            {loadingLocation ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting...</> : <><MapPin className="h-4 w-4" />Use Current Location</>}
+                          </Button>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>City *</Label>
+                              <Input value={addressFormData.city} onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Area *</Label>
+                              <Input value={addressFormData.area} onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Complete Address *</Label>
+                            <Textarea rows={2} value={addressFormData.complete_address} onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })} />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" id="is_default" checked={addressFormData.is_default} onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })} className="h-4 w-4" />
+                            <Label htmlFor="is_default" className="cursor-pointer text-sm">Set as default address</Label>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button onClick={handleSaveAddress} className="flex-1">{editingAddress ? 'Update' : 'Save'}</Button>
+                            <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddress(null); setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false }); }}>Cancel</Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Complete Address *</Label>
-                        <Textarea rows={2} value={addressFormData.complete_address} onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="is_default" checked={addressFormData.is_default} onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })} className="h-4 w-4" />
-                        <Label htmlFor="is_default" className="cursor-pointer text-sm">Set as default address</Label>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleSaveAddress} className="flex-1">{editingAddress ? 'Update' : 'Save'}</Button>
-                        <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddress(null); setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false }); }}>Cancel</Button>
-                      </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        {/* =========== SECTION B: History & Achievements =========== */}
-        {isOwnProfile && userProfile && (userProfile.user_type === 'donor' || userProfile.user_type === 'both') && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                History & Achievements
-              </CardTitle>
-              <CardDescription>Your donation milestones and impact</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Current Level */}
-              {currentLevel && (
-                <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                  <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Current Level</p>
-                    <p className="text-xl font-bold">{currentLevel.name}</p>
-                    <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
+            {/* =========== TAB 2: History & Achievements (Donors) OR History (Receivers) =========== */}
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {isDonor ? <Trophy className="h-5 w-5" /> : <History className="h-5 w-5" />}
+                    {isDonor ? 'History & Achievements' : 'History'}
+                  </CardTitle>
+                  <CardDescription>
+                    {isDonor ? 'Your donation milestones and impact' : 'Your food request history'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Donor: Current Level + Impact Score */}
+                  {isDonor && (
+                    <>
+                      {/* Current Level */}
+                      {currentLevel && (
+                        <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                          <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Current Level</p>
+                            <p className="text-xl font-bold">{currentLevel.name}</p>
+                            <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Impact Score Card */}
+                      <ImpactScoreCard
+                        completedDonations={donationStats.completedDonations}
+                        reliabilityScore={userProfile?.reliability_score ?? 100}
+                        peopleHelped={donationStats.peopleHelped}
+                      />
+                    </>
+                  )}
+
+                  {/* View History Link */}
+                  <Link to="/history" className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
+                    <div className="flex items-center gap-3">
+                      <History className="h-5 w-5 text-muted-foreground" />
+                      <span className="font-medium">View Full History</span>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </Link>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* =========== TAB 3: App Preferences =========== */}
+            <TabsContent value="preferences">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    App Preferences
+                  </CardTitle>
+                  <CardDescription>Customize your app experience</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Dark Mode */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                      <div>
+                        <Label className="font-medium">Dark Mode</Label>
+                        <p className="text-sm text-muted-foreground">{theme === 'dark' ? 'Enabled' : 'Disabled'}</p>
+                      </div>
+                    </div>
+                    <Switch checked={theme === 'dark'} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />
                   </div>
-                </div>
-              )}
 
-              {/* Impact Score Card */}
-              <ImpactScoreCard
-                completedDonations={donationStats.completedDonations}
-                reliabilityScore={userProfile.reliability_score ?? 100}
-                peopleHelped={donationStats.peopleHelped}
-              />
-
-              {/* View History Link */}
-              <Link to="/history" className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
-                <div className="flex items-center gap-3">
-                  <History className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">View Full History</span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* =========== SECTION C: App Preferences =========== */}
-        {isOwnProfile && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                App Preferences
-              </CardTitle>
-              <CardDescription>Customize your app experience</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Dark Mode */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
-                  <div>
-                    <Label className="font-medium">Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">{theme === 'dark' ? 'Enabled' : 'Disabled'}</p>
+                  {/* Language */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <Label className="font-medium">Language</Label>
+                        <p className="text-sm text-muted-foreground">Select your preferred language</p>
+                      </div>
+                    </div>
+                    <Select value={userProfile?.language || 'en'} onValueChange={handleLanguageChange}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="hi">हिंदी</SelectItem>
+                        <SelectItem value="te">తెలుగు</SelectItem>
+                        <SelectItem value="ta">தமிழ்</SelectItem>
+                        <SelectItem value="kn">ಕನ್ನಡ</SelectItem>
+                        <SelectItem value="mr">मराठी</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <Switch checked={theme === 'dark'} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />
-              </div>
 
-              {/* Language */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Globe className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <Label className="font-medium">Language</Label>
-                    <p className="text-sm text-muted-foreground">Select your preferred language</p>
-                  </div>
-                </div>
-                <Select value={userProfile?.language || 'en'} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="hi">Hindi</SelectItem>
-                    <SelectItem value="te">Telugu</SelectItem>
-                    <SelectItem value="ta">Tamil</SelectItem>
-                    <SelectItem value="kn">Kannada</SelectItem>
-                    <SelectItem value="mr">Marathi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notifications */}
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <Label className="font-medium">Notifications</Label>
-                </div>
-                
-                <div className="flex items-center justify-between pl-8">
-                  <div>
-                    <Label className="text-sm">Push Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive push notifications</p>
-                  </div>
-                  <Switch checked={userProfile?.notification_push ?? true} onCheckedChange={(checked) => handleNotificationChange('push', checked)} />
-                </div>
-
-                <div className="flex items-center justify-between pl-8">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label className="text-sm">Email Notifications</Label>
-                      <p className="text-xs text-muted-foreground">Receive email updates</p>
+                  {/* Notification Settings */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
+                      <Label className="font-medium">Notifications</Label>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Bell className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Push Notifications</span>
+                        </div>
+                        <Switch
+                          checked={userProfile?.notification_push ?? true}
+                          onCheckedChange={(checked) => handleNotificationChange('push', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Email Notifications</span>
+                        </div>
+                        <Switch
+                          checked={userProfile?.notification_email ?? true}
+                          onCheckedChange={(checked) => handleNotificationChange('email', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">SMS Notifications</span>
+                        </div>
+                        <Switch
+                          checked={userProfile?.notification_sms ?? false}
+                          onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <Switch checked={userProfile?.notification_email ?? true} onCheckedChange={(checked) => handleNotificationChange('email', checked)} />
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="flex items-center justify-between pl-8">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <Label className="text-sm">SMS Notifications</Label>
-                      <p className="text-xs text-muted-foreground">Receive SMS alerts</p>
-                    </div>
-                  </div>
-                  <Switch checked={userProfile?.notification_sms ?? false} onCheckedChange={(checked) => handleNotificationChange('sms', checked)} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* =========== SECTION D: Account Management =========== */}
-        {isOwnProfile && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Account Management
-              </CardTitle>
-              <CardDescription>Manage your account security</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full justify-start gap-3" onClick={() => setShowChangePassword(true)}>
-                <Key className="h-5 w-5" />
-                Change Password
-              </Button>
-              
-              <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => setShowLogoutConfirm(true)}>
-                <LogOut className="h-5 w-5" />
-                Logout
-              </Button>
-            </CardContent>
-          </Card>
+            {/* =========== TAB 4: Account Management =========== */}
+            <TabsContent value="account">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Account Management
+                  </CardTitle>
+                  <CardDescription>Manage your account security</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setShowChangePassword(true)}>
+                    <Key className="h-4 w-4" />
+                    Change Password
+                  </Button>
+                  <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => setShowLogoutConfirm(true)}>
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         )}
 
         {/* Dialogs */}
@@ -921,25 +871,33 @@ export default function Profile() {
         <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Logout</AlertDialogTitle>
-              <AlertDialogDescription>Are you sure you want to logout of your account?</AlertDialogDescription>
+              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to logout? You'll need to sign in again to access your account.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleLogout}>Logout</AlertDialogAction>
+              <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Logout
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
-        <AlertDialog open={!!deleteConfirmAddress} onOpenChange={() => setDeleteConfirmAddress(null)}>
+        <AlertDialog open={!!deleteConfirmAddress} onOpenChange={(open) => !open && setDeleteConfirmAddress(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Address?</AlertDialogTitle>
-              <AlertDialogDescription>Are you sure you want to delete "{deleteConfirmAddress?.address_name}"? This action cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>Delete Address</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{deleteConfirmAddress?.address_name}"? This action cannot be undone.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteConfirmAddress && handleDeleteAddress(deleteConfirmAddress)}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteConfirmAddress && handleDeleteAddress(deleteConfirmAddress)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
