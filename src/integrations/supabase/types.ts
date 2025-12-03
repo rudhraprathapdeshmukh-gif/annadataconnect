@@ -266,8 +266,12 @@ export type Database = {
           email: string | null
           first_name: string | null
           id: string
+          language: string | null
           last_name: string | null
           no_show_count: number | null
+          notification_email: boolean | null
+          notification_push: boolean | null
+          notification_sms: boolean | null
           on_time_count: number | null
           phone_number: string | null
           reliability_score: number | null
@@ -282,8 +286,12 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id: string
+          language?: string | null
           last_name?: string | null
           no_show_count?: number | null
+          notification_email?: boolean | null
+          notification_push?: boolean | null
+          notification_sms?: boolean | null
           on_time_count?: number | null
           phone_number?: string | null
           reliability_score?: number | null
@@ -298,8 +306,12 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          language?: string | null
           last_name?: string | null
           no_show_count?: number | null
+          notification_email?: boolean | null
+          notification_push?: boolean | null
+          notification_sms?: boolean | null
           on_time_count?: number | null
           phone_number?: string | null
           reliability_score?: number | null

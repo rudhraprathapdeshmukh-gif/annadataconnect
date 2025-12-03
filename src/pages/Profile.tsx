@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,28 +12,22 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home } from 'lucide-react';
+import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Trash2, Edit, Plus, Home, Trophy, Settings, Shield, Bell, Mail, MessageSquare, Globe, Key, LogOut, History, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRatingLabel } from '@/lib/ratingLabels';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
+import { getCurrentLevel } from '@/lib/impactBadges';
 import type { SavedAddress } from '@/types/savedAddress';
+
 export default function Profile() {
-  const {
-    user,
-    loading
-  } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const {
-    userId
-  } = useParams<{
-    userId: string;
-  }>();
-  const {
-    theme,
-    setTheme
-  } = useTheme();
+  const { userId } = useParams<{ userId: string }>();
+  const { theme, setTheme } = useTheme();
+  
   const [userProfile, setUserProfile] = useState<{
     first_name: string;
     last_name: string;
@@ -45,7 +39,12 @@ export default function Profile() {
     total_pickups?: number;
     on_time_count?: number;
     created_at?: string;
+    notification_push?: boolean;
+    notification_email?: boolean;
+    notification_sms?: boolean;
+    language?: string;
   } | null>(null);
+  
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -67,15 +66,28 @@ export default function Profile() {
     completedDonations: 0,
     peopleHelped: 0
   });
+  
+  // Edit mode states
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    first_name: '',
+    last_name: '',
+    phone_number: ''
+  });
+  
+  // Dialog states
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Determine if viewing own profile or another user's
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
   useEffect(() => {
     if (profileUserId) {
       fetchUserProfile();
@@ -86,16 +98,24 @@ export default function Profile() {
       }
     }
   }, [profileUserId, isOwnProfile]);
+
   const fetchUserProfile = async () => {
     if (!profileUserId) return;
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at').eq('id', profileUserId).maybeSingle();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at, notification_push, notification_email, notification_sms, language')
+        .eq('id', profileUserId)
+        .maybeSingle();
+      
       if (error) throw error;
       if (data) {
         setUserProfile(data);
+        setEditFormData({
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          phone_number: data.phone_number || ''
+        });
       }
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -103,27 +123,34 @@ export default function Profile() {
       }
     }
   };
+
   const fetchAverageRating = async () => {
     if (!profileUserId) return;
     try {
-      // 1. Get all donations by this user
-      const {
-        data: userDonations
-      } = await supabase.from('food_donations').select('id').eq('donor_id', profileUserId);
+      const { data: userDonations } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', profileUserId);
+      
       const donationIds = userDonations?.map(d => d.id) || [];
-
-      // 2. Get ratings where user was the DONOR (receiver rated them)
-      const {
-        data: ratingsAsDonor
-      } = await supabase.from('food_requests').select('receiver_rating').in('donation_id', donationIds).not('receiver_rating', 'is', null);
-
-      // 3. Get ratings where user was the RECEIVER (donor rated them)
-      const {
-        data: ratingsAsReceiver
-      } = await supabase.from('food_requests').select('donor_rating').eq('requester_id', profileUserId).not('donor_rating', 'is', null);
-
-      // Combine all ratings
-      const allRatings: number[] = [...(ratingsAsDonor?.map(r => r.receiver_rating).filter(Boolean) || []), ...(ratingsAsReceiver?.map(r => r.donor_rating).filter(Boolean) || [])] as number[];
+      
+      const { data: ratingsAsDonor } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .in('donation_id', donationIds)
+        .not('receiver_rating', 'is', null);
+      
+      const { data: ratingsAsReceiver } = await supabase
+        .from('food_requests')
+        .select('donor_rating')
+        .eq('requester_id', profileUserId)
+        .not('donor_rating', 'is', null);
+      
+      const allRatings: number[] = [
+        ...(ratingsAsDonor?.map(r => r.receiver_rating).filter(Boolean) || []),
+        ...(ratingsAsReceiver?.map(r => r.donor_rating).filter(Boolean) || [])
+      ] as number[];
+      
       if (allRatings.length > 0) {
         const avg = allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length;
         setAverageRating(Math.round(avg * 10) / 10);
@@ -136,6 +163,55 @@ export default function Profile() {
       console.error('Failed to load ratings:', error);
     }
   };
+
+  const fetchSavedAddresses = async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('saved_addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setSavedAddresses(data);
+    }
+  };
+
+  const fetchDonationStats = async () => {
+    if (!user?.id) return;
+    try {
+      const { data: donations, error: donationsError } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id)
+        .eq('status', 'completed');
+      
+      if (donationsError) throw donationsError;
+      
+      const completedDonations = donations?.length || 0;
+      const donationIds = donations?.map(d => d.id) || [];
+      let peopleHelped = 0;
+      
+      if (donationIds.length > 0) {
+        const { data: requests, error: requestsError } = await supabase
+          .from('food_requests')
+          .select('requester_id')
+          .in('donation_id', donationIds)
+          .eq('status', 'completed');
+        
+        if (!requestsError && requests) {
+          const uniqueReceivers = new Set(requests.map(r => r.requester_id));
+          peopleHelped = uniqueReceivers.size;
+        }
+      }
+      
+      setDonationStats({ completedDonations, peopleHelped });
+    } catch (error) {
+      console.error('Error fetching donation stats:', error);
+    }
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -155,6 +231,7 @@ export default function Profile() {
       reader.readAsDataURL(file);
     }
   };
+
   const handleAvatarUpload = async () => {
     if (!avatarFile || !user) return;
     setUploadingAvatar(true);
@@ -163,34 +240,29 @@ export default function Profile() {
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `avatars/${user.id}/${fileName}`;
 
-      // Delete old avatar if exists
       if (userProfile?.avatar_url) {
         const oldPath = userProfile.avatar_url.split('/').slice(-3).join('/');
         await supabase.storage.from('food-images').remove([oldPath]);
       }
 
-      // Upload new avatar
-      const {
-        error: uploadError
-      } = await supabase.storage.from('food-images').upload(filePath, avatarFile);
+      const { error: uploadError } = await supabase.storage
+        .from('food-images')
+        .upload(filePath, avatarFile);
+      
       if (uploadError) throw uploadError;
-      const {
-        data: {
-          publicUrl
-        }
-      } = supabase.storage.from('food-images').getPublicUrl(filePath);
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('food-images')
+        .getPublicUrl(filePath);
 
-      // Update profile
-      const {
-        error: updateError
-      } = await supabase.from('profiles').update({
-        avatar_url: publicUrl
-      }).eq('id', user.id);
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+      
       if (updateError) throw updateError;
-      setUserProfile({
-        ...userProfile!,
-        avatar_url: publicUrl
-      });
+      
+      setUserProfile({ ...userProfile!, avatar_url: publicUrl });
       setAvatarFile(null);
       setAvatarPreview(null);
       toast.success('Profile picture updated successfully!');
@@ -201,65 +273,83 @@ export default function Profile() {
       setUploadingAvatar(false);
     }
   };
+
+  const handleSavePersonalInfo = async () => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editFormData.first_name,
+          last_name: editFormData.last_name,
+          phone_number: editFormData.phone_number
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      setUserProfile({
+        ...userProfile!,
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        phone_number: editFormData.phone_number
+      });
+      setIsEditingPersonal(false);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const handleNotificationChange = async (type: 'push' | 'email' | 'sms', value: boolean) => {
+    if (!user?.id) return;
+    try {
+      const updateField = `notification_${type}` as const;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [updateField]: value })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      setUserProfile({
+        ...userProfile!,
+        [`notification_${type}`]: value
+      });
+      toast.success('Notification settings updated');
+    } catch (error) {
+      console.error('Error updating notifications:', error);
+      toast.error('Failed to update notification settings');
+    }
+  };
+
+  const handleLanguageChange = async (value: string) => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ language: value })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      setUserProfile({ ...userProfile!, language: value });
+      toast.success('Language updated');
+    } catch (error) {
+      console.error('Error updating language:', error);
+      toast.error('Failed to update language');
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   const capitalizeName = (name: string | null | undefined): string => {
     if (!name) return '';
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  };
-
-  const fetchSavedAddresses = async () => {
-    if (!user?.id) return;
-    
-    const { data, error } = await supabase
-      .from('saved_addresses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      setSavedAddresses(data);
-    }
-  };
-
-  const fetchDonationStats = async () => {
-    if (!user?.id) return;
-    
-    try {
-      // Get completed donations count
-      const { data: donations, error: donationsError } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', user.id)
-        .eq('status', 'completed');
-      
-      if (donationsError) throw donationsError;
-      
-      const completedDonations = donations?.length || 0;
-      
-      // Get unique people helped (receivers who completed pickup)
-      const donationIds = donations?.map(d => d.id) || [];
-      let peopleHelped = 0;
-      
-      if (donationIds.length > 0) {
-        const { data: requests, error: requestsError } = await supabase
-          .from('food_requests')
-          .select('requester_id')
-          .in('donation_id', donationIds)
-          .eq('status', 'completed');
-        
-        if (!requestsError && requests) {
-          const uniqueReceivers = new Set(requests.map(r => r.requester_id));
-          peopleHelped = uniqueReceivers.size;
-        }
-      }
-      
-      setDonationStats({
-        completedDonations,
-        peopleHelped
-      });
-    } catch (error) {
-      console.error('Error fetching donation stats:', error);
-    }
   };
 
   const handleUseCurrentLocation = async () => {
@@ -273,7 +363,6 @@ export default function Profile() {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
@@ -288,41 +377,14 @@ export default function Profile() {
           const rawCity = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
           const city = cleanComponent(rawCity);
           
-          const areaComponentsRaw = [
-            addr.locality,
-            addr.suburb,
-            addr.neighbourhood,
-            addr.quarter,
-            addr.hamlet,
-            addr.city_district,
-          ];
+          const areaComponentsRaw = [addr.locality, addr.suburb, addr.neighbourhood, addr.quarter, addr.hamlet, addr.city_district];
+          const areaComponents = areaComponentsRaw.map(cleanComponent).filter((val, idx, arr) => val && arr.indexOf(val) === idx);
+          const area = areaComponents.length > 0 ? areaComponents.join(', ') : city;
           
-          const areaComponents = areaComponentsRaw
-            .map(cleanComponent)
-            .filter((val, idx, arr) => val && arr.indexOf(val) === idx);
-          
-          const area = areaComponents.length > 0 
-            ? areaComponents.join(', ')
-            : city;
-          
-          const addressParts = [
-            addr.house_number,
-            addr.road,
-            area,
-            city,
-            addr.state,
-            addr.postcode
-          ].filter(Boolean);
-          
+          const addressParts = [addr.house_number, addr.road, area, city, addr.state, addr.postcode].filter(Boolean);
           const completeAddress = addressParts.join(', ');
           
-          setAddressFormData(prev => ({
-            ...prev,
-            city,
-            area,
-            complete_address: completeAddress,
-          }));
-          
+          setAddressFormData(prev => ({ ...prev, city, area, complete_address: completeAddress }));
           toast.success('Location detected successfully');
         },
         (error) => {
@@ -340,7 +402,6 @@ export default function Profile() {
 
   const handleSaveAddress = async () => {
     if (!user?.id) return;
-    
     if (!addressFormData.address_name || !addressFormData.city || !addressFormData.area || !addressFormData.complete_address) {
       toast.error('Please fill in all required fields');
       return;
@@ -377,13 +438,7 @@ export default function Profile() {
         toast.success('Address saved successfully');
       }
 
-      setAddressFormData({
-        address_name: '',
-        city: '',
-        area: '',
-        complete_address: '',
-        is_default: false
-      });
+      setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false });
       setEditingAddress(null);
       setShowAddressForm(false);
       fetchSavedAddresses();
@@ -443,69 +498,37 @@ export default function Profile() {
     }
   };
 
+  const currentLevel = getCurrentLevel(donationStats.completedDonations);
+
   if (loading) {
-    return <div className="min-h-screen bg-background">
+    return (
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <p>Loading...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {!isOwnProfile && <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+      <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
+        {!isOwnProfile && (
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
-          </Button>}
-        <h1 className="text-3xl font-bold mb-8">
+          </Button>
+        )}
+        
+        <h1 className="text-3xl font-bold">
           {isOwnProfile ? 'Profile Settings' : `${userProfile?.first_name}'s Profile`}
         </h1>
-        
-        {/* Profile Picture - Only show for own profile */}
-        {isOwnProfile && <Card>
-          <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
-            <CardDescription>Update your profile picture</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col items-center gap-4">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-4xl">
-                  {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex flex-col items-center gap-2">
-                <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                  <Upload className="h-4 w-4" />
-                  Choose Image
-                  <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                </Label>
-                <p className="text-sm text-muted-foreground">Max size: 5MB</p>
-              </div>
 
-              {avatarFile && <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} className="w-full sm:w-auto">
-                  {uploadingAvatar ? 'Uploading...' : 'Save Profile Picture'}
-                </Button>}
-            </div>
-          </CardContent>
-        </Card>}
-
-        {/* Impact Score Card - Show for donors on their own profile */}
-        {isOwnProfile && userProfile && (userProfile.user_type === 'donor' || userProfile.user_type === 'both') && (
-          <div className="mt-6">
-            <ImpactScoreCard
-              completedDonations={donationStats.completedDonations}
-              reliabilityScore={userProfile.reliability_score ?? 100}
-              peopleHelped={donationStats.peopleHelped}
-            />
-          </div>
-        )}
-
-        {/* Public Profile View - Show avatar and basic info for other users */}
-        {!isOwnProfile && userProfile && <Card className="mb-6">
+        {/* Public Profile View - Show for other users */}
+        {!isOwnProfile && userProfile && (
+          <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col items-center gap-4">
                 <Avatar className="h-32 w-32">
@@ -518,302 +541,409 @@ export default function Profile() {
                   <h2 className="text-2xl font-bold">
                     {capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}
                   </h2>
-                  
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge variant="secondary">
                       {userProfile.user_type === 'both' ? 'Donor & Receiver' : userProfile.user_type === 'donor' ? 'Donor' : 'Receiver'}
                     </Badge>
-                    {userProfile.reliability_score !== undefined && userProfile.reliability_score !== null && <ReliabilityBadge score={userProfile.reliability_score} showLabel={true} />}
+                    {userProfile.reliability_score !== undefined && userProfile.reliability_score !== null && (
+                      <ReliabilityBadge score={userProfile.reliability_score} showLabel={true} />
+                    )}
                   </div>
-                  
-                  {averageRating && <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg justify-center">
+                  {averageRating && (
+                    <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg justify-center">
                       <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                       <span className="font-bold text-lg">{averageRating}</span>
                       <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
-                    </div>}
-                  
-                  {/* Statistics Grid */}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
                     <div className="text-center">
                       <Calendar className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">Member Since</p>
                       <p className="font-medium">
-                        {userProfile.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      year: 'numeric'
-                    }) : 'N/A'}
+                        {userProfile.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
                       </p>
                     </div>
-                    
                     <div className="text-center">
                       <User className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        {!isOwnProfile && userProfile.user_type === 'receiver' ? 'Received Donations' : 'Total Donations'}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Total Donations</p>
                       <p className="font-medium">{userProfile.total_pickups || 0}</p>
                     </div>
-                    
-                    {userProfile.total_pickups && userProfile.total_pickups > 0 && <div className="text-center col-span-2">
-                        <p className="text-xs text-muted-foreground">On-Time Rate</p>
-                        <p className="font-medium text-green-600">
-                          {Math.round((userProfile.on_time_count || 0) / userProfile.total_pickups * 100)}%
-                        </p>
-                      </div>}
                   </div>
                 </div>
               </div>
             </CardContent>
-          </Card>}
+          </Card>
+        )}
 
-
-        {/* Personal Information - Only show for own profile */}
-        {isOwnProfile && <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Your account details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-              <p className="text-lg">
-                {capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}
-              </p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-              <p className="text-lg">{userProfile?.email}</p>
-            </div>
-            {userProfile?.phone_number && <div>
-                <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                <p className="text-lg">{userProfile.phone_number}</p>
-              </div>}
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
-              <p className="text-lg capitalize">{userProfile?.user_type}</p>
-            </div>
-            {averageRating !== null && <div>
-                <Label className="text-sm font-medium text-muted-foreground">Average Rating</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`h-5 w-5 ${star <= Math.round(averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />)}
-                  </div>
-                  <span className="text-lg font-semibold">{averageRating}</span>
-                  <span className="text-sm text-muted-foreground">({totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'})</span>
-                </div>
-              </div>}
-          </CardContent>
-        </Card>}
-
-        {/* Appearance Settings - Only show for own profile */}
-        {isOwnProfile && <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>Customize how the app looks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
-                <div>
-                  <Label htmlFor="theme-toggle" className="text-base font-medium cursor-pointer">
-                    Dark Mode
+        {/* =========== SECTION A: Personal Information =========== */}
+        {isOwnProfile && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+              <CardDescription>Your profile and contact details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Profile Picture */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={avatarPreview || userProfile?.avatar_url || undefined} alt="Profile picture" className="object-cover" />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
+                    {capitalizeName(userProfile?.first_name)?.[0] || capitalizeName(userProfile?.last_name)?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-center sm:items-start gap-2">
+                  <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
+                    <Upload className="h-4 w-4" />
+                    Change Photo
+                    <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {theme === 'dark' ? 'Enabled' : 'Disabled'}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Max size: 5MB</p>
+                  {avatarFile && (
+                    <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
+                      {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                    </Button>
+                  )}
                 </div>
               </div>
-              <Switch id="theme-toggle" checked={theme === 'dark'} onCheckedChange={checked => setTheme(checked ? 'dark' : 'light')} />
-            </div>
-          </CardContent>
-        </Card>}
 
-        {/* Saved Addresses - Only show for own profile (donors and both, not receiver-only) */}
-        {isOwnProfile && userProfile?.user_type !== 'receiver' && <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Saved Addresses</CardTitle>
-            <CardDescription>Save frequently used addresses for quick selection during donation</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {savedAddresses.length === 0 && !showAddressForm && (
-              <p className="text-muted-foreground text-center py-4">No saved addresses yet</p>
-            )}
-
-            {savedAddresses.map((address) => (
-              <div key={address.id} className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Home className="h-4 w-4 text-muted-foreground" />
-                      <h4 className="font-semibold">{address.address_name}</h4>
-                      {address.is_default && (
-                        <Badge variant="secondary" className="text-xs">Default</Badge>
-                      )}
+              {/* Name, Email, Phone */}
+              {isEditingPersonal ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        value={editFormData.first_name}
+                        onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                      />
                     </div>
-                    <p className="text-sm text-muted-foreground">{address.area}, {address.city}</p>
-                    <p className="text-sm">{address.complete_address}</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        value={editFormData.last_name}
+                        onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone_number">Phone Number</Label>
+                    <Input
+                      id="phone_number"
+                      value={editFormData.phone_number}
+                      onChange={(e) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
+                    />
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditAddress(address)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setDeleteConfirmAddress(address)}
-                    >
-                      <Trash2 className="h-4 w-4" />
+                    <Button onClick={handleSavePersonalInfo}>Save Changes</Button>
+                    <Button variant="outline" onClick={() => setIsEditingPersonal(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Name</Label>
+                        <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Email</Label>
+                        <p className="font-medium">{userProfile?.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Phone</Label>
+                        <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingPersonal(true)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                   </div>
                 </div>
-                {!address.is_default && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSetDefaultAddress(address.id)}
-                    className="w-full"
-                  >
-                    Set as Default
-                  </Button>
-                )}
-              </div>
-            ))}
+              )}
 
-            {showAddressForm && (
-              <div className="border rounded-lg p-4 space-y-4">
-                <h4 className="font-semibold">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="address_name">Address Name *</Label>
-                  <Input
-                    id="address_name"
-                    placeholder="e.g., Home, Restaurant, Office"
-                    value={addressFormData.address_name}
-                    onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUseCurrentLocation}
-                  disabled={loadingLocation}
-                  className="w-full gap-2"
-                >
-                  {loadingLocation ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Detecting Location...
-                    </>
-                  ) : (
-                    <>
+              {/* Saved Addresses */}
+              {userProfile?.user_type !== 'receiver' && (
+                <div className="pt-4 border-t">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-medium flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      Use Present Location
-                    </>
+                      Saved Addresses
+                    </h4>
+                    {!showAddressForm && (
+                      <Button variant="outline" size="sm" onClick={() => setShowAddressForm(true)}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    )}
+                  </div>
+
+                  {savedAddresses.length === 0 && !showAddressForm && (
+                    <p className="text-muted-foreground text-sm text-center py-4">No saved addresses yet</p>
                   )}
-                </Button>
 
-                <div className="space-y-2">
-                  <Label htmlFor="addr_city">City *</Label>
-                  <Input
-                    id="addr_city"
-                    placeholder="e.g., Mumbai"
-                    value={addressFormData.city}
-                    onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })}
-                  />
+                  {savedAddresses.map((address) => (
+                    <div key={address.id} className="border rounded-lg p-3 mb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Home className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{address.address_name}</span>
+                            {address.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{address.complete_address}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => handleEditAddress(address)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmAddress(address)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {!address.is_default && (
+                        <Button size="sm" variant="link" onClick={() => handleSetDefaultAddress(address.id)} className="mt-2 p-0 h-auto">
+                          Set as Default
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+
+                  {showAddressForm && (
+                    <div className="border rounded-lg p-4 space-y-4 mt-2">
+                      <h4 className="font-medium">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
+                      <div className="space-y-2">
+                        <Label>Address Name *</Label>
+                        <Input
+                          placeholder="e.g., Home, Restaurant, Office"
+                          value={addressFormData.address_name}
+                          onChange={(e) => setAddressFormData({ ...addressFormData, address_name: e.target.value })}
+                        />
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={loadingLocation} className="w-full gap-2">
+                        {loadingLocation ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting...</> : <><MapPin className="h-4 w-4" />Use Current Location</>}
+                      </Button>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>City *</Label>
+                          <Input value={addressFormData.city} onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Area *</Label>
+                          <Input value={addressFormData.area} onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Complete Address *</Label>
+                        <Textarea rows={2} value={addressFormData.complete_address} onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="is_default" checked={addressFormData.is_default} onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })} className="h-4 w-4" />
+                        <Label htmlFor="is_default" className="cursor-pointer text-sm">Set as default address</Label>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveAddress} className="flex-1">{editingAddress ? 'Update' : 'Save'}</Button>
+                        <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddress(null); setAddressFormData({ address_name: '', city: '', area: '', complete_address: '', is_default: false }); }}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="addr_area">Area/Locality *</Label>
-                  <Input
-                    id="addr_area"
-                    placeholder="e.g., Andheri West"
-                    value={addressFormData.area}
-                    onChange={(e) => setAddressFormData({ ...addressFormData, area: e.target.value })}
-                  />
+        {/* =========== SECTION B: History & Achievements =========== */}
+        {isOwnProfile && userProfile && (userProfile.user_type === 'donor' || userProfile.user_type === 'both') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                History & Achievements
+              </CardTitle>
+              <CardDescription>Your donation milestones and impact</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Level */}
+              {currentLevel && (
+                <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                  <span className="text-4xl animate-wiggle">{currentLevel.icon}</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Current Level</p>
+                    <p className="text-xl font-bold">{currentLevel.name}</p>
+                    <p className="text-sm text-muted-foreground">{currentLevel.description}</p>
+                  </div>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="addr_complete">Complete Address *</Label>
-                  <Textarea
-                    id="addr_complete"
-                    placeholder="House/flat number, building, street, landmark..."
-                    rows={3}
-                    value={addressFormData.complete_address}
-                    onChange={(e) => setAddressFormData({ ...addressFormData, complete_address: e.target.value })}
-                  />
+              {/* Impact Score Card */}
+              <ImpactScoreCard
+                completedDonations={donationStats.completedDonations}
+                reliabilityScore={userProfile.reliability_score ?? 100}
+                peopleHelped={donationStats.peopleHelped}
+              />
+
+              {/* View History Link */}
+              <Link to="/history" className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
+                <div className="flex items-center gap-3">
+                  <History className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">View Full History</span>
                 </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* =========== SECTION C: App Preferences =========== */}
+        {isOwnProfile && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                App Preferences
+              </CardTitle>
+              <CardDescription>Customize your app experience</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dark Mode */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                  <div>
+                    <Label className="font-medium">Dark Mode</Label>
+                    <p className="text-sm text-muted-foreground">{theme === 'dark' ? 'Enabled' : 'Disabled'}</p>
+                  </div>
+                </div>
+                <Switch checked={theme === 'dark'} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />
+              </div>
+
+              {/* Language */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Globe className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <Label className="font-medium">Language</Label>
+                    <p className="text-sm text-muted-foreground">Select your preferred language</p>
+                  </div>
+                </div>
+                <Select value={userProfile?.language || 'en'} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="hi">Hindi</SelectItem>
+                    <SelectItem value="te">Telugu</SelectItem>
+                    <SelectItem value="ta">Tamil</SelectItem>
+                    <SelectItem value="kn">Kannada</SelectItem>
+                    <SelectItem value="mr">Marathi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notifications */}
+              <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_default"
-                    checked={addressFormData.is_default}
-                    onChange={(e) => setAddressFormData({ ...addressFormData, is_default: e.target.checked })}
-                    className="h-4 w-4"
-                  />
-                  <Label htmlFor="is_default" className="cursor-pointer">Set as default address</Label>
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <Label className="font-medium">Notifications</Label>
+                </div>
+                
+                <div className="flex items-center justify-between pl-8">
+                  <div>
+                    <Label className="text-sm">Push Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Receive push notifications</p>
+                  </div>
+                  <Switch checked={userProfile?.notification_push ?? true} onCheckedChange={(checked) => handleNotificationChange('push', checked)} />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={handleSaveAddress} className="flex-1">
-                    {editingAddress ? 'Update Address' : 'Save Address'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddressForm(false);
-                      setEditingAddress(null);
-                      setAddressFormData({
-                        address_name: '',
-                        city: '',
-                        area: '',
-                        complete_address: '',
-                        is_default: false
-                      });
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                <div className="flex items-center justify-between pl-8">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <Label className="text-sm">Email Notifications</Label>
+                      <p className="text-xs text-muted-foreground">Receive email updates</p>
+                    </div>
+                  </div>
+                  <Switch checked={userProfile?.notification_email ?? true} onCheckedChange={(checked) => handleNotificationChange('email', checked)} />
+                </div>
+
+                <div className="flex items-center justify-between pl-8">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <Label className="text-sm">SMS Notifications</Label>
+                      <p className="text-xs text-muted-foreground">Receive SMS alerts</p>
+                    </div>
+                  </div>
+                  <Switch checked={userProfile?.notification_sms ?? false} onCheckedChange={(checked) => handleNotificationChange('sms', checked)} />
                 </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
+        )}
 
-            {!showAddressForm && (
-              <Button
-                onClick={() => setShowAddressForm(true)}
-                className="w-full gap-2"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4" />
-                Add New Address
+        {/* =========== SECTION D: Account Management =========== */}
+        {isOwnProfile && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Account Management
+              </CardTitle>
+              <CardDescription>Manage your account security</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button variant="outline" className="w-full justify-start gap-3" onClick={() => setShowChangePassword(true)}>
+                <Key className="h-5 w-5" />
+                Change Password
               </Button>
-            )}
-          </CardContent>
-        </Card>}
+              
+              <Button variant="destructive" className="w-full justify-start gap-3" onClick={() => setShowLogoutConfirm(true)}>
+                <LogOut className="h-5 w-5" />
+                Logout
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Delete Confirmation Dialog */}
+        {/* Dialogs */}
+        <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
+
+        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Logout</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to logout of your account?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout}>Logout</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <AlertDialog open={!!deleteConfirmAddress} onOpenChange={() => setDeleteConfirmAddress(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Address?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{deleteConfirmAddress?.address_name}"? This action cannot be undone.
-              </AlertDialogDescription>
+              <AlertDialogDescription>Are you sure you want to delete "{deleteConfirmAddress?.address_name}"? This action cannot be undone.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteConfirmAddress && handleDeleteAddress(deleteConfirmAddress)}>
-                Delete
-              </AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteConfirmAddress && handleDeleteAddress(deleteConfirmAddress)}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>;
+    </div>
+  );
 }
