@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -32,6 +33,7 @@ interface ChatInputProps {
   handleKeyPress: (e: React.KeyboardEvent) => void;
   sendMessage: () => void;
   isLoading: boolean;
+  placeholder: string;
 }
 
 const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => (
@@ -72,7 +74,8 @@ const ChatInput = ({
   setInputMessage, 
   handleKeyPress, 
   sendMessage, 
-  isLoading 
+  isLoading,
+  placeholder
 }: ChatInputProps) => (
   <div className="border-t p-4">
     <div className="flex gap-2">
@@ -80,7 +83,7 @@ const ChatInput = ({
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
         onKeyPress={handleKeyPress}
-        placeholder="Ask a question..."
+        placeholder={placeholder}
         disabled={isLoading}
         className="flex-1 h-11"
       />
@@ -101,12 +104,13 @@ const ChatInput = ({
 );
 
 export default function HelpChatbot() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: 'Hi! 👋 I\'m here to help you with Annadataconnect. Ask me anything about donating food, requesting donations, or using the platform!',
+      content: t('chatbot.greeting'),
       timestamp: new Date()
     }
   ]);
@@ -143,11 +147,11 @@ export default function HelpChatbot() {
       }
     } catch (error) {
       console.error('Chatbot error:', error);
-      toast.error('Failed to get response. Please try again.');
+      toast.error(t('chatbot.failedResponse'));
       
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again or contact support if the issue persists.',
+        content: t('chatbot.error'),
         timestamp: new Date()
       }]);
     } finally {
@@ -180,7 +184,7 @@ export default function HelpChatbot() {
             <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4">
               <DrawerTitle className="text-lg flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
-                Help Assistant
+                {t('chatbot.title')}
               </DrawerTitle>
               <DrawerClose asChild>
                 <Button
@@ -200,6 +204,7 @@ export default function HelpChatbot() {
                 handleKeyPress={handleKeyPress}
                 sendMessage={sendMessage}
                 isLoading={isLoading}
+                placeholder={t('chatbot.placeholder')}
               />
             </div>
           </DrawerContent>
@@ -209,7 +214,7 @@ export default function HelpChatbot() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              Help Assistant
+              {t('chatbot.title')}
             </CardTitle>
             <Button
               variant="ghost"
@@ -229,6 +234,7 @@ export default function HelpChatbot() {
               handleKeyPress={handleKeyPress}
               sendMessage={sendMessage}
               isLoading={isLoading}
+              placeholder={t('chatbot.placeholder')}
             />
           </CardContent>
         </Card>
