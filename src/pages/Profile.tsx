@@ -489,7 +489,9 @@ export default function Profile() {
                     
                     <div className="text-center">
                       <User className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">Total Donations  </p>
+                      <p className="text-xs text-muted-foreground">
+                        {!isOwnProfile && userProfile.user_type === 'receiver' ? 'Received Donations' : 'Total Donations'}
+                      </p>
                       <p className="font-medium">{userProfile.total_pickups || 0}</p>
                     </div>
                     
