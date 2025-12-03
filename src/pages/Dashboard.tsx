@@ -1022,7 +1022,7 @@ export default function Dashboard() {
                     {filteredDonations.map((donation) => (
                     <Card key={donation.id} className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                       {/* Image Section with Overlay Badges */}
-                      <div className="relative w-full h-44 overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
                         {donation.image_url ? (
                           <img
                             src={donation.image_url}
