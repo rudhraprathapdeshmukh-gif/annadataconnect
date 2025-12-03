@@ -870,12 +870,9 @@ export default function Dashboard() {
                           </div>
                         )}
                         {donation.rating && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
-                              <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
-                            </div>
-                            <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                            <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
                           </div>
                         )}
                       </CardContent>
@@ -1064,14 +1061,14 @@ export default function Dashboard() {
                           </span>
                         )}
                         
-                        {/* Freshness Badge with Info - Top Right */}
+                        {/* Rating Badge with Info - Top Right */}
                         {donation.rating && (
                           <HoverCard openDelay={200} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <span className="absolute top-2 right-2 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 cursor-help">
-                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                                {getFreshnessLabel(donation.rating)}
-                                <Info className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
+                                <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                                <Info className="h-3 w-3 text-muted-foreground ml-0.5" />
                               </span>
                             </HoverCardTrigger>
                             <HoverCardContent side="bottom" align="end" className="w-48 p-3">
@@ -1452,12 +1449,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
         </div>
         {request.food_donations.rating && (
-          <div className="flex items-center gap-2 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-              <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
-            </div>
-            <span className="text-muted-foreground">• {getFreshnessLabel(request.food_donations.rating)}</span>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
