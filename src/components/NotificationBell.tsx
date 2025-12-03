@@ -69,12 +69,18 @@ export default function NotificationBell() {
 
         const { data: donation } = await supabase
           .from('food_donations')
-          .select('title, status')
+          .select('title, status, deleted_at')
           .eq('id', message.donation_id)
-          .single();
+          .maybeSingle();
+
+        // Check if donation doesn't exist or has been deleted
+        if (!donation || donation.deleted_at) {
+          toast.info('This donation has been deleted. Chat is no longer available.');
+          return;
+        }
 
         // Check if donation is completed - don't open chat
-        if (donation?.status === 'completed') {
+        if (donation.status === 'completed') {
           toast.info('This donation has been completed. Chat is no longer available.');
           return;
         }
