@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Bell, X, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -32,6 +33,7 @@ import { toast } from 'sonner';
 import Chat from './Chat';
 
 export default function NotificationBell() {
+  const { t } = useTranslation();
   const {
     notifications,
     unreadCount,
@@ -73,15 +75,13 @@ export default function NotificationBell() {
           .eq('id', message.donation_id)
           .maybeSingle();
 
-        // Check if donation doesn't exist or has been deleted
         if (!donation || donation.deleted_at) {
-          toast.info('This donation has been deleted. Chat is no longer available.');
+          toast.info(t('notifications.donationDeleted'));
           return;
         }
 
-        // Check if donation is completed - don't open chat
         if (donation.status === 'completed') {
-          toast.info('This donation has been completed. Chat is no longer available.');
+          toast.info(t('notifications.donationCompleted'));
           return;
         }
 
@@ -96,7 +96,7 @@ export default function NotificationBell() {
         setChatOpen(true);
       } catch (error) {
         console.error('Error opening chat:', error);
-        toast.error('Failed to open chat');
+        toast.error(t('notifications.failedOpenChat'));
       }
     }
   };
@@ -118,7 +118,7 @@ export default function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold">Notifications</h3>
+          <h3 className="font-semibold">{t('notifications.title')}</h3>
           {notifications.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -129,7 +129,7 @@ export default function NotificationBell() {
               <DropdownMenuContent align="end">
                 {unreadCount > 0 && (
                   <DropdownMenuItem onClick={markAllAsRead}>
-                    Mark all as read
+                    {t('notifications.markAllRead')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem 
@@ -137,7 +137,7 @@ export default function NotificationBell() {
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Remove all
+                  {t('notifications.removeAll')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -147,7 +147,7 @@ export default function NotificationBell() {
         {permission !== 'granted' && (
           <div className="p-4 bg-muted/50">
             <p className="text-sm text-muted-foreground mb-2">
-              Enable push notifications to get alerts even when the app is closed
+              {t('notifications.enablePush')}
             </p>
             <Button
               size="sm"
@@ -155,7 +155,7 @@ export default function NotificationBell() {
               onClick={requestPermission}
               className="w-full"
             >
-              Enable Notifications
+              {t('notifications.enableButton')}
             </Button>
           </div>
         )}
@@ -164,7 +164,7 @@ export default function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No notifications yet</p>
+              <p className="text-sm">{t('notifications.noNotifications')}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -211,18 +211,16 @@ export default function NotificationBell() {
           )}
         </ScrollArea>
 
-        {/* Confirmation dialog for removing all notifications */}
         <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Remove all notifications?</AlertDialogTitle>
+              <AlertDialogTitle>{t('notifications.removeAllTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all {notifications.length} notification{notifications.length !== 1 ? 's' : ''}. 
-                This action cannot be undone.
+                {t('notifications.removeAllDescription')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   deleteAllNotifications();
@@ -230,14 +228,13 @@ export default function NotificationBell() {
                 }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Remove all
+                {t('notifications.removeAll')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </PopoverContent>
 
-      {/* Chat Dialog for message notifications */}
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] p-0 animate-scale-in">
           {chatData && (
