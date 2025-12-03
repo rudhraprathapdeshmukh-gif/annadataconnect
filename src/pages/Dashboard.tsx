@@ -1020,97 +1020,75 @@ export default function Dashboard() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDonations.map((donation) => (
-                    <Card key={donation.id} className="flex flex-col">
-                      {donation.image_url && (
-                        <div className="w-full h-48 overflow-hidden">
+                    <Card key={donation.id} className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                      {/* Image Section with Overlay Badges */}
+                      <div className="relative w-full h-44 overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                        {donation.image_url ? (
                           <img
                             src={donation.image_url}
                             alt={donation.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
-                        </div>
-                      )}
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-xl">{donation.title}</CardTitle>
-                          <div className="flex gap-2 flex-wrap">
-                            {donation.diet_type && (
-                              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                donation.diet_type === 'veg' 
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                              }`}>
-                                <span className={`w-2 h-2 rounded-full ${
-                                  donation.diet_type === 'veg' 
-                                    ? 'bg-green-500' 
-                                    : 'bg-red-500'
-                                }`} />
-                                {donation.diet_type === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
-                              </span>
-                            )}
-                            <Badge variant="secondary">{donation.food_type}</Badge>
-                          </div>
-                        </div>
-                        <CardDescription className="line-clamp-2">
-                          {donation.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>{donation.quantity} {donation.quantity_unit}</span>
-                        </div>
-                        {donation.rating && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
-                              <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
-                            </div>
-                            <span className="text-muted-foreground">• {getFreshnessLabel(donation.rating)}</span>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className="ml-1 text-muted-foreground hover:text-foreground transition-colors">
-                                  <Info className="h-4 w-4" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-64">
-                                <div className="space-y-2">
-                                  <p className="text-sm font-semibold">Freshness Scale:</p>
-                                  <div className="space-y-1 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-yellow-500">★</span>
-                                      <span>Aged</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-yellow-500">★★</span>
-                                      <span>Poor</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-yellow-500">★★★</span>
-                                      <span>Okay</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-yellow-500">★★★★</span>
-                                      <span>Fresh</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-yellow-500">★★★★★</span>
-                                      <span>Just-Made</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          <span>{donation.pickup_location}</span>
+                        
+                        {/* Diet Type Badge - Top Left */}
+                        {donation.diet_type && (
+                          <span className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                            donation.diet_type === 'veg' 
+                              ? 'bg-green-500/90 text-white' 
+                              : 'bg-red-500/90 text-white'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            {donation.diet_type === 'veg' ? 'Veg' : 'Non-Veg'}
+                          </span>
+                        )}
+                        
+                        {/* Freshness Badge - Top Right */}
+                        {donation.rating && (
+                          <span className="absolute top-2 right-2 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            {getFreshnessLabel(donation.rating)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Header Section */}
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
+                        {donation.description && (
+                          <CardDescription className="line-clamp-2 text-sm">
+                            {donation.description}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      
+                      {/* Content Section */}
+                      <CardContent className="flex-1 space-y-3 pt-0">
+                        {/* Quantity & Type Row */}
+                        <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="font-medium">{donation.quantity} {donation.quantity_unit}</span>
+                          </div>
+                          <span className="text-muted-foreground">•</span>
+                          <Badge variant="secondary" className="text-xs">{donation.food_type}</Badge>
                         </div>
+                        
+                        {/* Location */}
+                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span className="line-clamp-2">{donation.pickup_location}</span>
+                        </div>
+                        
+                        {/* Expiry Date - Softer Styling */}
                         {donation.expiry_date && (
-                          <div className="flex items-center gap-2 text-sm font-semibold text-destructive bg-destructive/10 p-2 rounded">
-                            <Calendar className="h-4 w-4" />
-                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
+                          <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                            <Clock className="h-4 w-4 shrink-0" />
+                            <span>Pickup by: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
                               hour: 'numeric',
                               minute: '2-digit',
                               hour12: true
@@ -1118,9 +1096,11 @@ export default function Dashboard() {
                           </div>
                         )}
                       </CardContent>
-                      <CardFooter>
+                      
+                      {/* Footer with Button */}
+                      <CardFooter className="pt-2">
                         <Button 
-                          className="w-full transition-all hover:scale-105 active:scale-95" 
+                          className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all" 
                           onClick={() => requestFood(donation.id)}
                         >
                           Request Food
