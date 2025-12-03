@@ -8,7 +8,10 @@ interface LanguageContextType {
   changeLanguage: (lang: string) => Promise<void>;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextType>({
+  currentLanguage: 'en',
+  changeLanguage: async () => {},
+});
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
@@ -18,14 +21,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const syncLanguage = async () => {
       if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('language')
-          .eq('id', user.id)
-          .maybeSingle();
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('language')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (data?.language && data.language !== i18n.language) {
-          i18n.changeLanguage(data.language);
+          if (data?.language && data.language !== i18n.language) {
+            i18n.changeLanguage(data.language);
+          }
+        } catch (error) {
+          console.error('Error syncing language:', error);
         }
       }
     };
@@ -38,10 +45,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     
     // Save to database if user is logged in
     if (user) {
-      await supabase
-        .from('profiles')
-        .update({ language: lang })
-        .eq('id', user.id);
+      try {
+        await supabase
+          .from('profiles')
+          .update({ language: lang })
+          .eq('id', user.id);
+      } catch (error) {
+        console.error('Error saving language preference:', error);
+      }
     }
   };
 
@@ -53,9 +64,5 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-  return context;
+  return useContext(LanguageContext);
 }
