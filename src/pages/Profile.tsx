@@ -568,8 +568,8 @@ export default function Profile() {
           </CardContent>
         </Card>}
 
-        {/* Saved Addresses - Only show for own profile */}
-        {isOwnProfile && <Card className="mt-6">
+        {/* Saved Addresses - Only show for own profile (donors and both, not receiver-only) */}
+        {isOwnProfile && userProfile?.user_type !== 'receiver' && <Card className="mt-6">
           <CardHeader>
             <CardTitle>Saved Addresses</CardTitle>
             <CardDescription>Save frequently used addresses for quick selection during donation</CardDescription>

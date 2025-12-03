@@ -28,6 +28,16 @@ Help users with:
 - Location sharing in chat
 - Profile management
 
+NEW FEATURES:
+- Diet Type Filter: On the receiver dashboard, users can filter donations by diet preference using the "All", "Veg", or "Non-Veg" buttons at the top of the available food section.
+- Diet Type Badges: Each donation card shows a green "Veg" or red "Non-Veg" badge on the top-left of the food image.
+- Food Freshness Rating: Donation cards display a freshness badge (top-right). Hover over it to see the rating scale:
+  ★★★★★ = Just-Made (freshest)
+  ★★★★☆ = Fresh
+  ★★★☆☆ = Okay
+  ★★☆☆☆ = Poor
+  ★☆☆☆☆ = Aged
+
 Keep answers concise, friendly, and actionable. If asked about technical issues, suggest contacting support.`;
 
     console.log("Received message:", message);
