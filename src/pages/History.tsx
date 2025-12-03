@@ -7,11 +7,12 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Package, Star, User, ArrowUpDown } from 'lucide-react';
+import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { ImpactScoreCard } from '@/components/ImpactScoreCard';
 interface FoodDonation {
   id: string;
   title: string;
@@ -88,6 +89,11 @@ export default function History() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
+  const [donationStats, setDonationStats] = useState({
+    completedDonations: 0,
+    peopleHelped: 0
+  });
+  const [reliabilityScore, setReliabilityScore] = useState(100);
 
   const getFreshnessLabel = (rating: number): string => {
     switch (rating) {
@@ -168,8 +174,56 @@ export default function History() {
     if (user) {
       fetchHistory();
       fetchUserType();
+      fetchDonationStats();
     }
   }, [user]);
+
+  const fetchDonationStats = async () => {
+    if (!user) return;
+    try {
+      // Get completed donations count
+      const { data: completedData, error: completedError } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id)
+        .eq('status', 'completed')
+        .is('deleted_at', null);
+      
+      if (completedError) throw completedError;
+      
+      // Get unique people helped (receivers)
+      const { data: helpedData, error: helpedError } = await supabase
+        .from('food_requests')
+        .select('requester_id, donation_id')
+        .eq('status', 'completed');
+      
+      if (helpedError) throw helpedError;
+      
+      // Filter to only requests for this user's donations
+      const userDonationIds = completedData?.map(d => d.id) || [];
+      const uniqueReceivers = new Set(
+        helpedData?.filter(r => userDonationIds.includes(r.donation_id))
+          .map(r => r.requester_id)
+      );
+      
+      // Get reliability score
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('reliability_score')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      setDonationStats({
+        completedDonations: completedData?.length || 0,
+        peopleHelped: uniqueReceivers.size
+      });
+      setReliabilityScore(profileData?.reliability_score || 100);
+    } catch (error) {
+      console.error('Failed to fetch donation stats:', error);
+    }
+  };
   const fetchUserType = async () => {
     if (!user) return;
     try {
@@ -336,9 +390,25 @@ export default function History() {
 
         <Tabs defaultValue="donated" className="space-y-6">
           <TabsList>
-            {userType !== 'receiver' && <TabsTrigger value="donated">Donated Food ({donations.length})</TabsTrigger>}
-            {userType === 'receiver' && <TabsTrigger value="received">Received Food ({requests.length})</TabsTrigger>}
+            {userType !== 'receiver' && <TabsTrigger value="donated">{t('history.donatedFood')} ({donations.length})</TabsTrigger>}
+            {userType !== 'receiver' && <TabsTrigger value="achievements" className="flex items-center gap-1">
+              <Trophy className="h-4 w-4" />
+              {t('history.achievements')}
+            </TabsTrigger>}
+            {userType === 'receiver' && <TabsTrigger value="received">{t('history.receivedFood')} ({requests.length})</TabsTrigger>}
           </TabsList>
+          
+          {/* Achievements Tab for Donors */}
+          {userType !== 'receiver' && (
+            <TabsContent value="achievements" className="space-y-4">
+              <ImpactScoreCard
+                completedDonations={donationStats.completedDonations}
+                reliabilityScore={reliabilityScore}
+                peopleHelped={donationStats.peopleHelped}
+                isTopDonor={donationStats.completedDonations >= 50}
+              />
+            </TabsContent>
+          )}
           
           {userType !== 'receiver' && <TabsContent value="donated" className="space-y-4">
               <div className="flex items-center justify-between mb-4">
