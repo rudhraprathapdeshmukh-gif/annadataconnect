@@ -20,6 +20,7 @@ import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, 
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
@@ -1047,12 +1048,29 @@ export default function Dashboard() {
                           </span>
                         )}
                         
-                        {/* Freshness Badge - Top Right */}
+                        {/* Freshness Badge with Info - Top Right */}
                         {donation.rating && (
-                          <span className="absolute top-2 right-2 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                            {getFreshnessLabel(donation.rating)}
-                          </span>
+                          <HoverCard openDelay={200} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <span className="absolute top-2 right-2 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 cursor-help">
+                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                {getFreshnessLabel(donation.rating)}
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </span>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="bottom" align="end" className="w-48 p-3">
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold">Food Freshness Rating</p>
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                  <div className="flex justify-between"><span>★★★★★</span><span>Just-Made</span></div>
+                                  <div className="flex justify-between"><span>★★★★☆</span><span>Fresh</span></div>
+                                  <div className="flex justify-between"><span>★★★☆☆</span><span>Okay</span></div>
+                                  <div className="flex justify-between"><span>★★☆☆☆</span><span>Poor</span></div>
+                                  <div className="flex justify-between"><span>★☆☆☆☆</span><span>Aged</span></div>
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
                         )}
                       </div>
                       
