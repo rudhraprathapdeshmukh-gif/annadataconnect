@@ -17,6 +17,7 @@ import { Upload, Moon, Sun, Star, User, Calendar, ArrowLeft, MapPin, Loader2, Tr
 import { toast } from 'sonner';
 import { getRatingLabel } from '@/lib/ratingLabels';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
+import { ImpactScoreCard } from '@/components/ImpactScoreCard';
 import type { SavedAddress } from '@/types/savedAddress';
 export default function Profile() {
   const {
@@ -62,6 +63,10 @@ export default function Profile() {
   });
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [deleteConfirmAddress, setDeleteConfirmAddress] = useState<SavedAddress | null>(null);
+  const [donationStats, setDonationStats] = useState({
+    completedDonations: 0,
+    peopleHelped: 0
+  });
 
   // Determine if viewing own profile or another user's
   const isOwnProfile = !userId || userId === user?.id;
@@ -77,6 +82,7 @@ export default function Profile() {
       fetchAverageRating();
       if (isOwnProfile) {
         fetchSavedAddresses();
+        fetchDonationStats();
       }
     }
   }, [profileUserId, isOwnProfile]);
@@ -212,6 +218,47 @@ export default function Profile() {
     
     if (!error && data) {
       setSavedAddresses(data);
+    }
+  };
+
+  const fetchDonationStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Get completed donations count
+      const { data: donations, error: donationsError } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', user.id)
+        .eq('status', 'completed');
+      
+      if (donationsError) throw donationsError;
+      
+      const completedDonations = donations?.length || 0;
+      
+      // Get unique people helped (receivers who completed pickup)
+      const donationIds = donations?.map(d => d.id) || [];
+      let peopleHelped = 0;
+      
+      if (donationIds.length > 0) {
+        const { data: requests, error: requestsError } = await supabase
+          .from('food_requests')
+          .select('requester_id')
+          .in('donation_id', donationIds)
+          .eq('status', 'completed');
+        
+        if (!requestsError && requests) {
+          const uniqueReceivers = new Set(requests.map(r => r.requester_id));
+          peopleHelped = uniqueReceivers.size;
+        }
+      }
+      
+      setDonationStats({
+        completedDonations,
+        peopleHelped
+      });
+    } catch (error) {
+      console.error('Error fetching donation stats:', error);
     }
   };
 
@@ -445,6 +492,17 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>}
+
+        {/* Impact Score Card - Show for donors on their own profile */}
+        {isOwnProfile && userProfile && (userProfile.user_type === 'donor' || userProfile.user_type === 'both') && (
+          <div className="mt-6">
+            <ImpactScoreCard
+              completedDonations={donationStats.completedDonations}
+              reliabilityScore={userProfile.reliability_score ?? 100}
+              peopleHelped={donationStats.peopleHelped}
+            />
+          </div>
+        )}
 
         {/* Public Profile View - Show avatar and basic info for other users */}
         {!isOwnProfile && userProfile && <Card className="mb-6">
