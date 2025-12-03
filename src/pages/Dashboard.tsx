@@ -818,15 +818,31 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myDonations.map((donation) => (
                     <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      {donation.image_url && (
-                        <div className="w-full h-48 overflow-hidden">
+                      {/* Image Section with Overlay Badge */}
+                      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                        {donation.image_url ? (
                           <img
                             src={donation.image_url}
                             alt={donation.title}
                             className="w-full h-full object-cover"
                           />
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
+                          </div>
+                        )}
+                        
+                        {/* Diet Type Badge - Top Left */}
+                        {donation.diet_type && (
+                          <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${
+                            donation.diet_type === 'veg' 
+                              ? 'bg-green-500/90 text-white' 
+                              : 'bg-red-500/90 text-white'
+                          }`}>
+                            {donation.diet_type === 'veg' ? '● Veg' : '● Non-Veg'}
+                          </span>
+                        )}
+                      </div>
                       <CardHeader>
                         <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
