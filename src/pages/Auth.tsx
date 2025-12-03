@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ const signInSchema = z.object({
 export default function Auth() {
   const { user, signUp, signIn } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
   const [email, setEmail] = useState('');
@@ -60,11 +61,11 @@ export default function Auth() {
 
   // Password strength indicators
   const passwordRequirements = [
-    { label: 'At least 8 characters', met: (password || newPassword).length >= 8 },
-    { label: 'One uppercase letter', met: /[A-Z]/.test(password || newPassword) },
-    { label: 'One lowercase letter', met: /[a-z]/.test(password || newPassword) },
-    { label: 'One number', met: /[0-9]/.test(password || newPassword) },
-    { label: 'One special character', met: /[^A-Za-z0-9]/.test(password || newPassword) },
+    { label: t('auth.atLeast8Chars'), met: (password || newPassword).length >= 8 },
+    { label: t('auth.oneUppercase'), met: /[A-Z]/.test(password || newPassword) },
+    { label: t('auth.oneLowercase'), met: /[a-z]/.test(password || newPassword) },
+    { label: t('auth.oneNumber'), met: /[0-9]/.test(password || newPassword) },
+    { label: t('auth.oneSpecialChar'), met: /[^A-Za-z0-9]/.test(password || newPassword) },
   ];
 
   useEffect(() => {
@@ -400,18 +401,18 @@ export default function Auth() {
           </div>
           <CardTitle className="text-3xl font-bold">
             {showResetPassword 
-              ? 'Reset Your Password'
+              ? t('auth.resetYourPassword')
               : (showForgotPassword 
-                ? 'Forgot Password?' 
-                : (isSignUp ? 'Join Annadataconnect' : 'Welcome Back'))
+                ? t('auth.forgotPasswordTitle') 
+                : (isSignUp ? t('auth.joinAnnadataconnect') : t('auth.welcomeBackTitle')))
             }
           </CardTitle>
           <CardDescription className="text-base">
             {showResetPassword 
-              ? 'Enter your new password below'
+              ? t('auth.enterNewPassword')
               : (showForgotPassword 
-                ? 'We\'ll send you a reset link' 
-                : (isSignUp ? 'Start sharing and caring today' : 'Sign in to continue making a difference'))
+                ? t('auth.sendResetLink') 
+                : (isSignUp ? t('auth.startSharingCaring') : t('auth.signInToContinue')))
             }
           </CardDescription>
         </CardHeader>
@@ -419,7 +420,7 @@ export default function Auth() {
           {showResetPassword ? (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">{t('auth.newPassword')}</Label>
                 <div className="relative">
                   <Input
                     id="newPassword"
@@ -464,13 +465,13 @@ export default function Auth() {
                 )}
               </div>
               <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl" disabled={loading}>
-                {loading ? 'Updating...' : 'Update Password'}
+                {loading ? t('common.loading') : t('auth.resetPassword')}
               </Button>
             </form>
           ) : showForgotPassword ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="resetEmail">Email</Label>
+                <Label htmlFor="resetEmail">{t('auth.email')}</Label>
                 <Input
                   id="resetEmail"
                   type="email"
@@ -482,7 +483,7 @@ export default function Auth() {
                 />
               </div>
               <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Reset Link'}
+                {loading ? t('common.loading') : t('auth.sendResetLinkBtn')}
               </Button>
               <Button
                 type="button"
@@ -490,7 +491,7 @@ export default function Auth() {
                 onClick={() => setShowForgotPassword(false)}
                 className="w-full text-sm hover:opacity-80 transition-opacity"
               >
-                Back to Sign In
+                {t('auth.backToSignIn')}
               </Button>
             </form>
           ) : (
@@ -498,7 +499,7 @@ export default function Auth() {
             {isSignUp && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="avatar">Profile Picture (Optional)</Label>
+                  <Label htmlFor="avatar">{t('auth.profilePicture')}</Label>
                   <div className="flex items-center gap-4">
                     {avatarPreview ? (
                       <div className="relative">
@@ -535,7 +536,7 @@ export default function Auth() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">{t('auth.firstName')}</Label>
                   <Input
                     id="firstName"
                     type="text"
@@ -547,7 +548,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">{t('auth.lastName')}</Label>
                   <Input
                     id="lastName"
                     type="text"
@@ -559,7 +560,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="phoneNumber">{t('auth.phoneNumber')}</Label>
                   <Input
                     id="phoneNumber"
                     type="tel"
@@ -574,7 +575,7 @@ export default function Auth() {
               </>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -586,7 +587,7 @@ export default function Auth() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -632,35 +633,35 @@ export default function Auth() {
             </div>
             {isSignUp && (
               <div className="space-y-4">
-                <Label>I am signing up as:</Label>
+                <Label>{t('auth.iWantTo')}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     type="button"
                     variant={userType === 'donor' ? 'default' : 'outline'}
                     onClick={() => setUserType('donor')}
                   >
-                    Donor
+                    {t('auth.donateFood')}
                   </Button>
                   <Button
                     type="button"
                     variant={userType === 'receiver' ? 'default' : 'outline'}
                     onClick={() => setUserType('receiver')}
                   >
-                    Receiver
+                    {t('auth.receiveFood')}
                   </Button>
                   <Button
                     type="button"
                     variant={userType === 'both' ? 'default' : 'outline'}
                     onClick={() => setUserType('both')}
                   >
-                    Both
+                    {t('auth.both')}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
               </div>
             )}
             <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl glow-effect" disabled={loading}>
-              {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+              {loading ? t('common.loading') : (isSignUp ? t('auth.signUp') : t('auth.signIn'))}
             </Button>
             
             {!isSignUp && (
@@ -670,7 +671,7 @@ export default function Auth() {
                     <span className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    <span className="bg-card px-2 text-muted-foreground">{t('auth.orContinueWith')}</span>
                   </div>
                 </div>
                 
@@ -698,7 +699,7 @@ export default function Auth() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  {t('auth.google')}
                 </Button>
                 
                 <p className="text-xs text-muted-foreground text-center mt-2">
@@ -717,7 +718,7 @@ export default function Auth() {
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="text-sm font-medium"
                 >
-                  {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                  {isSignUp ? t('auth.alreadyHaveAccount') + ' ' + t('auth.signIn') : t('auth.dontHaveAccount') + ' ' + t('auth.signUp')}
                 </Button>
                 {!isSignUp && (
                   <div>
@@ -726,7 +727,7 @@ export default function Auth() {
                       onClick={() => setShowForgotPassword(true)}
                       className="text-sm text-muted-foreground hover:text-foreground"
                     >
-                      Forgot password?
+                      {t('auth.forgotPassword')}
                     </Button>
                   </div>
                 )}

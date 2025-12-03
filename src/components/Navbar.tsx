@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
+import { useTranslation } from 'react-i18next';
 import { 
   HeartHandshake, LogOut, User, FolderClock, LayoutDashboard, Plus, HelpCircle,
   Settings, Moon, Sun, Globe, Bell, Mail, MessageSquare, Key, Trophy, History,
@@ -49,6 +50,7 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -69,6 +71,10 @@ export default function Navbar() {
       if (!cancelled) {
         if (data) {
           setProfile(data);
+          // Sync language from profile
+          if (data.language && data.language !== i18n.language) {
+            i18n.changeLanguage(data.language);
+          }
         } else if (attempt < 5) {
           // Profile row might not be ready just yet after signup; retry briefly
           setTimeout(() => fetchProfile(attempt + 1), 400);
@@ -85,7 +91,7 @@ export default function Navbar() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, i18n]);
 
   const handleNotificationChange = async (type: 'push' | 'email' | 'sms', value: boolean) => {
     if (!user?.id) return;
@@ -102,16 +108,19 @@ export default function Navbar() {
         ...profile,
         [`notification_${type}`]: value
       });
-      toast.success('Notification settings updated');
+      toast.success(t('toast.notificationUpdated'));
     } catch (error) {
       console.error('Error updating notifications:', error);
-      toast.error('Failed to update notification settings');
+      toast.error(t('toast.failedUpdateNotification'));
     }
   };
 
   const handleLanguageChange = async (value: string) => {
     if (!user?.id) return;
     try {
+      // Change UI language immediately
+      i18n.changeLanguage(value);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ language: value })
@@ -120,10 +129,10 @@ export default function Navbar() {
       if (error) throw error;
       
       setProfile({ ...profile, language: value });
-      toast.success('Language updated');
+      toast.success(t('toast.languageUpdated'));
     } catch (error) {
       console.error('Error updating language:', error);
-      toast.error('Failed to update language');
+      toast.error(t('toast.failedUpdateLanguage'));
     }
   };
 
@@ -148,14 +157,14 @@ export default function Navbar() {
                 <Link to="/dashboard">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <LayoutDashboard className="h-4 w-4" />
-                    <span className="hidden sm:inline">Dashboard</span>
+                    <span className="hidden sm:inline">{t('nav.dashboard')}</span>
                   </Button>
                 </Link>
                 {profile?.user_type !== 'receiver' && (
                   <Link to="/donate">
                     <Button variant="default" size="sm" className="gap-2">
                       <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Donate Food</span>
+                      <span className="hidden sm:inline">{t('nav.donateFood')}</span>
                     </Button>
                   </Link>
                 )}
@@ -196,7 +205,7 @@ export default function Navbar() {
                             {capitalizeName(profile?.first_name)} {capitalizeName(profile?.last_name) || 'User'}
                           </p>
                           <p className="text-xs text-muted-foreground">{user.email}</p>
-                          <p className="text-xs text-primary capitalize">Type: {profile?.user_type || 'both'}</p>
+                          <p className="text-xs text-primary capitalize">{t('nav.type')}: {profile?.user_type || 'both'}</p>
                         </div>
                       </div>
                     </DropdownMenuLabel>
@@ -206,7 +215,7 @@ export default function Navbar() {
                     <Link to="/profile">
                       <DropdownMenuItem className="cursor-pointer">
                         <User className="h-4 w-4 mr-2" />
-                        Profile
+                        {t('nav.profile')}
                       </DropdownMenuItem>
                     </Link>
                     
@@ -214,7 +223,7 @@ export default function Navbar() {
                     <Link to="/history">
                       <DropdownMenuItem className="cursor-pointer">
                         {isDonor ? <Trophy className="h-4 w-4 mr-2" /> : <History className="h-4 w-4 mr-2" />}
-                        {isDonor ? 'History & Achievements' : 'History'}
+                        {isDonor ? t('nav.historyAchievements') : t('nav.history')}
                       </DropdownMenuItem>
                     </Link>
                     
@@ -224,7 +233,7 @@ export default function Navbar() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger className="cursor-pointer">
                         <Settings className="h-4 w-4 mr-2" />
-                        App Preferences
+                        {t('nav.appPreferences')}
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-56 bg-background border-border">
                         {/* Dark Mode Toggle */}
@@ -234,7 +243,7 @@ export default function Navbar() {
                         >
                           <div className="flex items-center gap-2">
                             {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                            <span>Dark Mode</span>
+                            <span>{t('nav.darkMode')}</span>
                           </div>
                           <Switch 
                             checked={theme === 'dark'} 
@@ -246,13 +255,13 @@ export default function Navbar() {
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger className="cursor-pointer">
                             <Globe className="h-4 w-4 mr-2" />
-                            Language
+                            {t('nav.language')}
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent className="bg-background border-border">
                             {LANGUAGES.map((lang) => (
                               <DropdownMenuItem 
                                 key={lang.value}
-                                className={`cursor-pointer ${profile?.language === lang.value ? 'bg-accent' : ''}`}
+                                className={`cursor-pointer ${profile?.language === lang.value || i18n.language === lang.value ? 'bg-accent' : ''}`}
                                 onClick={() => handleLanguageChange(lang.value)}
                               >
                                 {lang.label}
@@ -265,7 +274,7 @@ export default function Navbar() {
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger className="cursor-pointer">
                             <Bell className="h-4 w-4 mr-2" />
-                            Notifications
+                            {t('nav.notifications')}
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent className="w-56 bg-background border-border">
                             <DropdownMenuItem 
@@ -274,7 +283,7 @@ export default function Navbar() {
                             >
                               <div className="flex items-center gap-2">
                                 <Bell className="h-4 w-4" />
-                                <span>Push</span>
+                                <span>{t('nav.push')}</span>
                               </div>
                               <Switch 
                                 checked={profile?.notification_push ?? true}
@@ -287,7 +296,7 @@ export default function Navbar() {
                             >
                               <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4" />
-                                <span>Email</span>
+                                <span>{t('nav.email')}</span>
                               </div>
                               <Switch 
                                 checked={profile?.notification_email ?? true}
@@ -300,7 +309,7 @@ export default function Navbar() {
                             >
                               <div className="flex items-center gap-2">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>SMS</span>
+                                <span>{t('nav.sms')}</span>
                               </div>
                               <Switch 
                                 checked={profile?.notification_sms ?? false}
@@ -316,7 +325,7 @@ export default function Navbar() {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger className="cursor-pointer">
                         <Shield className="h-4 w-4 mr-2" />
-                        Account
+                        {t('nav.account')}
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="bg-background border-border">
                         <DropdownMenuItem 
@@ -324,14 +333,14 @@ export default function Navbar() {
                           onClick={() => setShowChangePassword(true)}
                         >
                           <Key className="h-4 w-4 mr-2" />
-                          Change Password
+                          {t('nav.changePassword')}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="cursor-pointer text-destructive focus:text-destructive"
                           onClick={() => setShowLogoutConfirm(true)}
                         >
                           <LogOut className="h-4 w-4 mr-2" />
-                          Logout
+                          {t('nav.logout')}
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -342,7 +351,7 @@ export default function Navbar() {
                     <Link to="/help">
                       <DropdownMenuItem className="cursor-pointer">
                         <HelpCircle className="h-4 w-4 mr-2" />
-                        Help & Support
+                        {t('nav.helpSupport')}
                       </DropdownMenuItem>
                     </Link>
                   </DropdownMenuContent>
@@ -350,7 +359,7 @@ export default function Navbar() {
               </>
             ) : (
               <Link to="/auth">
-                <Button variant="default">Sign In</Button>
+                <Button variant="default">{t('nav.signIn')}</Button>
               </Link>
             )}
           </div>
@@ -363,15 +372,15 @@ export default function Navbar() {
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogTitle>{t('logout.confirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to logout? You'll need to sign in again to access your account.
+              {t('logout.confirmDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Logout
+              {t('nav.logout')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
