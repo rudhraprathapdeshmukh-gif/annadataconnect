@@ -491,5 +491,24 @@
     "shareLocation": "Share Location",
     "locationShared": "Location shared",
     "viewOnMap": "View on Map"
+  },
+  "email": {
+    "donorSubject": "🎉 Donation Completed! Thank you for sharing food",
+    "receiverSubject": "🍲 Pickup Confirmed! Thank you for using Annadataconnect",
+    "greeting": "Hi",
+    "donorGreeting": "Great news! Your food donation has been successfully picked up!",
+    "receiverGreeting": "Your food pickup has been confirmed!",
+    "item": "Item",
+    "quantity": "Quantity",
+    "pickedUpBy": "Picked up by",
+    "donatedBy": "Donated by",
+    "timeTaken": "Time Taken",
+    "minutes": "minutes",
+    "hours": "hours",
+    "thankYouDonor": "Thank you for making a difference in someone's life!",
+    "thankYouReceiver": "We hope this meal brings you joy!",
+    "withGratitude": "With gratitude",
+    "warmRegards": "Warm regards",
+    "teamSignature": "The Annadataconnect Team"
   }
 }

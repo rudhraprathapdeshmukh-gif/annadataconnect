@@ -1369,10 +1369,13 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         return;
       }
 
-      // Update request status to completed
+      // Update request status to completed AND set actual_pickup_at
       const { error: requestError } = await supabase
         .from('food_requests')
-        .update({ status: 'completed' })
+        .update({ 
+          status: 'completed',
+          actual_pickup_at: new Date().toISOString()
+        })
         .eq('id', request.id);
 
       if (requestError) throw requestError;
@@ -1382,6 +1385,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
 
       toast.success('Pickup confirmed! Thank you for donating.');
       setShowOtpDialog(false);
+      
+      // Send completion emails (non-blocking)
+      try {
+        await supabase.functions.invoke('send-completion-email', {
+          body: { requestId: request.id }
+        });
+        console.log('Completion emails sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send completion emails:', emailError);
+        // Don't show error to user - email is not critical
+      }
+      
       // Refresh to trigger global rating dialog
       onRefresh();
     } catch (error) {
