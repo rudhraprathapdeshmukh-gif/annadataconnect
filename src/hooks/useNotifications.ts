@@ -14,11 +14,17 @@ interface Notification {
   created_at: string;
 }
 
+interface NotificationPreferences {
+  notification_push: boolean | null;
+  notification_email: boolean | null;
+}
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
 
   // Request browser notification permission
   useEffect(() => {
@@ -36,6 +42,56 @@ export const useNotifications = () => {
       }
     }
   };
+
+  // Load user notification preferences
+  useEffect(() => {
+    if (!user) {
+      setPreferences(null);
+      return;
+    }
+
+    const loadPreferences = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('notification_push, notification_email')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading notification preferences:', error);
+        return;
+      }
+
+      setPreferences(data);
+    };
+
+    loadPreferences();
+
+    // Subscribe to profile changes to update preferences in real-time
+    const channel = supabase
+      .channel('profile-preferences')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          setPreferences({
+            notification_push: updated.notification_push,
+            notification_email: updated.notification_email,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   // Load existing notifications
   useEffect(() => {
@@ -82,8 +138,8 @@ export const useNotifications = () => {
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
 
-          // Show browser notification if permitted
-          if (permission === 'granted') {
+          // Only show browser notification if push notifications are enabled
+          if (preferences?.notification_push && permission === 'granted') {
             new Notification(newNotification.title, {
               body: newNotification.message,
               icon: '/favicon.ico',
@@ -91,10 +147,12 @@ export const useNotifications = () => {
             });
           }
 
-          // Show toast notification
-          toast.info(newNotification.title, {
-            description: newNotification.message,
-          });
+          // Only show toast notification if push notifications are enabled
+          if (preferences?.notification_push) {
+            toast.info(newNotification.title, {
+              description: newNotification.message,
+            });
+          }
         }
       )
       .subscribe();
@@ -102,7 +160,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, permission]);
+  }, [user, permission, preferences]);
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase
@@ -177,6 +235,7 @@ export const useNotifications = () => {
     notifications,
     unreadCount,
     permission,
+    preferences,
     requestPermission,
     markAsRead,
     markAllAsRead,
