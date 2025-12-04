@@ -31,14 +31,12 @@ export function ImpactScoreCard({
 }: ImpactScoreCardProps) {
   const { t } = useTranslation();
   const [animatedScore, setAnimatedScore] = useState(0);
-  const [showBadges, setShowBadges] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   
   const impactScore = calculateImpactScore(completedDonations, reliabilityScore, peopleHelped);
   const earnedBadges = getEarnedBadges(completedDonations, reliabilityScore, isTopDonor);
   const nextBadge = getNextBadge(completedDonations);
   
-  // Get badge translations
   const getBadgeName = (badgeId: string): string => {
     return t(`achievements.badges.${badgeId}.name`, { defaultValue: IMPACT_BADGES.find(b => b.id === badgeId)?.name });
   };
@@ -47,10 +45,9 @@ export function ImpactScoreCard({
     return t(`achievements.badges.${badgeId}.description`, { defaultValue: IMPACT_BADGES.find(b => b.id === badgeId)?.description });
   };
   
-  // Animated counter effect
   useEffect(() => {
-    const duration = 1500;
-    const steps = 60;
+    const duration = 1000;
+    const steps = 40;
     const increment = impactScore / steps;
     let current = 0;
     
@@ -67,53 +64,36 @@ export function ImpactScoreCard({
     return () => clearInterval(timer);
   }, [impactScore]);
 
-  // Stagger badge animations
-  useEffect(() => {
-    const timer = setTimeout(() => setShowBadges(true), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const BadgeItem = ({ badge, earned, index }: { badge: ImpactBadge; earned: boolean; index: number }) => (
+  const BadgeItem = ({ badge, earned }: { badge: ImpactBadge; earned: boolean }) => (
     <Popover>
       <PopoverTrigger asChild>
-        <div 
+        <button
           className={`
-            relative flex flex-col items-center p-3 rounded-xl cursor-pointer
-            transition-all duration-300 transform
+            relative flex flex-col items-center p-2 md:p-3 rounded-xl cursor-pointer
+            transition-all duration-200
             ${earned 
-              ? `${badge.bgColor} animate-badge-pop hover:scale-110` 
-              : 'bg-muted/50 opacity-50 grayscale hover:opacity-70'
+              ? `${badge.bgColor} hover:scale-105` 
+              : 'bg-muted/30 opacity-60 grayscale'
             }
           `}
-          style={{ 
-            animationDelay: showBadges ? `${index * 100}ms` : '0ms',
-            animationFillMode: 'backwards'
-          }}
         >
-          <span className={`text-2xl ${earned ? 'animate-wiggle' : ''}`} style={{ animationDelay: `${index * 150}ms` }}>
-            {badge.icon}
-          </span>
-          <span className={`text-xs font-medium mt-1 text-center ${earned ? badge.color : 'text-muted-foreground'}`}>
+          <span className="text-xl md:text-2xl">{badge.icon}</span>
+          <span className={`text-[10px] md:text-xs font-medium mt-1 text-center leading-tight ${earned ? badge.color : 'text-muted-foreground'}`}>
             {getBadgeName(badge.id)}
           </span>
           {!earned && (
             <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5">
-              <Lock className="h-3 w-3 text-muted-foreground" />
+              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
             </div>
           )}
-          {earned && (
-            <div className="absolute -top-1 -right-1 animate-pulse-glow">
-              <Sparkles className="h-3 w-3 text-yellow-500" />
-            </div>
-          )}
-        </div>
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-3">
+      <PopoverContent className="w-44 p-3">
         <div className="space-y-1">
-          <p className="font-semibold flex items-center gap-2">
+          <p className="font-semibold flex items-center gap-2 text-sm">
             <span>{badge.icon}</span> {getBadgeName(badge.id)}
           </p>
-          <p className="text-sm text-muted-foreground">{getBadgeDescription(badge.id)}</p>
+          <p className="text-xs text-muted-foreground">{getBadgeDescription(badge.id)}</p>
           {!earned && (
             <p className="text-xs text-primary font-medium mt-2">
               {badge.type === 'donations' && t('achievements.needDonations', { count: badge.requirement })}
@@ -128,42 +108,38 @@ export function ImpactScoreCard({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+      <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent pb-4">
+        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <Sparkles className="h-5 w-5 text-primary" />
           {t('achievements.impactScore')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4 space-y-6">
-        {/* Animated Score Circle */}
+      <CardContent className="pt-4 space-y-5">
+        {/* Score Circle */}
         <div className="flex justify-center">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center animate-pulse-glow">
-              <div className="w-28 h-28 rounded-full bg-card flex flex-col items-center justify-center shadow-inner">
-                <span className="text-4xl font-bold text-primary animate-count-up">
+            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-card flex flex-col items-center justify-center shadow-inner">
+                <span className="text-3xl md:text-4xl font-bold text-primary">
                   {animatedScore}
                 </span>
                 <span className="text-xs text-muted-foreground">{t('achievements.points')}</span>
               </div>
             </div>
-            <div className="absolute -top-2 -right-2 animate-bounce">
-              <span className="text-2xl">✨</span>
-            </div>
           </div>
         </div>
 
-        {/* Badge Grid */}
+        {/* Badge Grid - 3 columns on mobile, 4 on larger */}
         <div className="space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
             🏅 {t('achievements.badgesLabel')} ({earnedBadges.length}/{IMPACT_BADGES.length})
           </h4>
-          <div className="grid grid-cols-4 gap-2">
-            {IMPACT_BADGES.map((badge, index) => (
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+            {IMPACT_BADGES.map((badge) => (
               <BadgeItem 
                 key={badge.id} 
                 badge={badge} 
                 earned={earnedBadges.some(e => e.id === badge.id)}
-                index={index}
               />
             ))}
           </div>
@@ -177,7 +153,7 @@ export function ImpactScoreCard({
                 <span>{nextBadge.badge.icon}</span>
                 {t('achievements.next')} {getBadgeName(nextBadge.badge.id)}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {nextBadge.remaining} {t('achievements.moreToGo')}
               </span>
             </div>
@@ -188,22 +164,22 @@ export function ImpactScoreCard({
           </div>
         )}
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <Heart className="h-5 w-5 text-red-500 mb-1" />
-            <span className="text-xl font-bold">{completedDonations}</span>
-            <span className="text-xs text-muted-foreground text-center">{t('achievements.mealsShared')}</span>
+        {/* Stats Summary - Horizontal scroll on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
+            <Heart className="h-4 w-4 text-red-500 mb-1" />
+            <span className="text-lg font-bold">{completedDonations}</span>
+            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.mealsShared')}</span>
           </div>
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '400ms' }}>
-            <Users className="h-5 w-5 text-blue-500 mb-1" />
-            <span className="text-xl font-bold">{peopleHelped}</span>
-            <span className="text-xs text-muted-foreground text-center">{t('achievements.peopleHelped')}</span>
+          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
+            <Users className="h-4 w-4 text-blue-500 mb-1" />
+            <span className="text-lg font-bold">{peopleHelped}</span>
+            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.peopleHelped')}</span>
           </div>
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg animate-fade-in" style={{ animationDelay: '600ms' }}>
-            <TrendingUp className="h-5 w-5 text-green-500 mb-1" />
-            <span className="text-xl font-bold">{Math.round(reliabilityScore)}%</span>
-            <span className="text-xs text-muted-foreground text-center">{t('achievements.reliability')}</span>
+          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
+            <TrendingUp className="h-4 w-4 text-green-500 mb-1" />
+            <span className="text-lg font-bold">{Math.round(reliabilityScore)}%</span>
+            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.reliability')}</span>
           </div>
         </div>
 
