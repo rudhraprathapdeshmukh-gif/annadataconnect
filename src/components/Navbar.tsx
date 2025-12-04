@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { useTranslation } from 'react-i18next';
 import { 
   HeartHandshake, LogOut, User, FolderClock, LayoutDashboard, Plus, HelpCircle,
-  Settings, Moon, Sun, Globe, Bell, Mail, MessageSquare, Key, Trophy, History,
+  Settings, Moon, Sun, Globe, Bell, Mail, Key, Trophy, History,
   Shield
 } from 'lucide-react';
 import {
@@ -39,11 +39,7 @@ const capitalizeName = (name: string | null | undefined): string => {
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
-  { value: 'hi', label: 'हिंदी' },
   { value: 'te', label: 'తెలుగు' },
-  { value: 'ta', label: 'தமிழ்' },
-  { value: 'kn', label: 'ಕನ್ನಡ' },
-  { value: 'mr', label: 'मराठी' },
 ];
 
 export default function Navbar() {
@@ -93,7 +89,7 @@ export default function Navbar() {
     };
   }, [user, i18n]);
 
-  const handleNotificationChange = async (type: 'push' | 'email' | 'sms', value: boolean) => {
+  const handleNotificationChange = async (type: 'push' | 'email', value: boolean) => {
     if (!user?.id) return;
     try {
       const updateField = `notification_${type}` as const;
@@ -301,19 +297,6 @@ export default function Navbar() {
                               <Switch 
                                 checked={profile?.notification_email ?? true}
                                 onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                              />
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="cursor-pointer flex items-center justify-between"
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              <div className="flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{t('nav.sms')}</span>
-                              </div>
-                              <Switch 
-                                checked={profile?.notification_sms ?? false}
-                                onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
                               />
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>

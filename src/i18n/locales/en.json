@@ -12,7 +12,6 @@
     "notifications": "Notifications",
     "push": "Push",
     "email": "Email",
-    "sms": "SMS",
     "account": "Account",
     "changePassword": "Change Password",
     "logout": "Logout",
