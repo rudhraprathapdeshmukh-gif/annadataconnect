@@ -6,21 +6,14 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import type { SavedAddress } from '@/types/savedAddress';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, X, CalendarIcon, Clock, ShieldCheck, MapPin, Loader2 } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { format, addYears, addDays, addMonths, isAfter, isBefore } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { addYears, isAfter, isBefore } from 'date-fns';
+
+import { DonateStepIndicator } from '@/components/DonateStepIndicator';
+import { DonateFormStep1 } from '@/components/DonateFormStep1';
+import { DonateFormStep2 } from '@/components/DonateFormStep2';
 
 const phoneSchema = z.string()
   .trim()
@@ -57,6 +50,7 @@ export default function Donate() {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -84,11 +78,7 @@ export default function Donate() {
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<string>('');
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
-  const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
-  const isDairy = formData.food_type === 'Dairy';
-  const isGrains = formData.food_type === 'Grains';
 
-  // Helper function to convert 12-hour time to 24-hour format
   const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
     let hours = parseInt(hour12);
     if (ampm === 'AM' && hours === 12) hours = 0;
@@ -96,7 +86,6 @@ export default function Donate() {
     return [hours, parseInt(minute)];
   };
 
-  // Reverse geocoding function to convert coordinates to address
   const fetchSavedAddresses = async () => {
     if (!user?.id) return;
     
@@ -109,7 +98,6 @@ export default function Donate() {
     
     if (!error && data) {
       setSavedAddresses(data);
-      // Auto-select default address if exists and form is empty
       const defaultAddr = data.find(addr => addr.is_default);
       if (defaultAddr && !formData.city && !formData.area) {
         handleSelectSavedAddress(defaultAddr.id);
@@ -143,11 +131,7 @@ export default function Donate() {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        {
-          headers: {
-            'Accept-Language': 'en',
-          }
-        }
+        { headers: { 'Accept-Language': 'en' } }
       );
       
       if (!response.ok) throw new Error('Geocoding failed');
@@ -155,67 +139,40 @@ export default function Donate() {
       const data = await response.json();
       const addr = data.address;
       
-      // Helper to clean "mandal" from any component
       const cleanComponent = (value?: string) => {
         if (!value) return '';
         return value.replace(/\bmandal\b/gi, '').trim();
       };
       
-      // Extract detailed components
       const rawCity = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
       const city = cleanComponent(rawCity);
-      const state = addr.state || addr.state_district || '';
-      const postalCode = addr.postcode || '';
-      const district = addr.state_district || addr.county || '';
       
-      // Build detailed locality/area string with multiple candidates
       const areaComponentsRaw = [
-        addr.locality,
-        addr.suburb,
-        addr.neighbourhood,
-        addr.quarter,
-        addr.hamlet,
-        addr.city_district,
+        addr.locality, addr.suburb, addr.neighbourhood,
+        addr.quarter, addr.hamlet, addr.city_district,
       ];
       
       const areaComponents = areaComponentsRaw
         .map(cleanComponent)
         .filter((val, idx, arr) => val && arr.indexOf(val) === idx);
       
-      // Fall back to city if no area components found
-      const area = areaComponents.length > 0 
-        ? areaComponents.join(', ')
-        : city;
+      const area = areaComponents.length > 0 ? areaComponents.join(', ') : city;
       
-      // Build comprehensive complete address
       const addressParts = [
-        addr.house_number,
-        addr.road,
-        addr.suburb || addr.neighbourhood,
-        addr.village || addr.town || addr.city,
-        addr.state_district || addr.county,
-        addr.state,
-        addr.country,
-        addr.postcode
+        addr.house_number, addr.road, addr.suburb || addr.neighbourhood,
+        addr.village || addr.town || addr.city, addr.state_district || addr.county,
+        addr.state, addr.country, addr.postcode
       ].filter(Boolean);
       
       const completeAddress = addressParts.join(', ');
       
-      return {
-        city,
-        area,
-        completeAddress,
-        state,
-        postalCode,
-        district,
-      };
+      return { city, area, completeAddress };
     } catch (error) {
       console.error('Reverse geocoding error:', error);
       throw error;
     }
   };
 
-  // Handler for using current location
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -229,31 +186,17 @@ export default function Donate() {
         try {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          
-          // Store coordinates
           setCoordinates({ lat, lng });
           
-        // Get address from coordinates
-        const address = await reverseGeocode(lat, lng);
-        
-        // Log for debugging
-        console.log('Detected location:', {
-          coordinates: { lat, lng },
-          city: address.city,
-          area: address.area,
-          state: address.state,
-          postalCode: address.postalCode,
-          completeAddress: address.completeAddress
-        });
-        
-        // Auto-fill form fields with detailed information
-        setFormData(prev => ({
-          ...prev,
-          city: address.city,
-          area: address.area,
-          complete_address: address.completeAddress,
-        }));
+          const address = await reverseGeocode(lat, lng);
           
+          setFormData(prev => ({
+            ...prev,
+            city: address.city,
+            area: address.area,
+            complete_address: address.completeAddress,
+          }));
+            
           toast.success('Location detected successfully!');
         } catch (error) {
           toast.error('Failed to get address from location');
@@ -265,19 +208,11 @@ export default function Donate() {
         setLoadingLocation(false);
         if (error.code === error.PERMISSION_DENIED) {
           toast.error('Location permission denied. Please enable location access.');
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          toast.error('Location information unavailable');
-        } else if (error.code === error.TIMEOUT) {
-          toast.error('Location request timed out');
         } else {
           toast.error('Failed to get your location');
         }
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -304,7 +239,6 @@ export default function Donate() {
         
         if (data) {
           setUserType(data.user_type);
-          // Redirect receivers to dashboard
           if (data.user_type === 'receiver') {
             toast.error('Only donors can create donations');
             navigate('/dashboard');
@@ -316,24 +250,19 @@ export default function Donate() {
     fetchUserType();
   }, [user, navigate]);
 
-  // Auto-set date to today and default time when Prepared Food is selected
   useEffect(() => {
     if (formData.food_type === 'Prepared Food') {
-      // Set date to today
       setExpiryDate(new Date());
-      
-      // Set default time to 2 hours from now (with extra 15 min buffer)
       const futureTime = new Date();
       futureTime.setHours(futureTime.getHours() + 2);
-      futureTime.setMinutes(futureTime.getMinutes() + 15); // Add 15 min buffer
+      futureTime.setMinutes(futureTime.getMinutes() + 15);
       
       const hours = futureTime.getHours();
       const mins = futureTime.getMinutes();
       
-      // Convert to 12-hour format
       const hour12Val = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
       setHour12(String(hour12Val));
-      setMinute(String(Math.floor(mins / 15) * 15).padStart(2, '0')); // Round to nearest 15 min
+      setMinute(String(Math.floor(mins / 15) * 15).padStart(2, '0'));
       setAmpm(hours >= 12 ? 'PM' : 'AM');
     }
   }, [formData.food_type]);
@@ -341,12 +270,10 @@ export default function Donate() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error('Please upload an image file');
         return;
       }
-      // Validate file size (5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size must be less than 5MB');
         return;
@@ -371,35 +298,25 @@ export default function Donate() {
 
     setSubmitting(true);
     try {
-      // Combine date and time into a single Date object
       let expiryDateTime: Date;
 
       if (isPreparedFood) {
-        // Use the expiryDate state which was set when food type was selected
-        // If not set, use today as fallback
         const dateToUse = expiryDate || new Date();
         const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
         expiryDateTime = new Date(
-          dateToUse.getFullYear(),
-          dateToUse.getMonth(),
-          dateToUse.getDate(),
-          hours24,
-          mins,
-          0,
-          0
+          dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(),
+          hours24, mins, 0, 0
         );
         
-        // Add validation with 5-minute buffer to ensure time is truly in future
         const now = new Date();
-        const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+        const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000);
         
         if (expiryDateTime < minAllowedTime) {
-          toast.error('Pickup time must be at least 5 minutes in the future. Please select a later time.');
+          toast.error('Pickup time must be at least 5 minutes in the future.');
           setSubmitting(false);
           return;
         }
       } else {
-        // For other food types, use selected date + 12-hour time
         if (!expiryDate) {
           toast.error('Please select an expiry date');
           setSubmitting(false);
@@ -408,17 +325,11 @@ export default function Donate() {
 
         const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
         expiryDateTime = new Date(
-          expiryDate.getFullYear(),
-          expiryDate.getMonth(),
-          expiryDate.getDate(),
-          hours24,
-          mins,
-          0,
-          0
+          expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate(),
+          hours24, mins, 0, 0
         );
       }
 
-      // Validate input including image, expiry datetime, and safety confirmation
       const validation = donationSchema.safeParse({ 
         ...formData, 
         image: imageFile,
@@ -433,28 +344,21 @@ export default function Donate() {
         return;
       }
 
-
-      // Upload image to storage
       const fileExt = imageFile!.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('food-images')
         .upload(fileName, imageFile!);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL for the image
       const { data: { publicUrl } } = supabase.storage
         .from('food-images')
         .getPublicUrl(fileName);
 
-      // Combine address fields into pickup_location
       const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
-
-      // Generate 6-digit OTP for pickup verification
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Insert donation with image URL, coordinates, and OTP
       const { data: donationData, error } = await supabase
         .from('food_donations')
         .insert([{
@@ -504,516 +408,51 @@ export default function Donate() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
+      <div className="container mx-auto px-4 py-6 max-w-lg">
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-4">
             <CardTitle className="text-2xl">Donate Food</CardTitle>
             <CardDescription>
               Share your surplus food with those in need
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="image">Food Image *</Label>
-                <div className="flex flex-col gap-4">
-                  {imagePreview ? (
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden border">
-                      <img
-                        src={imagePreview}
-                        alt="Food preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={handleRemoveImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="image"
-                      className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
-                    >
-                      <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">Click to upload food image</span>
-                      <span className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP (Max 5MB)</span>
-                    </label>
-                  )}
-                  <Input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Fresh vegetables from garden"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Provide details about the food..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="quantity"
-                      required
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                      placeholder="e.g., 5"
-                      className="flex-1"
-                    />
-                    <Select
-                      value={formData.quantity_unit}
-                      onValueChange={(value) => setFormData({ ...formData, quantity_unit: value })}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kg">Kilograms</SelectItem>
-                        <SelectItem value="grams">Grams</SelectItem>
-                        <SelectItem value="liters">Liters</SelectItem>
-                        <SelectItem value="pieces">Pieces</SelectItem>
-                        <SelectItem value="servings">Servings</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="food_type">Food Type *</Label>
-                  <Select
-                    value={formData.food_type}
-                    onValueChange={(value) => setFormData({ ...formData, food_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Vegetables">Vegetables</SelectItem>
-                      <SelectItem value="Fruits">Fruits</SelectItem>
-                      <SelectItem value="Grains">Grains</SelectItem>
-                      <SelectItem value="Dairy">Dairy</SelectItem>
-                      <SelectItem value="Prepared Food">Prepared Food</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Diet Type *</Label>
-                <RadioGroup
-                  value={formData.diet_type}
-                  onValueChange={(value) => setFormData({ ...formData, diet_type: value })}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  <Label
-                    htmlFor="veg"
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      formData.diet_type === 'veg' 
-                        ? "border-green-500 bg-green-50 dark:bg-green-950" 
-                        : "border-muted hover:border-green-300"
-                    )}
-                  >
-                    <RadioGroupItem value="veg" id="veg" className="sr-only" />
-                    <span className="w-6 h-6 rounded-full bg-green-500 border-2 border-green-700" />
-                    <span className="text-sm font-medium">Vegetarian</span>
-                  </Label>
-                  
-                  <Label
-                    htmlFor="non-veg"
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      formData.diet_type === 'non-veg' 
-                        ? "border-red-500 bg-red-50 dark:bg-red-950" 
-                        : "border-muted hover:border-green-300"
-                    )}
-                  >
-                    <RadioGroupItem value="non-veg" id="non-veg" className="sr-only" />
-                    <span className="w-6 h-6 rounded-full bg-red-500 border-2 border-red-700" />
-                    <span className="text-sm font-medium">Non-Vegetarian</span>
-                  </Label>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Food Quality Rating (Freshness Scale) *</Label>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, rating: star })}
-                        className="text-3xl transition-colors hover:scale-110"
-                      >
-                        <span className={formData.rating >= star ? 'text-yellow-500' : 'text-muted-foreground'}>
-                          ★
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="text-xs text-muted-foreground space-y-1 bg-muted/50 p-3 rounded-md">
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">★</span>
-                      <span>Aged</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">★★</span>
-                      <span>Poor</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">★★★</span>
-                      <span>Okay</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">★★★★</span>
-                      <span>Fresh</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">★★★★★</span>
-                      <span>Just-Made</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {isPreparedFood ? (
-                <div className="space-y-2">
-                  <Label>Pickup Date & Time (Within 2 Days) *</Label>
-                  <div className="grid gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "justify-start text-left font-normal",
-                            !expiryDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={expiryDate}
-                          onSelect={setExpiryDate}
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const maxDate = addDays(today, 2);
-                            return date < today || date > maxDate;
-                          }}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex gap-2 flex-1">
-                        <Select value={hour12} onValueChange={setHour12}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="Hour" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                              <SelectItem key={hour} value={String(hour)}>
-                                {String(hour).padStart(2, '0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={minute} onValueChange={setMinute}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="Min" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {['00', '15', '30', '45'].map((min) => (
-                              <SelectItem key={min} value={min}>
-                                {min}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={ampm} onValueChange={setAmpm}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="AM/PM" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AM">AM</SelectItem>
-                            <SelectItem value="PM">PM</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Prepared food: Select pickup date within the next 2 days.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label>Expiry Date & Time *</Label>
-                  <div className="grid gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "justify-start text-left font-normal",
-                            !expiryDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={expiryDate}
-                          onSelect={setExpiryDate}
-                      disabled={(date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        let maxDate;
-                        if (isVegetableOrFruit) {
-                          maxDate = addDays(today, 4);
-                        } else if (isDairy) {
-                          maxDate = addDays(today, 2);
-                        } else if (isGrains) {
-                          maxDate = addMonths(today, 5);
-                        } else {
-                          maxDate = addYears(today, 2);
-                        }
-                        return date < today || date > maxDate;
-                      }}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex gap-2 flex-1">
-                        <Select value={hour12} onValueChange={setHour12}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="Hour" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                              <SelectItem key={hour} value={String(hour)}>
-                                {String(hour).padStart(2, '0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={minute} onValueChange={setMinute}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="Min" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {['00', '15', '30', '45'].map((min) => (
-                              <SelectItem key={min} value={min}>
-                                {min}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={ampm} onValueChange={setAmpm}>
-                          <SelectTrigger className="w-[80px]">
-                            <SelectValue placeholder="AM/PM" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AM">AM</SelectItem>
-                            <SelectItem value="PM">PM</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {isVegetableOrFruit && 'Vegetables/Fruits: Select expiry within the next 4 days'}
-                    {isDairy && 'Dairy: Select expiry within the next 2 days'}
-                    {isGrains && 'Grains: Select expiry within the next 5 months'}
-                    {!isVegetableOrFruit && !isDairy && !isGrains && 'Food expires between now and up to 2 years from today'}
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="phone_number">Contact Phone Number *</Label>
-                <Input
-                  id="phone_number"
-                  type="tel"
-                  required
-                  value={formData.phone_number}
-                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                  placeholder="e.g., 9876543210"
-                  maxLength={10}
-                />
-                <p className="text-sm text-muted-foreground">Enter 10-digit mobile number without country code</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Pickup Location *</h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleUseCurrentLocation}
-                    disabled={loadingLocation}
-                    className="gap-2"
-                  >
-                    {loadingLocation ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Detecting...
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-4 w-4" />
-                        Use Present Location
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Saved addresses dropdown */}
-                {savedAddresses.length > 0 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="saved-address">Quick Select Saved Address</Label>
-                    <Select value={selectedSavedAddress} onValueChange={handleSelectSavedAddress}>
-                      <SelectTrigger id="saved-address">
-                        <SelectValue placeholder="Select a saved address..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savedAddresses.map((addr) => (
-                          <SelectItem key={addr.id} value={addr.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{addr.address_name}</span>
-                              {addr.is_default && (
-                                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">Default</span>
-                              )}
-                              <span className="text-muted-foreground text-sm">
-                                - {addr.area}, {addr.city}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="e.g., Mumbai"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="area">Area/Locality *</Label>
-                  <Input
-                    id="area"
-                    value={formData.area}
-                    onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                    placeholder="e.g., Andheri West"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="complete_address">Complete Address *</Label>
-                  <Textarea
-                    id="complete_address"
-                    required
-                    value={formData.complete_address}
-                    onChange={(e) => setFormData({ ...formData, complete_address: e.target.value })}
-                    placeholder="Enter house/flat number, building name, street, landmark..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="space-y-3 flex-1">
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-2">Safety Check</h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        A quick built-in reminder: Food must be fresh, not spoiled, and stored safely.
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <Checkbox
-                        id="safety-check"
-                        checked={safetyConfirmed}
-                        onCheckedChange={(checked) => setSafetyConfirmed(checked as boolean)}
-                        className="mt-0.5"
-                      />
-                      <label
-                        htmlFor="safety-check"
-                        className="text-sm font-medium leading-relaxed cursor-pointer"
-                      >
-                        I confirm this food is safe, fresh, and suitable for donation
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full transition-all hover:scale-105 active:scale-95" 
-                disabled={submitting || !safetyConfirmed}
-              >
-                {submitting ? 'Creating...' : 'Create Donation'}
-              </Button>
-            </form>
+            <DonateStepIndicator currentStep={currentStep} />
+            
+            {currentStep === 1 ? (
+              <DonateFormStep1
+                formData={formData}
+                setFormData={setFormData}
+                imageFile={imageFile}
+                imagePreview={imagePreview}
+                onImageChange={handleImageChange}
+                onRemoveImage={handleRemoveImage}
+                onNext={() => setCurrentStep(2)}
+              />
+            ) : (
+              <DonateFormStep2
+                formData={formData}
+                setFormData={setFormData}
+                expiryDate={expiryDate}
+                setExpiryDate={setExpiryDate}
+                hour12={hour12}
+                setHour12={setHour12}
+                minute={minute}
+                setMinute={setMinute}
+                ampm={ampm}
+                setAmpm={setAmpm}
+                safetyConfirmed={safetyConfirmed}
+                setSafetyConfirmed={setSafetyConfirmed}
+                loadingLocation={loadingLocation}
+                onUseCurrentLocation={handleUseCurrentLocation}
+                savedAddresses={savedAddresses}
+                selectedSavedAddress={selectedSavedAddress}
+                onSelectSavedAddress={handleSelectSavedAddress}
+                submitting={submitting}
+                onBack={() => setCurrentStep(1)}
+                onSubmit={handleSubmit}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
