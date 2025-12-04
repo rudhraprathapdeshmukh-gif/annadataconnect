@@ -18,6 +18,26 @@
     "helpSupport": "Help & Support",
     "type": "Type"
   },
+  "password": {
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "enterCurrent": "Enter current password",
+    "enterNew": "Enter new password",
+    "confirmNew": "Confirm new password",
+    "description": "Enter your current password to verify your identity, then choose a new password.",
+    "enterCurrentPassword": "Please enter your current password",
+    "minLength": "Password must be at least 6 characters",
+    "mismatch": "Passwords do not match",
+    "noEmail": "Unable to verify identity",
+    "incorrectCurrent": "Current password is incorrect",
+    "updated": "Password updated successfully",
+    "updateFailed": "Failed to update password",
+    "update": "Update Password"
+  },
+  "common": {
+    "updating": "Updating..."
+  },
   "home": {
     "welcomeBack": "Welcome back,",
     "shareFoodShareLove": "Share Food, Share",

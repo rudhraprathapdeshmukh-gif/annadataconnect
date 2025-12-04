@@ -252,10 +252,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Donation data:", donation);
 
-    // Fetch donor profile
+    // Fetch donor profile with notification preference
     const { data: donor, error: donorError } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, email")
+      .select("id, first_name, last_name, email, notification_email")
       .eq("id", donation.donor_id)
       .single();
 
@@ -266,10 +266,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Donor data:", donor);
 
-    // Fetch receiver profile
+    // Fetch receiver profile with notification preference
     const { data: receiver, error: receiverError } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, email")
+      .select("id, first_name, last_name, email, notification_email")
       .eq("id", request.requester_id)
       .single();
 
@@ -289,9 +289,11 @@ const handler = async (req: Request): Promise<Response> => {
     const receiverName = `${receiver.first_name || ''} ${receiver.last_name || ''}`.trim() || 'Receiver';
 
     const emailPromises = [];
+    let donorEmailSkipped = false;
+    let receiverEmailSkipped = false;
 
-    // Send email to donor
-    if (donor.email) {
+    // Send email to donor only if they have email notifications enabled
+    if (donor.email && donor.notification_email !== false) {
       console.log("Sending email to donor:", donor.email);
       emailPromises.push(
         resend.emails.send({
@@ -308,10 +310,13 @@ const handler = async (req: Request): Promise<Response> => {
           ),
         })
       );
+    } else {
+      donorEmailSkipped = true;
+      console.log("Skipping donor email - notification_email is disabled or email not set");
     }
 
-    // Send email to receiver
-    if (receiver.email) {
+    // Send email to receiver only if they have email notifications enabled
+    if (receiver.email && receiver.notification_email !== false) {
       console.log("Sending email to receiver:", receiver.email);
       emailPromises.push(
         resend.emails.send({
@@ -328,6 +333,9 @@ const handler = async (req: Request): Promise<Response> => {
           ),
         })
       );
+    } else {
+      receiverEmailSkipped = true;
+      console.log("Skipping receiver email - notification_email is disabled or email not set");
     }
 
     // Wait for all emails to send
@@ -340,7 +348,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        console.error(`Email ${index} failed:`, result.reason);
+        const errorMessage = result.reason?.message || 'Unknown error';
+        console.error(`Email ${index} failed:`, errorMessage);
+        
+        // Log warning if domain verification issue
+        if (errorMessage.includes('verify a domain') || errorMessage.includes('testing emails')) {
+          console.warn('⚠️ Domain not verified in Resend. To send emails to any recipient, verify your domain at https://resend.com/domains');
+        }
       } else {
         console.log(`Email ${index} succeeded:`, result.value);
       }
@@ -350,7 +364,9 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         emailsSent: successCount,
-        emailsFailed: failedCount 
+        emailsFailed: failedCount,
+        donorEmailSkipped,
+        receiverEmailSkipped
       }),
       {
         status: 200,
