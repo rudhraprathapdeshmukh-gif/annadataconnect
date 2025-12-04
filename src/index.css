@@ -197,6 +197,21 @@ All colors MUST be HSL.
   }
 }
 
+/* Mobile-friendly touch targets */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 /* Glass Card Effect */
 .glass-card {
   background: rgba(255, 255, 255, 0.85);
