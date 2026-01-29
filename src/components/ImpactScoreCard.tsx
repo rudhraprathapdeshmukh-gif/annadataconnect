@@ -69,21 +69,21 @@ export function ImpactScoreCard({
       <PopoverTrigger asChild>
         <button
           className={`
-            relative flex flex-col items-center p-2 md:p-3 rounded-xl cursor-pointer
-            transition-all duration-200
+            relative flex flex-col items-center p-1.5 sm:p-2 md:p-3 rounded-xl cursor-pointer
+            transition-all duration-200 min-w-0
             ${earned 
               ? `${badge.bgColor} hover:scale-105` 
               : 'bg-muted/30 opacity-60 grayscale'
             }
           `}
         >
-          <span className="text-xl md:text-2xl">{badge.icon}</span>
-          <span className={`text-[10px] md:text-xs font-medium mt-1 text-center leading-tight ${earned ? badge.color : 'text-muted-foreground'}`}>
+          <span className="text-lg sm:text-xl md:text-2xl">{badge.icon}</span>
+          <span className={`text-[9px] sm:text-[10px] md:text-xs font-medium mt-0.5 sm:mt-1 text-center leading-tight truncate w-full px-0.5 ${earned ? badge.color : 'text-muted-foreground'}`}>
             {getBadgeName(badge.id)}
           </span>
           {!earned && (
-            <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5">
-              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+            <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-muted rounded-full p-0.5">
+              <Lock className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-muted-foreground" />
             </div>
           )}
         </button>
@@ -130,11 +130,11 @@ export function ImpactScoreCard({
         </div>
 
         {/* Badge Grid - 3 columns on mobile, 4 on larger */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold flex items-center gap-2">
+        <div className="space-y-2 sm:space-y-3">
+          <h4 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
             🏅 {t('achievements.badgesLabel')} ({earnedBadges.length}/{IMPACT_BADGES.length})
           </h4>
-          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-1.5 sm:gap-2">
             {IMPACT_BADGES.map((badge) => (
               <BadgeItem 
                 key={badge.id} 
@@ -147,39 +147,39 @@ export function ImpactScoreCard({
 
         {/* Next Badge Progress */}
         {nextBadge && (
-          <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium flex items-center gap-2">
-                <span>{nextBadge.badge.icon}</span>
-                {t('achievements.next')} {getBadgeName(nextBadge.badge.id)}
+          <div className="space-y-2 p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+              <span className="font-medium flex items-center gap-1.5 sm:gap-2 min-w-0 truncate">
+                <span className="shrink-0">{nextBadge.badge.icon}</span>
+                <span className="truncate">{t('achievements.next')} {getBadgeName(nextBadge.badge.id)}</span>
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap shrink-0">
                 {nextBadge.remaining} {t('achievements.moreToGo')}
               </span>
             </div>
-            <Progress value={nextBadge.progress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-center">
+            <Progress value={nextBadge.progress} className="h-1.5 sm:h-2" />
+            <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
               {completedDonations}/{nextBadge.badge.requirement} {t('achievements.donations')}
             </p>
           </div>
         )}
 
-        {/* Stats Summary - Horizontal scroll on mobile */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
-            <Heart className="h-4 w-4 text-red-500 mb-1" />
-            <span className="text-lg font-bold">{completedDonations}</span>
-            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.mealsShared')}</span>
+        {/* Stats Summary - Responsive grid */}
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          <div className="flex flex-col items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 mb-0.5 sm:mb-1" />
+            <span className="text-base sm:text-lg font-bold">{completedDonations}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">{t('achievements.mealsShared')}</span>
           </div>
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
-            <Users className="h-4 w-4 text-blue-500 mb-1" />
-            <span className="text-lg font-bold">{peopleHelped}</span>
-            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.peopleHelped')}</span>
+          <div className="flex flex-col items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 mb-0.5 sm:mb-1" />
+            <span className="text-base sm:text-lg font-bold">{peopleHelped}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">{t('achievements.peopleHelped')}</span>
           </div>
-          <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg min-w-[90px] flex-1">
-            <TrendingUp className="h-4 w-4 text-green-500 mb-1" />
-            <span className="text-lg font-bold">{Math.round(reliabilityScore)}%</span>
-            <span className="text-[10px] text-muted-foreground text-center">{t('achievements.reliability')}</span>
+          <div className="flex flex-col items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mb-0.5 sm:mb-1" />
+            <span className="text-base sm:text-lg font-bold">{Math.round(reliabilityScore)}%</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">{t('achievements.reliability')}</span>
           </div>
         </div>
 

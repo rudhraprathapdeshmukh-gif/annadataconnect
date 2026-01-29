@@ -100,15 +100,27 @@ export function getEarnedBadges(
   reliabilityScore: number,
   isTopDonor: boolean = false
 ): ImpactBadge[] {
+  // Don't show any donation badges if no donations yet
+  if (completedDonations === 0) {
+    // Only check reliability badges (if applicable with score threshold)
+    return IMPACT_BADGES.filter(badge => {
+      if (badge.type === 'reliability') {
+        return reliabilityScore >= badge.requirement && completedDonations > 0;
+      }
+      return false;
+    });
+  }
+  
   return IMPACT_BADGES.filter(badge => {
     if (badge.type === 'donations') {
       return completedDonations >= badge.requirement;
     }
     if (badge.type === 'reliability') {
-      return reliabilityScore >= badge.requirement;
+      // Only show reliability badge if user has made donations
+      return reliabilityScore >= badge.requirement && completedDonations > 0;
     }
     if (badge.type === 'special' && badge.id === 'top_donor') {
-      return isTopDonor;
+      return isTopDonor && completedDonations > 0;
     }
     return false;
   });
@@ -119,10 +131,15 @@ export function calculateImpactScore(
   reliabilityScore: number,
   peopleHelped: number
 ): number {
+  // If no donations, return 0 score
+  if (completedDonations === 0) {
+    return 0;
+  }
+  
   // Base score from donations (50 points per donation, max 500)
   const donationScore = Math.min(completedDonations * 50, 500);
   
-  // Reliability bonus (up to 200 points)
+  // Reliability bonus (up to 200 points) - only counts if has donations
   const reliabilityBonus = (reliabilityScore / 100) * 200;
   
   // People helped bonus (25 points per person, max 300)
