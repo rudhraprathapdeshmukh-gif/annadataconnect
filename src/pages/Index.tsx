@@ -347,19 +347,19 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-muted/30 border-t mt-20">
         <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
             <Link to="/terms" className="hover:text-primary transition-colors">
               {t('home.termsConditions')}
             </Link>
-            <span>•</span>
+            <span className="hidden sm:inline">•</span>
             <Link to="/privacy" className="hover:text-primary transition-colors">
               {t('home.privacyPolicy')}
             </Link>
-            <span>•</span>
+            <span className="hidden sm:inline">•</span>
             <Link to="/help" className="hover:text-primary transition-colors">
               {t('nav.helpSupport')}
             </Link>
-            <span>•</span>
+            <span className="hidden sm:inline">•</span>
             <span>© 2025 AnnadataConnect</span>
           </div>
         </div>
