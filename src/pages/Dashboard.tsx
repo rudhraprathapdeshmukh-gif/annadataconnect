@@ -789,7 +789,7 @@ export default function Dashboard() {
                 </Avatar>
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 break-words">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 break-words">
                   {(() => {
                     const firstName = userProfile?.first_name || '';
                     const lastName = userProfile?.last_name || '';
@@ -798,12 +798,12 @@ export default function Dashboard() {
                     return `Welcome, ${displayName}! 👋`;
                   })()}
                 </h1>
-                <p className="text-xs sm:text-sm md:text-base text-muted-foreground break-words line-clamp-2">
+                <p className="text-sm sm:text-base text-muted-foreground break-words">
                   {userProfile?.user_type === 'donor' 
                     ? 'Manage incoming food requests from your community' 
                     : userProfile?.user_type === 'receiver'
-                    ? 'Browse and request food from generous donors'
-                    : 'Manage donations and browse available food'}
+                    ? 'Browse and request food from generous donors in your community'
+                    : 'Manage donations and browse available food in your community'}
                 </p>
               </div>
             </div>
@@ -811,10 +811,10 @@ export default function Dashboard() {
         </div>
 
         {(userProfile?.user_type === 'donor' || userProfile?.user_type === 'both') && (
-          <Tabs defaultValue="active-donations" className="space-y-4 sm:space-y-6">
-            <TabsList className="w-full sm:w-auto overflow-x-auto">
-              <TabsTrigger value="active-donations" className="text-xs sm:text-sm min-w-0">Active Donations</TabsTrigger>
-              <TabsTrigger value="requests" className="text-xs sm:text-sm min-w-0">Requests ({requests.length})</TabsTrigger>
+          <Tabs defaultValue="active-donations" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
+              <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -942,10 +942,10 @@ export default function Dashboard() {
         )}
 
         {(userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') && (
-          <Tabs defaultValue="list" className={userProfile?.user_type === 'both' ? 'space-y-4 sm:space-y-6 mt-6 sm:mt-8' : 'space-y-4 sm:space-y-6'}>
-            <TabsList className="w-full sm:w-auto overflow-x-auto">
-              <TabsTrigger value="list" className="text-xs sm:text-sm min-w-0">Available Food</TabsTrigger>
-              <TabsTrigger value="my-requests" className="text-xs sm:text-sm min-w-0">My Requests</TabsTrigger>
+          <Tabs defaultValue="list" className={userProfile?.user_type === 'both' ? 'space-y-6 mt-8' : 'space-y-6'}>
+            <TabsList>
+              <TabsTrigger value="list">Available Food</TabsTrigger>
+              <TabsTrigger value="my-requests">My Requests</TabsTrigger>
             </TabsList>
 
             <TabsContent value="my-requests" className="space-y-4">

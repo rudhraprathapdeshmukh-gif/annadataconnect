@@ -144,10 +144,10 @@ export function DonateFormStep2({
         {/* Time Picker */}
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 flex-1">
+          <div className="grid grid-cols-3 gap-2 flex-1">
             <Select value={hour12} onValueChange={setHour12}>
-              <SelectTrigger className="h-10 sm:h-12 text-sm">
-                <SelectValue placeholder="Hr" />
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Hour" />
               </SelectTrigger>
               <SelectContent>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
@@ -159,7 +159,7 @@ export function DonateFormStep2({
             </Select>
             
             <Select value={minute} onValueChange={setMinute}>
-              <SelectTrigger className="h-10 sm:h-12 text-sm">
+              <SelectTrigger className="h-12">
                 <SelectValue placeholder="Min" />
               </SelectTrigger>
               <SelectContent>
@@ -172,7 +172,7 @@ export function DonateFormStep2({
             </Select>
             
             <Select value={ampm} onValueChange={setAmpm}>
-              <SelectTrigger className="h-10 sm:h-12 text-sm">
+              <SelectTrigger className="h-12">
                 <SelectValue placeholder="AM/PM" />
               </SelectTrigger>
               <SelectContent>
@@ -207,31 +207,31 @@ export function DonateFormStep2({
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={onUseCurrentLocation}
             disabled={loadingLocation}
-            className="h-10 sm:h-12 text-xs sm:text-sm"
+            className="h-12 text-sm"
           >
             {loadingLocation ? (
-              <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <MapPin className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <MapPin className="mr-2 h-4 w-4" />
             )}
-            {loadingLocation ? 'Detecting...' : 'Use Current Location'}
+            {loadingLocation ? 'Detecting...' : 'Current Location'}
           </Button>
 
           {savedAddresses.length > 0 && (
             <Select value={selectedSavedAddress} onValueChange={onSelectSavedAddress}>
-              <SelectTrigger className="h-10 sm:h-12 text-xs sm:text-sm">
-                <Home className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <SelectTrigger className="h-12">
+                <Home className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Saved Address" />
               </SelectTrigger>
               <SelectContent>
                 {savedAddresses.map((addr) => (
-                  <SelectItem key={addr.id} value={addr.id} className="text-sm">
+                  <SelectItem key={addr.id} value={addr.id}>
                     {addr.address_name} {addr.is_default && '(Default)'}
                   </SelectItem>
                 ))}

@@ -116,43 +116,43 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-12 sm:py-16 md:py-20 lg:py-28 overflow-hidden mesh-gradient">
-        {/* Animated Background Blobs - Hidden on mobile */}
-        <div className="hidden sm:block absolute top-0 left-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" />
-        <div className="hidden sm:block absolute top-0 right-0 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '2s' }} />
-        <div className="hidden sm:block absolute bottom-0 left-1/2 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '4s' }} />
+      <section className="relative py-20 md:py-28 overflow-hidden mesh-gradient">
+        {/* Animated Background Blobs */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '4s' }} />
         
-        {/* Floating Food Icons - Hidden on mobile */}
-        <div className="hidden sm:block floating-element">🍕</div>
-        <div className="hidden sm:block floating-element">🍎</div>
-        <div className="hidden sm:block floating-element">🍞</div>
-        <div className="hidden sm:block floating-element">🥗</div>
+        {/* Floating Food Icons */}
+        <div className="floating-element">🍕</div>
+        <div className="floating-element">🍎</div>
+        <div className="floating-element">🍞</div>
+        <div className="floating-element">🥗</div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center space-y-4 sm:space-y-6 animate-slide-up">
+          <div className="max-w-3xl mx-auto text-center space-y-6 animate-slide-up">
             {user && userProfile ? (
               <>
                 <div className="flex justify-center">
-                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 mb-4 sm:mb-6 border-4 border-primary/20 shadow-xl">
+                  <Avatar className="h-24 w-24 mb-6 border-4 border-primary/20 shadow-xl">
                     <AvatarImage src={userProfile.avatar_url || undefined} alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`} className="object-cover" />
-                    <AvatarFallback className="text-xl sm:text-2xl bg-primary/10">
+                    <AvatarFallback className="text-2xl bg-primary/10">
                       {capitalizeName(userProfile.first_name)?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight drop-shadow-lg break-words">
-                  {t('home.welcomeBack')} <span className="text-primary drop-shadow-xl break-words">{capitalizeName(userProfile.first_name)}</span>! 👋
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-lg">
+                  {t('home.welcomeBack')} <span className="text-primary drop-shadow-xl">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
+                <p className="text-xl md:text-2xl text-muted-foreground">
                   {t('home.readyToMakeDifference')}
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight drop-shadow-lg">
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight drop-shadow-lg">
                   {t('home.shareFoodShareLove')} <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent drop-shadow-2xl animate-pulse">{t('home.love')}</span>
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
+                <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
                   {t('home.heroDescription')}
                 </p>
               </>
@@ -188,15 +188,15 @@ const Index = () => {
 
       {/* Active Donations Section - Only for Donors */}
       {user && userType && userType !== 'receiver' && (
-        <section className="py-10 sm:py-12 md:py-16 bg-background">
+        <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
-              <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">{t('home.yourActiveDonations')}</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">{t('home.manageOngoingDonations')}</p>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">{t('home.yourActiveDonations')}</h2>
+                <p className="text-muted-foreground">{t('home.manageOngoingDonations')}</p>
               </div>
-              <Link to="/dashboard" className="shrink-0">
-                <Button variant="outline" size="sm" className="sm:size-default">{t('home.viewAll')}</Button>
+              <Link to="/dashboard">
+                <Button variant="outline">{t('home.viewAll')}</Button>
               </Link>
             </div>
 
@@ -271,45 +271,45 @@ const Index = () => {
       )}
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16 md:py-20 gradient-warm">
+      <section className="py-20 gradient-warm">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-12 md:mb-16 animate-fade-in">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">{t('home.howItWorks')}</h2>
-            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">{t('home.simpleEffective')}</p>
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t('home.howItWorks')}</h2>
+            <p className="text-muted-foreground text-lg md:text-xl">{t('home.simpleEffective')}</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
-              <CardHeader className="pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
-                <div className="mx-auto mb-4 sm:mb-6 h-12 w-12 sm:h-16 sm:w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
+                  <Heart className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-lg sm:text-xl md:text-2xl mb-2 sm:mb-3">{t('home.donateFood')}</CardTitle>
-                <CardDescription className="text-sm sm:text-base">
+                <CardTitle className="text-2xl mb-3">{t('home.donateFood')}</CardTitle>
+                <CardDescription className="text-base">
                   {t('home.donateFoodDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>
 
             <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
-              <CardHeader className="pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
-                <div className="mx-auto mb-4 sm:mb-6 h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-6 w-6 sm:h-8 sm:w-8 text-secondary" />
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
+                  <Users className="h-8 w-8 text-secondary" />
                 </div>
-                <CardTitle className="text-lg sm:text-xl md:text-2xl mb-2 sm:mb-3">{t('home.connect')}</CardTitle>
-                <CardDescription className="text-sm sm:text-base">
+                <CardTitle className="text-2xl mb-3">{t('home.connect')}</CardTitle>
+                <CardDescription className="text-base">
                   {t('home.connectDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>
 
             <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
-              <CardHeader className="pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
-                <div className="mx-auto mb-4 sm:mb-6 h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Leaf className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
+              <CardHeader className="pb-6 pt-8">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
+                  <Leaf className="h-8 w-8 text-accent" />
                 </div>
-                <CardTitle className="text-lg sm:text-xl md:text-2xl mb-2 sm:mb-3">{t('home.makeImpact')}</CardTitle>
-                <CardDescription className="text-sm sm:text-base">
+                <CardTitle className="text-2xl mb-3">{t('home.makeImpact')}</CardTitle>
+                <CardDescription className="text-base">
                   {t('home.makeImpactDesc')}
                 </CardDescription>
               </CardHeader>
@@ -345,21 +345,21 @@ const Index = () => {
       )}
 
       {/* Footer */}
-      <footer className="bg-muted/30 border-t mt-12 sm:mt-16 md:mt-20">
-        <div className="container mx-auto px-4 py-6 sm:py-8">
-          <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-2 sm:gap-4 md:gap-6 text-xs sm:text-sm text-muted-foreground">
+      <footer className="bg-muted/30 border-t mt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
             <Link to="/terms" className="hover:text-primary transition-colors">
               {t('home.termsConditions')}
             </Link>
-            <span className="hidden sm:inline">•</span>
+            <span>•</span>
             <Link to="/privacy" className="hover:text-primary transition-colors">
               {t('home.privacyPolicy')}
             </Link>
-            <span className="hidden sm:inline">•</span>
+            <span>•</span>
             <Link to="/help" className="hover:text-primary transition-colors">
               {t('nav.helpSupport')}
             </Link>
-            <span className="hidden sm:inline">•</span>
+            <span>•</span>
             <span>© 2025 AnnadataConnect</span>
           </div>
         </div>
