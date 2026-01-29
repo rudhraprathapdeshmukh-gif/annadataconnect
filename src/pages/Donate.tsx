@@ -408,15 +408,15 @@ export default function Donate() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-6 max-w-lg">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-lg">
         <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl">Donate Food</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+            <CardTitle className="text-xl sm:text-2xl">Donate Food</CardTitle>
+            <CardDescription className="text-sm">
               Share your surplus food with those in need
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <DonateStepIndicator currentStep={currentStep} />
             
             {currentStep === 1 ? (
