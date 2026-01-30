@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -25,6 +25,14 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  
+  // Use ref to always have latest preferences in realtime callback
+  const preferencesRef = useRef<NotificationPreferences | null>(null);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   // Request browser notification permission
   useEffect(() => {
@@ -138,8 +146,11 @@ export const useNotifications = () => {
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
 
+          // Use ref to get latest preferences (avoids stale closure)
+          const currentPrefs = preferencesRef.current;
+
           // Only show browser notification if push notifications are enabled
-          if (preferences?.notification_push && permission === 'granted') {
+          if (currentPrefs?.notification_push === true && permission === 'granted') {
             new Notification(newNotification.title, {
               body: newNotification.message,
               icon: '/favicon.ico',
@@ -148,7 +159,7 @@ export const useNotifications = () => {
           }
 
           // Only show toast notification if push notifications are enabled
-          if (preferences?.notification_push) {
+          if (currentPrefs?.notification_push === true) {
             toast.info(newNotification.title, {
               description: newNotification.message,
             });
@@ -160,7 +171,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, permission, preferences]);
+  }, [user, permission]);
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase
