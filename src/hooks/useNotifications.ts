@@ -25,6 +25,10 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+
+  // Treat NULL as enabled (DB defaults may be NULL for older rows).
+  // Only explicit FALSE means disabled.
+  const isPushEnabled = (prefs: NotificationPreferences | null) => prefs?.notification_push !== false;
   
   // Use ref to always have latest preferences in realtime callback
   const preferencesRef = useRef<NotificationPreferences | null>(null);
@@ -149,8 +153,10 @@ export const useNotifications = () => {
           // Use ref to get latest preferences (avoids stale closure)
           const currentPrefs = preferencesRef.current;
 
+          const pushEnabled = isPushEnabled(currentPrefs);
+
           // Only show browser notification if push notifications are enabled
-          if (currentPrefs?.notification_push === true && permission === 'granted') {
+          if (pushEnabled && permission === 'granted') {
             new Notification(newNotification.title, {
               body: newNotification.message,
               icon: '/favicon.ico',
@@ -159,7 +165,7 @@ export const useNotifications = () => {
           }
 
           // Only show toast notification if push notifications are enabled
-          if (currentPrefs?.notification_push === true) {
+          if (pushEnabled) {
             toast.info(newNotification.title, {
               description: newNotification.message,
             });
