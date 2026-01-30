@@ -39,6 +39,7 @@ export default function NotificationBell() {
     unreadCount,
     permission,
     requestPermission,
+    preferences,
     markAsRead,
     markAllAsRead,
     deleteNotification,
@@ -144,7 +145,7 @@ export default function NotificationBell() {
           )}
         </div>
 
-        {permission !== 'granted' && (
+        {preferences?.notification_push !== false && permission !== 'granted' && (
           <div className="p-4 bg-muted/50">
             <p className="text-sm text-muted-foreground mb-2">
               {t('notifications.enablePush')}
