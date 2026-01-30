@@ -363,54 +363,54 @@ export default function History() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-1">Your History</h1>
-          <p className="text-sm text-muted-foreground">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1">Your History</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {userType === 'donor' ? 'Track your donations and achievements' : 'View your received food history'}
           </p>
         </div>
 
         {/* Quick Stats for Donors */}
         {userType !== 'receiver' && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <Card className="p-4 text-center">
-              <Heart className="h-5 w-5 mx-auto mb-1 text-red-500" />
-              <p className="text-2xl font-bold">{donationStats.completedDonations}</p>
-              <p className="text-xs text-muted-foreground">Donations</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <Card className="p-2 sm:p-4 text-center min-w-0">
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-red-500" />
+              <p className="text-lg sm:text-2xl font-bold">{donationStats.completedDonations}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Donations</p>
             </Card>
-            <Card className="p-4 text-center">
-              <User className="h-5 w-5 mx-auto mb-1 text-blue-500" />
-              <p className="text-2xl font-bold">{donationStats.peopleHelped}</p>
-              <p className="text-xs text-muted-foreground">People Helped</p>
+            <Card className="p-2 sm:p-4 text-center min-w-0">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-blue-500" />
+              <p className="text-lg sm:text-2xl font-bold">{donationStats.peopleHelped}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Helped</p>
             </Card>
-            <Card className="p-4 text-center">
-              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-500" />
-              <p className="text-2xl font-bold">{Math.round(reliabilityScore)}%</p>
-              <p className="text-xs text-muted-foreground">Reliability</p>
+            <Card className="p-2 sm:p-4 text-center min-w-0">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-green-500" />
+              <p className="text-lg sm:text-2xl font-bold">{Math.round(reliabilityScore)}%</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Reliability</p>
             </Card>
           </div>
         )}
 
         <Tabs defaultValue="donated" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-2 md:grid-cols-3 h-auto p-1">
+          <TabsList className="w-full grid grid-cols-2 h-auto p-1">
             {userType !== 'receiver' && (
               <>
-                <TabsTrigger value="donated" className="text-sm py-2.5">
-                  <Package className="h-4 w-4 mr-1.5" />
-                  Donated ({donations.length})
+                <TabsTrigger value="donated" className="text-xs sm:text-sm py-2.5 px-2 sm:px-3 min-w-0">
+                  <Package className="h-4 w-4 mr-1 sm:mr-1.5 shrink-0" />
+                  <span className="truncate">Donated ({donations.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="achievements" className="text-sm py-2.5">
-                  <Trophy className="h-4 w-4 mr-1.5" />
-                  Achievements
+                <TabsTrigger value="achievements" className="text-xs sm:text-sm py-2.5 px-2 sm:px-3 min-w-0">
+                  <Trophy className="h-4 w-4 mr-1 sm:mr-1.5 shrink-0" />
+                  <span className="truncate">Achievements</span>
                 </TabsTrigger>
               </>
             )}
             {userType === 'receiver' && (
-              <TabsTrigger value="received" className="text-sm py-2.5 col-span-2">
-                <Package className="h-4 w-4 mr-1.5" />
-                Received ({requests.length})
+              <TabsTrigger value="received" className="text-xs sm:text-sm py-2.5 px-2 sm:px-3 col-span-2 min-w-0">
+                <Package className="h-4 w-4 mr-1 sm:mr-1.5 shrink-0" />
+                <span className="truncate">Received ({requests.length})</span>
               </TabsTrigger>
             )}
           </TabsList>
