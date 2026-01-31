@@ -1,67 +1,48 @@
 
-# Plan: Open Full Profile Page on Mobile
+Goal
+- Fix the mobile donor-side overflow where the “History & Achievements” label spills outside its button/container (as shown in the screenshot).
 
-## Current Behavior
-When users tap on their avatar in the mobile navbar, a bottom sheet (`MobileMenu`) opens with:
-- User info (avatar, name, email, user type)
-- Quick action buttons: "Profile" and "History/Achievements"
-- App preferences (theme, language, notifications)
-- Account settings (change password, logout)
-- Help link
+What’s causing it
+- In `src/components/MobileMenu.tsx`, the “Quick Actions” area is a `grid grid-cols-2`, so each button gets ~50% width.
+- The Button base styles include `whitespace-nowrap`, and the label is currently rendered as plain text (no `min-w-0`, no `overflow-hidden`, no `truncate`), so the text can extend outside the button.
 
-The "Profile" button navigates to `/profile` but the user info is also displayed in the sheet itself.
+Changes to implement (no backend work)
+1) Make the Quick Actions layout responsive (stack on small phones)
+- File: `src/components/MobileMenu.tsx`
+- Change the container from:
+  - `grid grid-cols-2 ...`
+  to:
+  - `grid grid-cols-1 min-[420px]:grid-cols-2 ...`
+- This keeps 2 columns on larger phones/tablets, but stacks on narrow devices so the full label can fit without squeezing.
 
-## Requested Change
-When users tap on their avatar on mobile, they should be taken directly to the full Profile page (`/profile`) instead of opening the bottom sheet menu.
+2) Ensure the label can’t overflow even in 2-column mode
+- File: `src/components/MobileMenu.tsx`
+- For both Quick Action buttons (“Profile” and “History & Achievements”):
+  - Wrap the text in a `<span>` with `flex-1 min-w-0 truncate`
+  - Keep the icon as-is (it already has `shrink-0` via the Button component’s `[&_svg]:shrink-0`)
+- Example structure:
+  - `<Button ...>`
+    - icon
+    - `<span className="flex-1 min-w-0 truncate">...</span>`
+    - `</Button>`
+- Optionally add `overflow-hidden` to the Button class as extra safety.
 
-## Implementation
+3) Verify the History page tabs aren’t the source (already mostly handled)
+- File: `src/pages/History.tsx`
+- It already uses `min-w-0 overflow-hidden` on `TabsTrigger` + `truncate` on the inner `<span>`.
+- After fixing the MobileMenu Quick Actions, re-check the History page on mobile; only adjust further if a separate overflow still exists there.
 
-### Approach
-Modify the mobile navigation behavior so that:
-1. Tapping the avatar directly navigates to `/profile`
-2. Add a separate hamburger/menu icon button for accessing the settings menu (theme, language, notifications, logout, etc.)
+Acceptance checks (end-to-end)
+- On a narrow phone width (e.g., 360–390px):
+  - The Quick Actions should stack vertically (Profile on top, History & Achievements below) and text must stay inside the button.
+- On wider mobile/tablet:
+  - Quick Actions can show in 2 columns, but the “History & Achievements” label should truncate with ellipsis rather than overflow.
+- Confirm the tap targets still navigate correctly to `/profile` and `/history`.
 
-This provides:
-- Quick access to profile with a single tap
-- Settings and other options still accessible via a dedicated menu button
+Files to change
+- `src/components/MobileMenu.tsx` (primary fix)
+- `src/pages/History.tsx` (only if we still find a separate overflow after the menu fix)
 
-### File Changes
-
-**File: `src/components/Navbar.tsx`**
-
-1. For mobile users, change the avatar button to navigate directly to `/profile` instead of opening `MobileMenu`
-2. Add a separate menu icon button next to the avatar that opens `MobileMenu`
-3. Remove the user info header section from `MobileMenu` since the avatar now navigates directly to profile
-
-**File: `src/components/MobileMenu.tsx`**
-
-1. Change the trigger from an Avatar button to a Menu (hamburger) icon
-2. Remove the redundant user info section at the top of the sheet (since tapping avatar goes to profile now)
-3. Keep the "Profile" quick action button for convenience
-4. Clean up the layout to accommodate the new structure
-
----
-
-## Technical Details
-
-### Navbar.tsx Changes
-```text
-Lines 165-174: Replace MobileMenu avatar trigger with:
-- Direct Link to /profile wrapping the Avatar button
-- Separate MobileMenu component with a menu icon trigger
-```
-
-### MobileMenu.tsx Changes
-```text
-Lines 52-67: Change SheetTrigger from Avatar to Menu icon button
-Lines 73-91: Remove or simplify the user info header section
-```
-
-### Layout Structure (After Changes)
-```text
-Mobile Navbar: [Logo] [Dashboard] [Donate] [Notifications] [Avatar→Profile] [Menu Icon→Sheet]
-```
-
-This gives users:
-- One-tap access to their full profile
-- Separate menu button for settings, preferences, and logout
+Potential edge cases
+- Non-English languages can be longer/shorter; truncation + responsive stacking prevents breakage.
+- Very small devices: stacking plus truncation ensures nothing spills out.
