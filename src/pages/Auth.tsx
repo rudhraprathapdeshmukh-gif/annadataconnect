@@ -634,27 +634,30 @@ export default function Auth() {
             {isSignUp && (
               <div className="space-y-4">
                 <Label>{t('auth.iWantTo')}</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-2">
                   <Button
                     type="button"
                     variant={userType === 'donor' ? 'default' : 'outline'}
                     onClick={() => setUserType('donor')}
+                    className="overflow-hidden"
                   >
-                    {t('auth.donateFood')}
+                    <span className="truncate">{t('auth.donateFood')}</span>
                   </Button>
                   <Button
                     type="button"
                     variant={userType === 'receiver' ? 'default' : 'outline'}
                     onClick={() => setUserType('receiver')}
+                    className="overflow-hidden"
                   >
-                    {t('auth.receiveFood')}
+                    <span className="truncate">{t('auth.receiveFood')}</span>
                   </Button>
                   <Button
                     type="button"
                     variant={userType === 'both' ? 'default' : 'outline'}
                     onClick={() => setUserType('both')}
+                    className="overflow-hidden"
                   >
-                    {t('auth.both')}
+                    <span className="truncate">{t('auth.both')}</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
