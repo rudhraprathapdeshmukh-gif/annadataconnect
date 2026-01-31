@@ -162,32 +162,16 @@ export default function Navbar() {
                 
                 <NotificationBell />
                 
-                {/* Mobile: Avatar links to profile, separate menu for settings */}
+                {/* Mobile: Bottom Sheet Menu */}
                 {isMobile ? (
-                  <>
-                    <Link to="/profile">
-                      <Button variant="ghost" size="icon" className="relative rounded-full">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage 
-                            src={profile?.avatar_url || undefined} 
-                            alt={`${capitalizeName(profile?.first_name)} ${capitalizeName(profile?.last_name)}`}
-                            className="object-cover"
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {capitalizeName(profile?.first_name)?.[0] || capitalizeName(profile?.last_name)?.[0] || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </Link>
-                    <MobileMenu 
-                      user={user}
-                      profile={profile}
-                      onLanguageChange={handleLanguageChange}
-                      onNotificationChange={handleNotificationChange}
-                      onChangePassword={() => setShowChangePassword(true)}
-                      onLogout={() => setShowLogoutConfirm(true)}
-                    />
-                  </>
+                  <MobileMenu 
+                    user={user}
+                    profile={profile}
+                    onLanguageChange={handleLanguageChange}
+                    onNotificationChange={handleNotificationChange}
+                    onChangePassword={() => setShowChangePassword(true)}
+                    onLogout={() => setShowLogoutConfirm(true)}
+                  />
                 ) : (
                   /* Desktop: Flat Dropdown Menu */
                   <DropdownMenu>
