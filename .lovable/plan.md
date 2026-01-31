@@ -1,190 +1,67 @@
 
-# Plan: Mobile Accessibility & Layout Fixes
+# Plan: Open Full Profile Page on Mobile
 
-## Problem Analysis
+## Current Behavior
+When users tap on their avatar in the mobile navbar, a bottom sheet (`MobileMenu`) opens with:
+- User info (avatar, name, email, user type)
+- Quick action buttons: "Profile" and "History/Achievements"
+- App preferences (theme, language, notifications)
+- Account settings (change password, logout)
+- Help link
 
-After exploring the codebase, I've identified several mobile UX issues:
+The "Profile" button navigates to `/profile` but the user info is also displayed in the sheet itself.
 
-### 1. **Index Page (Home)**
-- Hero text `text-5xl` is too large for mobile screens causing text overflow
-- Welcome message with user name can overflow on smaller screens  
-- Container padding `px-4` combined with large text causes congestion
-- Floating food icons create visual clutter on mobile
+## Requested Change
+When users tap on their avatar on mobile, they should be taken directly to the full Profile page (`/profile`) instead of opening the bottom sheet menu.
 
-### 2. **Dashboard Page**
-- Welcome message can overflow with long names
-- Cards don't adapt well to narrow screens
-- Tab triggers may overflow horizontally
+## Implementation
 
-### 3. **Donate Form**
-- Form is well-structured but some text labels overflow
-- Date/Time picker area feels cramped
-- Button text can overflow on narrow screens
+### Approach
+Modify the mobile navigation behavior so that:
+1. Tapping the avatar directly navigates to `/profile`
+2. Add a separate hamburger/menu icon button for accessing the settings menu (theme, language, notifications, logout, etc.)
 
-### 4. **History Page**  
-- Stats cards `grid-cols-3` can feel cramped on very small screens
-- Tab labels may truncate poorly
-- Card content text can overflow containers
+This provides:
+- Quick access to profile with a single tap
+- Settings and other options still accessible via a dedicated menu button
 
-### 5. **ImpactScoreCard (Achievements)**
-- Badge grid works well but badge names may truncate
-- Horizontal scrollable stats work but may not be obvious
+### File Changes
 
-### 6. **Global Issues**
-- Container has `padding: 2rem` which is too much on mobile
-- Some fixed widths cause overflow
-- Font sizes don't scale appropriately for mobile
+**File: `src/components/Navbar.tsx`**
 
----
+1. For mobile users, change the avatar button to navigate directly to `/profile` instead of opening `MobileMenu`
+2. Add a separate menu icon button next to the avatar that opens `MobileMenu`
+3. Remove the user info header section from `MobileMenu` since the avatar now navigates directly to profile
 
-## Implementation Plan
+**File: `src/components/MobileMenu.tsx`**
 
-### Phase 1: Global Mobile Improvements
-
-**File: `src/index.css`**
-- Reduce container padding on mobile using responsive utilities
-- Add text wrapping utilities
-- Improve touch target visibility
-
-**File: `tailwind.config.ts`**  
-- Adjust container padding to be responsive (`padding: { DEFAULT: '1rem', md: '2rem' }`)
+1. Change the trigger from an Avatar button to a Menu (hamburger) icon
+2. Remove the redundant user info section at the top of the sheet (since tapping avatar goes to profile now)
+3. Keep the "Profile" quick action button for convenience
+4. Clean up the layout to accommodate the new structure
 
 ---
 
-### Phase 2: Index Page Mobile Fixes
+## Technical Details
 
-**File: `src/pages/Index.tsx`**
+### Navbar.tsx Changes
+```text
+Lines 165-174: Replace MobileMenu avatar trigger with:
+- Direct Link to /profile wrapping the Avatar button
+- Separate MobileMenu component with a menu icon trigger
+```
 
-Changes:
-1. **Hero Section**
-   - Reduce heading size: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl`
-   - Add `break-words` to prevent text overflow
-   - Hide floating food icons on mobile (`hidden sm:block`)
-   - Reduce section padding on mobile: `py-12 md:py-20 lg:py-28`
+### MobileMenu.tsx Changes
+```text
+Lines 52-67: Change SheetTrigger from Avatar to Menu icon button
+Lines 73-91: Remove or simplify the user info header section
+```
 
-2. **Welcome Message (logged in)**
-   - Truncate long names or use smaller text on mobile
-   - Use `text-2xl sm:text-4xl md:text-5xl` for name
+### Layout Structure (After Changes)
+```text
+Mobile Navbar: [Logo] [Dashboard] [Donate] [Notifications] [Avatar→Profile] [Menu Icon→Sheet]
+```
 
-3. **Active Donations Grid**
-   - Ensure cards scale properly
-   - Add `min-w-0` to prevent text overflow in flex containers
-   - Truncate location text with `line-clamp-2`
-
-4. **Features Section**
-   - Reduce card padding on mobile
-   - Stack cards properly with appropriate gaps
-
-5. **Footer**
-   - Hide bullet separators on mobile, use vertical layout instead
-
----
-
-### Phase 3: Dashboard Mobile Fixes
-
-**File: `src/pages/Dashboard.tsx`**
-
-Changes:
-1. **Header Section**
-   - Already has some mobile fixes, add `min-w-0` for flex children
-   - Ensure welcome text wraps properly with `break-words`
-
-2. **Tabs**
-   - Make tabs scrollable horizontally if needed
-   - Reduce tab text size on mobile
-
-3. **Cards**
-   - Add proper text truncation
-   - Ensure images don't push content out
-
----
-
-### Phase 4: Donate Form Mobile Fixes
-
-**File: `src/components/DonateFormStep1.tsx`**
-- Already well-designed, minor spacing adjustments
-
-**File: `src/components/DonateFormStep2.tsx`**
-- Reduce time picker width on mobile
-- Improve grid layout for location fields
-
-**File: `src/pages/Donate.tsx`**
-- Reduce container max-width slightly for more breathing room
-
----
-
-### Phase 5: History Page Mobile Fixes
-
-**File: `src/pages/History.tsx`**
-
-Changes:
-1. **Stats Grid**
-   - Use `grid-cols-3` but with smaller padding on mobile
-   - Reduce font sizes for very small screens
-
-2. **Tabs**
-   - Add horizontal scroll overflow if needed
-   - Use icons only on very small screens
-
-3. **Cards**
-   - Already using good layout with image + content side by side
-   - Ensure text truncation works properly
-
----
-
-### Phase 6: Impact Score Card Mobile Fixes
-
-**File: `src/components/ImpactScoreCard.tsx`**
-
-Changes:
-1. **Badge Grid** (already 3 cols on mobile - good)
-   - Reduce badge name text size slightly
-   - Ensure proper wrapping
-
-2. **Progress Section**
-   - Already responsive
-
-3. **Stats Row**
-   - Already uses horizontal scroll - good
-
----
-
-## Technical Changes Summary
-
-| File | Changes |
-|------|---------|
-| `tailwind.config.ts` | Responsive container padding |
-| `src/index.css` | Mobile utility classes, reduced base spacing |
-| `src/pages/Index.tsx` | Responsive text sizes, hide decorative elements on mobile, text wrapping |
-| `src/pages/Dashboard.tsx` | Text truncation, min-width fixes, responsive padding |
-| `src/pages/Donate.tsx` | Container width adjustments |
-| `src/components/DonateFormStep2.tsx` | Time picker grid improvements |
-| `src/pages/History.tsx` | Stats grid spacing, tab overflow handling |
-| `src/components/ImpactScoreCard.tsx` | Minor text size adjustments |
-| `src/components/Navbar.tsx` | Minor spacing tweaks if needed |
-
----
-
-## Key Improvements
-
-1. **Text Overflow Prevention**
-   - Add `break-words`, `truncate`, `line-clamp-*` where needed
-   - Use `min-w-0` in flex containers to allow shrinking
-
-2. **Responsive Typography**
-   - Scale down heading sizes significantly for mobile
-   - Use `text-sm` base with `md:text-base` for body text
-
-3. **Reduced Congestion**
-   - Less padding on mobile (`p-3` instead of `p-4`)
-   - Hide decorative elements (floating icons, background blobs)
-   - Simpler layouts with more whitespace
-
-4. **Better Touch Targets**
-   - Ensure buttons and interactive elements are at least 44px
-   - Add padding to clickable areas
-
-5. **Horizontal Scroll Prevention**
-   - Use `overflow-hidden` on containers
-   - Truncate long text
-   - Use flexible widths instead of fixed
+This gives users:
+- One-tap access to their full profile
+- Separate menu button for settings, preferences, and logout
