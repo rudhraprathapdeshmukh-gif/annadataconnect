@@ -93,17 +93,17 @@ export function MobileMenu({
         <Separator className="mb-4" />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 mb-4">
           <Link to="/profile" onClick={handleClose}>
-            <Button variant="outline" className="w-full h-12 gap-2">
-              <User className="h-4 w-4" />
-              {t('nav.profile')}
+            <Button variant="outline" className="w-full h-12 gap-2 overflow-hidden">
+              <User className="h-4 w-4 shrink-0" />
+              <span className="flex-1 min-w-0 truncate">{t('nav.profile')}</span>
             </Button>
           </Link>
           <Link to="/history" onClick={handleClose}>
-            <Button variant="outline" className="w-full h-12 gap-2">
-              {isDonor ? <Trophy className="h-4 w-4" /> : <History className="h-4 w-4" />}
-              {isDonor ? t('nav.historyAchievements') : t('nav.history')}
+            <Button variant="outline" className="w-full h-12 gap-2 overflow-hidden">
+              {isDonor ? <Trophy className="h-4 w-4 shrink-0" /> : <History className="h-4 w-4 shrink-0" />}
+              <span className="flex-1 min-w-0 truncate">{isDonor ? t('nav.historyAchievements') : t('nav.history')}</span>
             </Button>
           </Link>
         </div>
