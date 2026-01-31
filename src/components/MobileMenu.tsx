@@ -7,7 +7,6 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useState } from 'react';
 
@@ -24,14 +23,6 @@ const LANGUAGES = [
   { value: 'en', label: 'EN' },
   { value: 'te', label: 'తె' },
 ];
-
-const capitalizeName = (name: string | null | undefined): string => {
-  if (!name) return '';
-  return name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
 
 export function MobileMenu({ 
   user, 
@@ -52,17 +43,8 @@ export function MobileMenu({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full">
-          <Avatar className="h-9 w-9">
-            <AvatarImage 
-              src={profile?.avatar_url || undefined} 
-              alt={`${capitalizeName(profile?.first_name)} ${capitalizeName(profile?.last_name)}`}
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {capitalizeName(profile?.first_name)?.[0] || capitalizeName(profile?.last_name)?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
+        <Button variant="ghost" size="icon" className="h-9 w-9">
+          <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl overflow-y-auto">
@@ -70,28 +52,6 @@ export function MobileMenu({
           <SheetTitle className="sr-only">Menu</SheetTitle>
         </SheetHeader>
         
-        {/* User Info */}
-        <div className="flex items-center gap-3 pb-4">
-          <Avatar className="h-14 w-14">
-            <AvatarImage 
-              src={profile?.avatar_url || undefined} 
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-primary/10 text-primary text-xl">
-              {capitalizeName(profile?.first_name)?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-foreground truncate">
-              {capitalizeName(profile?.first_name)} {capitalizeName(profile?.last_name) || 'User'}
-            </p>
-            <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-            <p className="text-xs text-primary capitalize">{profile?.user_type || 'both'}</p>
-          </div>
-        </div>
-
-        <Separator className="mb-4" />
-
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <Link to="/profile" onClick={handleClose}>
