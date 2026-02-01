@@ -482,9 +482,21 @@ export default function Profile() {
                     <Label className="text-sm text-muted-foreground">Email</Label>
                     <p className="font-medium">{userProfile?.email}</p>
                   </div>
-                  <div>
+                <div>
                     <Label className="text-sm text-muted-foreground">Phone</Label>
                     <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">{t('profile.userType')}</Label>
+                    <div className="mt-1">
+                      <Badge variant="secondary">
+                        {userProfile?.user_type === 'both' 
+                          ? t('profile.donorReceiver') 
+                          : userProfile?.user_type === 'donor' 
+                            ? t('profile.donor') 
+                            : t('profile.receiver')}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
