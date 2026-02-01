@@ -226,6 +226,7 @@
     "updateAddress": "Update Address",
     "cancel": "Cancel",
     "detectingLocation": "Detecting...",
+    "userType": "User Type",
     "donor": "Donor",
     "receiver": "Receiver",
     "donorReceiver": "Donor & Receiver",
