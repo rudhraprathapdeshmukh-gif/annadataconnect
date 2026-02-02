@@ -96,7 +96,7 @@ export function DonateFormStep2({
   const constraints = getDateConstraints();
 
   const getDateHelpText = () => {
-    if (isPreparedFood) return 'Prepared food: Select pickup within 2 days';
+    if (isPreparedFood) return 'Prepared food: Approx expiry within 2 days';
     if (isVegetableOrFruit) return 'Vegetables/Fruits: Expiry within 4 days';
     if (isDairy) return 'Dairy: Expiry within 2 days';
     if (isGrains) return 'Grains: Expiry within 5 months';
@@ -110,7 +110,7 @@ export function DonateFormStep2({
         <div className="flex items-center gap-2 mb-2">
           <CalendarIcon className="h-5 w-5 text-primary" />
           <Label className="text-base font-semibold">
-            {isPreparedFood ? 'Pickup Date & Time *' : 'Expiry Date & Time *'}
+            Approx Expiry Date & Time *
           </Label>
         </div>
         
