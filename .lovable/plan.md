@@ -1,50 +1,36 @@
 
 
-# Plan: Show User Type in Profile Page
+# Plan: Fix Date Label from "Pickup" to "Approx Expiry Date"
 
-## Overview
-Add the user type (Donor, Receiver, or Both) display to the own profile view section. Currently, the user type is only shown when viewing another user's profile, but not when viewing your own profile.
+## Issue
+The donate form Step 2 incorrectly displays "Pickup Date & Time" for prepared food. It should consistently show "Approx Expiry Date & Time" for all food types since the field is asking when the food will expire, not when it should be picked up.
 
-## Current State
-- **Other Users' Profiles**: Shows user type badge (Donor, Receiver, or Donor & Receiver)
-- **Own Profile**: Does NOT show user type - only displays name, email, phone, and avatar
+## Current Behavior
+- **Prepared Food**: Shows "Pickup Date & Time *" (incorrect)
+- **Other Food Types**: Shows "Expiry Date & Time *" (correct)
+- **Help Text for Prepared Food**: "Prepared food: Select pickup within 2 days" (incorrect)
 
-## Implementation
+## Solution
+Change all labels and help text to consistently use "Approx Expiry Date & Time" terminology.
 
-### File: `src/pages/Profile.tsx`
+## File Changes
 
-Add a "User Type" field in the "Personal Information" card, right after the "Phone" field. This will show the user's role using a Badge component with proper translations.
+### File: `src/components/DonateFormStep2.tsx`
 
-**Location**: Lines 485-489 (after the Phone field section)
-
-**Change**: Add a new section for User Type display:
+**Change 1 - Line 113 (Label)**
 ```
-<div>
-  <Label className="text-sm text-muted-foreground">User Type</Label>
-  <div className="mt-1">
-    <Badge variant="secondary">
-      {userProfile?.user_type === 'both' 
-        ? t('profile.donorReceiver') 
-        : userProfile?.user_type === 'donor' 
-          ? t('profile.donor') 
-          : t('profile.receiver')}
-    </Badge>
-  </div>
-</div>
+Before: {isPreparedFood ? 'Pickup Date & Time *' : 'Expiry Date & Time *'}
+After:  'Approx Expiry Date & Time *'
 ```
 
-## Visual Result
-The Profile page will now show:
-- Name
-- Email  
-- Phone
-- **User Type** (with a badge showing "Donor", "Receiver", or "Donor & Receiver")
+**Change 2 - Line 99 (Help Text)**
+```
+Before: if (isPreparedFood) return 'Prepared food: Select pickup within 2 days';
+After:  if (isPreparedFood) return 'Prepared food: Approx expiry within 2 days';
+```
 
-This matches the style already used in the public profile view and works on both mobile and desktop since the Profile page is already responsive.
-
-## Translation Support
-Uses existing translation keys:
-- `profile.donor` → "Donor" / "దాత"
-- `profile.receiver` → "Receiver" / "స్వీకర్త"  
-- `profile.donorReceiver` → "Donor & Receiver" / "దాత & స్వీకర్త"
+## Result
+- The label will always show **"Approx Expiry Date & Time *"** for all food types
+- The help text will clarify the expiry window based on food type
+- No conditional logic needed for the label anymore - it's consistent across all food types
 
