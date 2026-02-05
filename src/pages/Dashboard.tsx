@@ -1131,7 +1131,7 @@ export default function Dashboard() {
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
-                            <span>Pickup by: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
+                            <span>Approx. Expiry: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
                               hour: 'numeric',
                               minute: '2-digit',
                               hour12: true
