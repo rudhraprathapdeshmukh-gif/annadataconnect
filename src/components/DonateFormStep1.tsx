@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,12 @@ export function DonateFormStep1({
   onNext,
 }: DonateFormStep1Props) {
   const { t } = useTranslation();
+  const [isCustomQuantity, setIsCustomQuantity] = useState(false);
+
+  useEffect(() => {
+    const num = parseInt(formData.quantity);
+    setIsCustomQuantity(num > 9 || isNaN(num) || formData.quantity === '');
+  }, []);
 
   const handleNext = () => {
     // Validate step 1 fields
@@ -141,13 +148,55 @@ export function DonateFormStep1({
       <div className="space-y-2">
         <Label className="text-base font-semibold">Quantity *</Label>
         <div className="flex gap-2">
-          <Input
-            id="quantity"
-            value={formData.quantity}
-            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-            placeholder="e.g., 5"
-            className="flex-1 h-12"
-          />
+          {isCustomQuantity ? (
+            <div className="flex-1 flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="99"
+                value={formData.quantity}
+                onChange={(e) => {
+                  const val = Math.min(99, Math.max(1, parseInt(e.target.value) || 0));
+                  setFormData({ ...formData, quantity: val.toString() });
+                }}
+                placeholder="10-99"
+                className="flex-1 h-12"
+              />
+              <Button 
+                type="button"
+                variant="outline" 
+                className="h-12"
+                onClick={() => {
+                  setIsCustomQuantity(false);
+                  setFormData({ ...formData, quantity: '1' });
+                }}
+              >
+                Presets
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={formData.quantity}
+              onValueChange={(value) => {
+                if (value === 'custom') {
+                  setIsCustomQuantity(true);
+                  setFormData({ ...formData, quantity: '' });
+                } else {
+                  setFormData({ ...formData, quantity: value });
+                }
+              }}
+            >
+              <SelectTrigger className="flex-1 h-12">
+                <SelectValue placeholder="Select quantity" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                ))}
+                <SelectItem value="custom">Custom (10-99)...</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select
             value={formData.quantity_unit}
             onValueChange={(value) => setFormData({ ...formData, quantity_unit: value })}
