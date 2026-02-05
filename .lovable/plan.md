@@ -1,36 +1,94 @@
 
+# Plan: Change Quantity Field to Dropdown with Manual Entry Option
 
-# Plan: Fix Date Label from "Pickup" to "Approx Expiry Date"
+## Overview
+Replace the current text input for quantity with a dropdown select that offers preset values (1-9) plus a "Custom" option that allows users to enter any number up to 99.
 
-## Issue
-The donate form Step 2 incorrectly displays "Pickup Date & Time" for prepared food. It should consistently show "Approx Expiry Date & Time" for all food types since the field is asking when the food will expire, not when it should be picked up.
+## Current State
+- Simple text input field for quantity
+- Users can type any value freely
+- No validation for maximum value
 
-## Current Behavior
-- **Prepared Food**: Shows "Pickup Date & Time *" (incorrect)
-- **Other Food Types**: Shows "Expiry Date & Time *" (correct)
-- **Help Text for Prepared Food**: "Prepared food: Select pickup within 2 days" (incorrect)
+## Implementation
 
-## Solution
-Change all labels and help text to consistently use "Approx Expiry Date & Time" terminology.
+### File: `src/components/DonateFormStep1.tsx`
 
-## File Changes
+**Change the quantity input section (lines 143-150)**
 
-### File: `src/components/DonateFormStep2.tsx`
+Replace the current `<Input>` with a hybrid approach:
+1. A `<Select>` dropdown with options 1-9 plus "Custom..."
+2. When "Custom" is selected, show an input field for manual entry (1-99)
 
-**Change 1 - Line 113 (Label)**
+**New Logic:**
+```tsx
+// Add state to track if custom mode is active
+const [isCustomQuantity, setIsCustomQuantity] = useState(false);
+
+// Check if current value is a preset (1-9) or custom
+useEffect(() => {
+  const num = parseInt(formData.quantity);
+  setIsCustomQuantity(num > 9 || isNaN(num) || formData.quantity === '');
+}, []);
 ```
-Before: {isPreparedFood ? 'Pickup Date & Time *' : 'Expiry Date & Time *'}
-After:  'Approx Expiry Date & Time *'
-```
 
-**Change 2 - Line 99 (Help Text)**
-```
-Before: if (isPreparedFood) return 'Prepared food: Select pickup within 2 days';
-After:  if (isPreparedFood) return 'Prepared food: Approx expiry within 2 days';
+**New UI Structure:**
+```tsx
+{/* Quantity */}
+<div className="space-y-2">
+  <Label className="text-base font-semibold">Quantity *</Label>
+  <div className="flex gap-2">
+    {isCustomQuantity ? (
+      <div className="flex-1 flex gap-2">
+        <Input
+          type="number"
+          min="1"
+          max="99"
+          value={formData.quantity}
+          onChange={(e) => {
+            const val = Math.min(99, Math.max(1, parseInt(e.target.value) || 0));
+            setFormData({ ...formData, quantity: val.toString() });
+          }}
+          className="flex-1 h-12"
+        />
+        <Button variant="outline" onClick={() => {
+          setIsCustomQuantity(false);
+          setFormData({ ...formData, quantity: '1' });
+        }}>
+          Presets
+        </Button>
+      </div>
+    ) : (
+      <Select
+        value={formData.quantity}
+        onValueChange={(value) => {
+          if (value === 'custom') {
+            setIsCustomQuantity(true);
+            setFormData({ ...formData, quantity: '' });
+          } else {
+            setFormData({ ...formData, quantity: value });
+          }
+        }}
+      >
+        <SelectTrigger className="flex-1 h-12">
+          <SelectValue placeholder="Select quantity" />
+        </SelectTrigger>
+        <SelectContent>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+          ))}
+          <SelectItem value="custom">Custom (10-99)...</SelectItem>
+        </SelectContent>
+      </Select>
+    )}
+    {/* Unit selector remains unchanged */}
+    <Select ... />
+  </div>
+</div>
 ```
 
 ## Result
-- The label will always show **"Approx Expiry Date & Time *"** for all food types
-- The help text will clarify the expiry window based on food type
-- No conditional logic needed for the label anymore - it's consistent across all food types
-
+- Users see a clean dropdown with options 1-9
+- Selecting "Custom (10-99)..." switches to an input field
+- Input field is limited to numbers 1-99
+- "Presets" button returns to dropdown mode
+- Works on both mobile and desktop
