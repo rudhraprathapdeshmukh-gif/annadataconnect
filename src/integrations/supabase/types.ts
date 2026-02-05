@@ -167,6 +167,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "food_requests_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "public_food_donations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "food_requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: false
@@ -221,6 +228,13 @@ export type Database = {
             columns: ["donation_id"]
             isOneToOne: false
             referencedRelation: "food_donations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "public_food_donations"
             referencedColumns: ["id"]
           },
         ]
@@ -365,7 +379,74 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_food_donations: {
+        Row: {
+          approx_latitude: number | null
+          approx_longitude: number | null
+          created_at: string | null
+          description: string | null
+          diet_type: string | null
+          donor_id: string | null
+          expiry_date: string | null
+          food_type: string | null
+          id: string | null
+          image_url: string | null
+          pickup_location: string | null
+          quantity: string | null
+          quantity_unit: string | null
+          rating: number | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approx_latitude?: never
+          approx_longitude?: never
+          created_at?: string | null
+          description?: string | null
+          diet_type?: string | null
+          donor_id?: string | null
+          expiry_date?: string | null
+          food_type?: string | null
+          id?: string | null
+          image_url?: string | null
+          pickup_location?: string | null
+          quantity?: string | null
+          quantity_unit?: string | null
+          rating?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approx_latitude?: never
+          approx_longitude?: never
+          created_at?: string | null
+          description?: string | null
+          diet_type?: string | null
+          donor_id?: string | null
+          expiry_date?: string | null
+          food_type?: string | null
+          id?: string | null
+          image_url?: string | null
+          pickup_location?: string | null
+          quantity?: string | null
+          quantity_unit?: string | null
+          rating?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_donations_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_public_donations: {
