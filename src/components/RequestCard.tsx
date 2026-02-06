@@ -380,7 +380,9 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           <ChatDialog
             donationId={request.food_donations.id}
             otherUserId={request.food_donations.donor_id}
-            otherUserName="Donor"
+            otherUserName={request.food_donations.donor_profile
+              ? `${request.food_donations.donor_profile.first_name} ${request.food_donations.donor_profile.last_name}`
+              : 'Donor'}
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
             buttonText="Chat"
