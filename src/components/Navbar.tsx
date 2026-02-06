@@ -204,6 +204,7 @@ export default function Navbar() {
                               {capitalizeName(profile?.first_name)} {capitalizeName(profile?.last_name) || 'User'}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            <p className="text-xs text-primary capitalize mt-0.5">{profile?.user_type || 'both'}</p>
                           </div>
                         </div>
                       </DropdownMenuLabel>

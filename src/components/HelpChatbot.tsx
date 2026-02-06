@@ -38,21 +38,21 @@ interface ChatInputProps {
 
 const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => (
   <ScrollArea className="flex-1 p-4">
-    <div className="space-y-4">
+    <div className="space-y-3">
       {messages.map((msg, idx) => (
         <div
           key={idx}
           className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div
-            className={`max-w-[85%] md:max-w-[80%] rounded-lg p-3 ${
+            className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${
               msg.role === 'user'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted'
+                ? 'bg-primary text-primary-foreground rounded-br-md'
+                : 'bg-muted rounded-bl-md'
             }`}
           >
-            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-            <p className="text-xs opacity-70 mt-1">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+            <p className="text-[10px] opacity-60 mt-1 text-right">
               {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
@@ -60,8 +60,12 @@ const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => (
       ))}
       {isLoading && (
         <div className="flex justify-start">
-          <div className="bg-muted rounded-lg p-3">
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:0ms]" />
+              <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:150ms]" />
+              <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:300ms]" />
+            </div>
           </div>
         </div>
       )}
@@ -77,21 +81,21 @@ const ChatInput = ({
   isLoading,
   placeholder
 }: ChatInputProps) => (
-  <div className="border-t p-4">
-    <div className="flex gap-2">
+  <div className="border-t bg-background/80 backdrop-blur-sm p-3">
+    <div className="flex gap-2 items-end">
       <Input
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
         onKeyPress={handleKeyPress}
         placeholder={placeholder}
         disabled={isLoading}
-        className="flex-1 h-11"
+        className="flex-1 h-10 rounded-full px-4 bg-muted/50 border-muted-foreground/20"
       />
       <Button
         onClick={sendMessage}
         disabled={!inputMessage.trim() || isLoading}
         size="icon"
-        className="h-11 w-11 shrink-0"
+        className="h-10 w-10 shrink-0 rounded-full"
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -180,19 +184,17 @@ export default function HelpChatbot() {
 
       {isOpen && isMobile ? (
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerContent className="h-[95vh] flex flex-col pb-6">
-            <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4">
-              <DrawerTitle className="text-lg flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
+          <DrawerContent className="h-[90vh] flex flex-col">
+            <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
+              <DrawerTitle className="text-base font-semibold flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                </div>
                 {t('chatbot.title')}
               </DrawerTitle>
               <DrawerClose asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                >
-                  <X className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <X className="h-4 w-4" />
                 </Button>
               </DrawerClose>
             </DrawerHeader>
@@ -210,19 +212,21 @@ export default function HelpChatbot() {
           </DrawerContent>
         </Drawer>
       ) : isOpen ? (
-        <Card className="hidden md:flex fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-[999] flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
+        <Card className="hidden md:flex fixed bottom-6 right-6 w-[380px] h-[480px] shadow-2xl z-[999] flex-col rounded-2xl border-border/50 overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 border-b bg-card">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 text-primary" />
+              </div>
               {t('chatbot.title')}
             </CardTitle>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-9 w-9 md:h-8 md:w-8"
+              className="h-8 w-8 rounded-full"
             >
-              <X className="h-5 w-5 md:h-4 md:w-4" />
+              <X className="h-4 w-4" />
             </Button>
           </CardHeader>
 
