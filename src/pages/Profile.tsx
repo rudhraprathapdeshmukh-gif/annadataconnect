@@ -53,6 +53,7 @@ export default function Profile() {
   });
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [deleteConfirmAddress, setDeleteConfirmAddress] = useState<SavedAddress | null>(null);
+  const [donorDonationCount, setDonorDonationCount] = useState<number>(0);
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
@@ -63,10 +64,24 @@ export default function Profile() {
     }
   }, [user, loading, navigate]);
 
+  const fetchDonorDonationCount = async () => {
+    if (!profileUserId) return;
+    try {
+      const { count } = await supabase
+        .from('food_donations')
+        .select('*', { count: 'exact', head: true })
+        .eq('donor_id', profileUserId);
+      setDonorDonationCount(count || 0);
+    } catch (error) {
+      console.error('Failed to fetch donor donation count:', error);
+    }
+  };
+
   useEffect(() => {
     if (profileUserId) {
       fetchUserProfile();
       fetchAverageRating();
+      fetchDonorDonationCount();
       if (isOwnProfile) {
         fetchSavedAddresses();
       }
@@ -429,7 +444,11 @@ export default function Profile() {
                       <p className="text-xs text-muted-foreground">
                         {userProfile.user_type === 'receiver' ? 'Accepted Donations' : 'Total Donations'}
                       </p>
-                      <p className="font-medium">{userProfile.total_pickups || 0}</p>
+                      <p className="font-medium">
+                        {userProfile.user_type === 'receiver'
+                          ? (userProfile.total_pickups || 0)
+                          : donorDonationCount}
+                      </p>
                     </div>
                   </div>
                 </div>
