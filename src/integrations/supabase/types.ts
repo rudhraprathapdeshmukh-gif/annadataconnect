@@ -282,6 +282,8 @@ export type Database = {
           id: string
           language: string | null
           last_name: string | null
+          latitude: number | null
+          longitude: number | null
           no_show_count: number | null
           notification_email: boolean | null
           notification_push: boolean | null
@@ -302,6 +304,8 @@ export type Database = {
           id: string
           language?: string | null
           last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
           no_show_count?: number | null
           notification_email?: boolean | null
           notification_push?: boolean | null
@@ -322,6 +326,8 @@ export type Database = {
           id?: string
           language?: string | null
           last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
           no_show_count?: number | null
           notification_email?: boolean | null
           notification_push?: boolean | null

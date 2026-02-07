@@ -262,6 +262,15 @@ export default function Profile() {
           const completeAddress = addressParts.join(', ');
           
           setAddressFormData(prev => ({ ...prev, city, area, complete_address: completeAddress }));
+          
+          // Also update profile location for proximity notifications
+          if (user?.id) {
+            await supabase
+              .from('profiles')
+              .update({ latitude, longitude })
+              .eq('id', user.id);
+          }
+          
           toast.success('Location detected successfully');
         },
         (error) => {
@@ -367,6 +376,16 @@ export default function Profile() {
         .eq('id', addressId);
 
       if (error) throw error;
+
+      // Sync default address location to profile for proximity notifications
+      const defaultAddr = savedAddresses.find(a => a.id === addressId);
+      if (defaultAddr?.latitude && defaultAddr?.longitude && user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ latitude: defaultAddr.latitude, longitude: defaultAddr.longitude })
+          .eq('id', user.id);
+      }
+
       toast.success('Default address updated');
       fetchSavedAddresses();
     } catch (error) {

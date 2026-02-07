@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.send-completion-email]
 verify_jwt = false
+
+[functions.notify-nearby-users]
+verify_jwt = false
