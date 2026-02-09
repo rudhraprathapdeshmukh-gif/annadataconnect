@@ -1438,7 +1438,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         await supabase.functions.invoke('send-completion-email', {
           body: { requestId: request.id }
         });
-        console.log('Completion emails sent successfully');
+        if (import.meta.env.DEV) console.log('Completion emails sent successfully');
       } catch (emailError) {
         console.error('Failed to send completion emails:', emailError);
         // Don't show error to user - email is not critical

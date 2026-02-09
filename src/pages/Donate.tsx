@@ -357,7 +357,9 @@ export default function Donate() {
         .getPublicUrl(fileName);
 
       const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpArray = new Uint32Array(1);
+      crypto.getRandomValues(otpArray);
+      const otp = ((otpArray[0] % 900000) + 100000).toString();
 
       const { data: donationData, error } = await supabase
         .from('food_donations')
