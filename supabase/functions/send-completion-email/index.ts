@@ -200,34 +200,52 @@ function getReceiverEmailHtml(receiverName: string, donationTitle: string, quant
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { requestId }: EmailRequest = await req.json();
-    console.log("Processing completion email for request:", requestId);
+    console.log("Processing completion email for request:", requestId, "by user:", userId);
 
     if (!requestId) {
       throw new Error("Request ID is required");
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // Create admin Supabase client for data access
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch the request with donation details
     const { data: request, error: requestError } = await supabase
       .from("food_requests")
-      .select(`
-        id,
-        requester_id,
-        donation_id,
-        accepted_at,
-        actual_pickup_at
-      `)
+      .select(`id, requester_id, donation_id, accepted_at, actual_pickup_at`)
       .eq("id", requestId)
       .single();
 
@@ -236,9 +254,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to fetch request details");
     }
 
-    console.log("Request data:", request);
-
-    // Fetch donation details
+    // Fetch donation to verify caller is participant
     const { data: donation, error: donationError } = await supabase
       .from("food_donations")
       .select("id, title, quantity, quantity_unit, donor_id")
@@ -250,9 +266,15 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to fetch donation details");
     }
 
-    console.log("Donation data:", donation);
+    // Verify caller is donor or receiver
+    if (userId !== donation.donor_id && userId !== request.requester_id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Fetch donor profile with notification preference
+    // Fetch donor profile
     const { data: donor, error: donorError } = await supabase
       .from("profiles")
       .select("id, first_name, last_name, email, notification_email")
@@ -264,9 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to fetch donor details");
     }
 
-    console.log("Donor data:", donor);
-
-    // Fetch receiver profile with notification preference
+    // Fetch receiver profile
     const { data: receiver, error: receiverError } = await supabase
       .from("profiles")
       .select("id, first_name, last_name, email, notification_email")
@@ -278,11 +298,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to fetch receiver details");
     }
 
-    console.log("Receiver data:", receiver);
-
     // Calculate time taken
     const timeTaken = formatTimeTaken(request.accepted_at, request.actual_pickup_at);
-    console.log("Time taken:", timeTaken);
 
     // Format names
     const donorName = `${donor.first_name || ''} ${donor.last_name || ''}`.trim() || 'Donor';
@@ -292,95 +309,45 @@ const handler = async (req: Request): Promise<Response> => {
     let donorEmailSkipped = false;
     let receiverEmailSkipped = false;
 
-    // Send email to donor only if they have email notifications enabled
     if (donor.email && donor.notification_email !== false) {
-      console.log("Sending email to donor:", donor.email);
       emailPromises.push(
         resend.emails.send({
           from: "Annadataconnect <onboarding@resend.dev>",
           to: [donor.email],
           subject: "🎉 Donation Completed! Thank you for sharing food",
-          html: getDonorEmailHtml(
-            donorName,
-            donation.title,
-            donation.quantity,
-            donation.quantity_unit,
-            receiverName,
-            timeTaken
-          ),
+          html: getDonorEmailHtml(donorName, donation.title, donation.quantity, donation.quantity_unit, receiverName, timeTaken),
         })
       );
     } else {
       donorEmailSkipped = true;
-      console.log("Skipping donor email - notification_email is disabled or email not set");
     }
 
-    // Send email to receiver only if they have email notifications enabled
     if (receiver.email && receiver.notification_email !== false) {
-      console.log("Sending email to receiver:", receiver.email);
       emailPromises.push(
         resend.emails.send({
           from: "Annadataconnect <onboarding@resend.dev>",
           to: [receiver.email],
           subject: "🍲 Pickup Confirmed! Thank you for using Annadataconnect",
-          html: getReceiverEmailHtml(
-            receiverName,
-            donation.title,
-            donation.quantity,
-            donation.quantity_unit,
-            donorName,
-            timeTaken
-          ),
+          html: getReceiverEmailHtml(receiverName, donation.title, donation.quantity, donation.quantity_unit, donorName, timeTaken),
         })
       );
     } else {
       receiverEmailSkipped = true;
-      console.log("Skipping receiver email - notification_email is disabled or email not set");
     }
 
-    // Wait for all emails to send
     const results = await Promise.allSettled(emailPromises);
-    
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     const failedCount = results.filter(r => r.status === 'rejected').length;
-    
-    console.log(`Emails sent: ${successCount} succeeded, ${failedCount} failed`);
-
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        const errorMessage = result.reason?.message || 'Unknown error';
-        console.error(`Email ${index} failed:`, errorMessage);
-        
-        // Log warning if domain verification issue
-        if (errorMessage.includes('verify a domain') || errorMessage.includes('testing emails')) {
-          console.warn('⚠️ Domain not verified in Resend. To send emails to any recipient, verify your domain at https://resend.com/domains');
-        }
-      } else {
-        console.log(`Email ${index} succeeded:`, result.value);
-      }
-    });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        emailsSent: successCount,
-        emailsFailed: failedCount,
-        donorEmailSkipped,
-        receiverEmailSkipped
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: true, emailsSent: successCount, emailsFailed: failedCount, donorEmailSkipped, receiverEmailSkipped }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
     console.error("Error in send-completion-email function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ error: "Failed to process request. Please try again." }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };

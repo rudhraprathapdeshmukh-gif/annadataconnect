@@ -12,9 +12,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify service role key - this function is called by database trigger only
+    const authHeader = req.headers.get('Authorization');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - service role required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { donation_id, donor_id, latitude, longitude, title } = await req.json();
 
-    // Validate required fields
     if (!donation_id || latitude == null || longitude == null || !title) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: donation_id, latitude, longitude, title" }),
@@ -23,18 +32,13 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Query nearby receivers using Haversine formula via RPC
-    // We use a raw SQL approach via the rest API since we need the Haversine calculation
     const donLat = Number(latitude);
     const donLng = Number(longitude);
 
-    // Find all receiver/both profiles within 10km that have location set
     const { data: nearbyUsers, error: queryError } = await supabase
       .from("profiles")
       .select("id, latitude, longitude, notification_push, user_type")
@@ -45,7 +49,7 @@ Deno.serve(async (req) => {
     if (queryError) {
       console.error("Error querying profiles:", queryError);
       return new Response(
-        JSON.stringify({ error: "Failed to query nearby users", details: queryError.message }),
+        JSON.stringify({ error: "Failed to query nearby users" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -57,15 +61,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate distance for each user using Haversine formula
     const RADIUS_KM = 10;
     const toRad = (deg: number) => deg * (Math.PI / 180);
 
     const nearbyWithDistance = nearbyUsers
       .filter((u) => {
-        // Exclude the donor themselves
         if (u.id === donor_id) return false;
-        // Respect notification preferences (null = enabled)
         if (u.notification_push === false) return false;
         return true;
       })
@@ -94,7 +95,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Batch insert notifications for all nearby users
     const notificationRows = nearbyWithDistance.map((u) => ({
       user_id: u.id,
       type: "nearby_donation",
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     if (insertError) {
       console.error("Error inserting notifications:", insertError);
       return new Response(
-        JSON.stringify({ error: "Failed to insert notifications", details: insertError.message }),
+        JSON.stringify({ error: "Failed to insert notifications" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
