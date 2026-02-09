@@ -254,18 +254,15 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
   // Helper function to check if other user is typing
   const updateTypingState = (state: Record<string, any>) => {
-    console.log('[Typing] Checking state:', JSON.stringify(state));
     for (const presences of Object.values(state)) {
       const typingUser = (presences as any[]).find(
         (p) => p.user_id === otherUserId && p.is_typing === true
       );
       if (typingUser) {
-        console.log('[Typing] Other user is typing');
         setOtherUserTyping(true);
         return;
       }
     }
-    console.log('[Typing] Other user stopped typing');
     setOtherUserTyping(false);
   };
 
@@ -273,41 +270,34 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   useEffect(() => {
     if (!user) return;
 
-    console.log('[Typing] Setting up presence channel for donation:', donationId);
-
     const presenceChannel = supabase
       .channel(`typing_${donationId}`)
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState();
-        console.log('[Typing] Presence sync event:', JSON.stringify(state));
         updateTypingState(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('[Typing] User joined:', key, newPresences);
         const state = presenceChannel.presenceState();
         updateTypingState(state);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('[Typing] User left:', key, leftPresences);
         const state = presenceChannel.presenceState();
         updateTypingState(state);
       })
       .subscribe(async (status) => {
-        console.log('[Typing] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           await presenceChannel.track({
             user_id: user.id,
             is_typing: false,
             online_at: new Date().toISOString(),
           });
-          console.log('[Typing] Initial presence tracked for user:', user.id);
         }
       });
 
     presenceChannelRef.current = presenceChannel;
 
     return () => {
-      console.log('[Typing] Cleaning up presence channel');
+      
       supabase.removeChannel(presenceChannel);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
