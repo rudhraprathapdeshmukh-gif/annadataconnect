@@ -960,7 +960,7 @@ export default function Dashboard() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {requests.map((request) => {
+                  {requests.filter(r => r.status !== 'rejected').map((request) => {
                     const expiryTime = request.accepted_at && request.timer_duration
                       ? calculateExpiryTime(new Date(request.accepted_at), request.timer_duration)
                       : request.accepted_at 
