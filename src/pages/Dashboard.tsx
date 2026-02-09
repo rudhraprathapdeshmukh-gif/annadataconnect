@@ -583,6 +583,20 @@ export default function Dashboard() {
 
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     try {
+      // Find the request to get donation_id
+      const targetRequest = requests.find(r => r.id === requestId);
+
+      if (action === 'approved' && targetRequest) {
+        // Guard: check if another request for this donation is already approved
+        const alreadyApproved = requests.some(
+          r => r.donation_id === targetRequest.donation_id && r.status === 'approved' && r.id !== requestId
+        );
+        if (alreadyApproved) {
+          toast.error('This donation already has an accepted request');
+          return;
+        }
+      }
+
       const updateData: any = { status: action };
       
       if (action === 'approved') {
@@ -603,6 +617,37 @@ export default function Dashboard() {
       }
       
       toast.success(`Request ${action} successfully!${action === 'approved' ? ` Timer: ${updateData.timer_duration} minutes` : ''}`);
+
+      // Auto-reject other pending requests for the same donation
+      if (action === 'approved' && targetRequest) {
+        const otherPending = requests.filter(
+          r => r.donation_id === targetRequest.donation_id && r.status === 'pending' && r.id !== requestId
+        );
+        
+        if (otherPending.length > 0) {
+          const otherIds = otherPending.map(r => r.id);
+          await supabase
+            .from('food_requests')
+            .update({ status: 'rejected' })
+            .in('id', otherIds);
+
+          // Notify rejected requesters
+          for (const req of otherPending) {
+            await supabase
+              .from('notifications')
+              .insert({
+                user_id: req.requester_id,
+                type: 'request_approved',
+                title: 'Request Not Selected',
+                message: `Your request for "${req.food_donations.title}" was not selected. The donor chose another requester.`,
+                related_id: req.donation_id,
+              });
+          }
+
+          toast.info(`${otherPending.length} other pending request(s) auto-rejected`);
+        }
+      }
+
       fetchRequests();
       fetchMyRequests();
     } catch (error: any) {
@@ -932,6 +977,7 @@ export default function Dashboard() {
                       onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
                       onGrantExtension={() => handleGrantExtension(request.id)}
                       onRejectExtension={() => handleRejectExtension(request.id)}
+                      isAcceptDisabled={requests.some(r => r.donation_id === request.donation_id && r.status === 'approved' && r.id !== request.id)}
                     />
                     );
                   })}
@@ -1325,9 +1371,10 @@ interface DonorRequestCardProps {
   onRefresh: () => void;
   onGrantExtension: () => void;
   onRejectExtension: () => void;
+  isAcceptDisabled?: boolean;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled }: DonorRequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
@@ -1582,9 +1629,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             variant="default" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onAccept}
+            disabled={isAcceptDisabled}
+            title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
             <Check className="h-4 w-4 mr-2" />
-            Accept
+            {isAcceptDisabled ? 'Already Accepted' : 'Accept'}
           </Button>
           <Button 
             variant="destructive" 
