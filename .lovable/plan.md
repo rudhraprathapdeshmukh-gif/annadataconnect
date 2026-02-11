@@ -1,68 +1,131 @@
 
-# Fix: Recreate the Missing `food_donations` Table
 
-The `food_donations` table was accidentally dropped from the database (via a manual DROP TABLE CASCADE). This broke donations, requests, messages, and many other features. Here is the plan to restore it.
+# Location-Based Filtering for Available Donations
 
-## What Happened
-The table was manually deleted from the database just minutes ago. Since it was dropped with CASCADE, the foreign key from `food_requests` to `food_donations` was also removed, along with the view `public_food_donations` and associated triggers.
+## Overview
+When a receiver opens the dashboard, the app will request their current location and show only donations within a 10 km radius. Filtering will happen at the database level using the Haversine formula for performance and security.
 
-## What Will Be Recreated
+## What Changes
 
-### 1. The `food_donations` table with all columns
-- id, donor_id, title, description, quantity, quantity_unit, food_type, diet_type, phone_number, pickup_location, latitude, longitude, expiry_date, rating, image_url, otp, status, deleted_at, created_at, updated_at
+### 1. New Database Function: `get_nearby_donations`
+Create a SQL function that accepts the receiver's latitude, longitude, and radius (default 10 km), then returns only donations within that radius using the Haversine formula. This function will replace `get_public_donations` for the receiver's "Available Food" tab.
 
-### 2. RLS Policies
-- Donors can view their own donations (SELECT)
-- Receivers can view donations related to their requests (SELECT)  
-- Donors can create donations (INSERT)
-- Donors can update their own donations (UPDATE)
-- Donors can soft-delete their own donations (UPDATE on deleted_at)
+- Returns the same masked columns as `get_public_donations` (hidden exact address, approximate lat/lng)
+- Adds a `distance_km` column so donations can be sorted by proximity
+- Filters: `status = 'available'`, `deleted_at IS NULL`, within radius
+- Uses `SECURITY DEFINER` to maintain location masking
 
-### 3. Foreign Keys
-- Re-add `food_requests.donation_id` -> `food_donations.id` foreign key
-- Re-add `messages.donation_id` -> `food_donations.id` foreign key
+### 2. Dashboard State Changes
+Add new state variables to track:
+- `receiverLocation`: the receiver's current lat/lng (or null)
+- `locationStatus`: `'loading' | 'granted' | 'denied' | 'unavailable'`
+- `locationError`: error message string for UI feedback
 
-### 4. Triggers
-- `update_food_donations_updated_at` trigger
-- `notify_receivers_on_donation_delete` trigger
-- `notify_nearby_on_donation_insert` trigger
+### 3. Location Request on Load
+When the receiver tab is active:
+- Call `navigator.geolocation.getCurrentPosition()` on mount
+- On success: store coordinates, call `get_nearby_donations` with those coordinates
+- On denied/error: show a clear info banner explaining that location is needed, with a "Retry" button
+- Also save coordinates to the user's profile (`profiles.latitude`, `profiles.longitude`) for the existing nearby-notification system
 
-### 5. View
-- Recreate the `public_food_donations` view for receivers to see available donations with masked locations
+### 4. Updated `fetchDonations` Logic
+- If receiver has location: call `supabase.rpc('get_nearby_donations', { p_lat, p_lng, p_radius_km: 10 })`
+- If location denied/unavailable: show all donations as fallback (current behavior) with an info banner encouraging location access
+- Sort results by distance (nearest first)
+- Display distance on each donation card (e.g., "2.3 km away")
 
-### 6. Related RLS policies on other tables
-- Restore donor-based policies on `food_requests` that reference `food_donations`
+### 5. UI Updates to Available Food Tab
+- Add a location status banner above the filter bar:
+  - Loading: "Detecting your location..." with spinner
+  - Denied: "Location access denied. Showing all donations. Enable location for nearby results." + Retry button
+  - Granted: "Showing donations within 10 km" with a small location icon
+- Add distance badge on each donation card when location is available
+- Empty state message: "No donations found within 10 km. Try expanding your search." with a button to show all donations
+
+### 6. Donation Form (Already Working)
+The Donate page already stores `latitude` and `longitude` when the donor uses location or saved addresses -- no changes needed there.
 
 ## Technical Details
 
-A single database migration will be created containing:
+### Database Migration SQL
 
 ```sql
--- Recreate food_donations table
-CREATE TABLE public.food_donations (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  donor_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  title text NOT NULL,
+CREATE OR REPLACE FUNCTION public.get_nearby_donations(
+  p_lat double precision,
+  p_lng double precision,
+  p_radius_km double precision DEFAULT 10
+)
+RETURNS TABLE(
+  id uuid,
+  title text,
   description text,
-  quantity text NOT NULL,
-  quantity_unit text NOT NULL DEFAULT 'kg',
-  food_type text NOT NULL,
-  diet_type text DEFAULT 'veg',
-  phone_number text,
-  pickup_location text NOT NULL,
-  latitude double precision,
-  longitude double precision,
+  quantity text,
+  quantity_unit text,
+  food_type text,
+  diet_type text,
   expiry_date timestamptz,
+  status text,
+  created_at timestamptz,
   rating integer,
   image_url text,
-  otp text,
-  status text DEFAULT 'available',
-  deleted_at timestamptz,
-  created_at timestamptz DEFAULT now() NOT NULL,
-  updated_at timestamptz DEFAULT now() NOT NULL
-);
-
--- Enable RLS, add policies, triggers, view, and restore foreign keys
+  approx_latitude numeric,
+  approx_longitude numeric,
+  masked_location text,
+  distance_km double precision
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT
+    fd.id,
+    fd.title,
+    fd.description,
+    fd.quantity,
+    fd.quantity_unit,
+    fd.food_type,
+    fd.diet_type,
+    fd.expiry_date,
+    fd.status,
+    fd.created_at,
+    fd.rating,
+    fd.image_url,
+    ROUND(fd.latitude::numeric, 2) as approx_latitude,
+    ROUND(fd.longitude::numeric, 2) as approx_longitude,
+    CASE
+      WHEN fd.pickup_location IS NOT NULL THEN
+        regexp_replace(fd.pickup_location, '^[^,]+', 'Address hidden until approved')
+      ELSE 'Location not available'
+    END as masked_location,
+    (6371 * acos(
+      cos(radians(p_lat)) * cos(radians(fd.latitude)) *
+      cos(radians(fd.longitude) - radians(p_lng)) +
+      sin(radians(p_lat)) * sin(radians(fd.latitude))
+    )) as distance_km
+  FROM food_donations fd
+  WHERE fd.status = 'available'
+    AND fd.deleted_at IS NULL
+    AND fd.latitude IS NOT NULL
+    AND fd.longitude IS NOT NULL
+    AND (6371 * acos(
+      cos(radians(p_lat)) * cos(radians(fd.latitude)) *
+      cos(radians(fd.longitude) - radians(p_lng)) +
+      sin(radians(p_lat)) * sin(radians(fd.latitude))
+    )) <= p_radius_km
+  ORDER BY distance_km ASC;
+$$;
 ```
 
-No code file changes are needed -- the frontend code already references `food_donations` correctly. This is purely a database restoration.
+### Files Modified
+- **`src/pages/Dashboard.tsx`**: Add location detection, update `fetchDonations` to use RPC when location available, add location banner UI, add distance display on cards
+- **`src/lib/geoUtils.ts`**: No changes needed (already has Haversine -- only used client-side for geofencing)
+
+### Error Handling Summary
+| Scenario | Behavior |
+|----------|----------|
+| Location granted | Show nearby donations sorted by distance |
+| Location denied | Show all donations with info banner + retry button |
+| Geolocation not supported | Show all donations with info message |
+| No donations within 10 km | Show empty state with "Show all" button |
+| Location loading | Show spinner/skeleton while detecting |
