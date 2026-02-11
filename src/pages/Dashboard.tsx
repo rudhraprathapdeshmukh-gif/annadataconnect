@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,7 +43,10 @@ interface PublicDonation {
   latitude?: number;
   longitude?: number;
   image_url?: string | null;
+  distance_km?: number;
 }
+
+type LocationStatus = 'loading' | 'granted' | 'denied' | 'unavailable';
 
 interface FoodDonation {
   id: string;
@@ -129,11 +132,46 @@ export default function Dashboard() {
   const [globalReview, setGlobalReview] = useState('');
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
+  // Location state for nearby filtering
+  const [receiverLocation, setReceiverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('loading');
+  const [showAllDonations, setShowAllDonations] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Request receiver location on mount
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('unavailable');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setReceiverLocation(loc);
+        setLocationStatus('granted');
+        // Save to profile for nearby notifications
+        if (user) {
+          await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng }).eq('id', user.id);
+        }
+      },
+      () => {
+        setLocationStatus('denied');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  useEffect(() => {
+    if (user && (userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both')) {
+      requestLocation();
+    }
+  }, [user, userProfile?.user_type]);
 
   useEffect(() => {
     fetchDonations();
@@ -342,16 +380,42 @@ export default function Dashboard() {
     };
   }, [user]);
 
+  // Refetch donations when location becomes available
+  useEffect(() => {
+    if (receiverLocation || locationStatus === 'denied' || locationStatus === 'unavailable') {
+      fetchDonations();
+    }
+  }, [receiverLocation, locationStatus, showAllDonations]);
+
   const fetchDonations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('food_donations')
-        .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, created_at, expiry_date, rating, image_url')
-        .eq('status', 'available')
-        .is('deleted_at', null);
+      // Use nearby RPC if receiver has location and not showing all
+      if (receiverLocation && !showAllDonations) {
+        const { data, error } = await supabase.rpc('get_nearby_donations', {
+          p_lat: receiverLocation.lat,
+          p_lng: receiverLocation.lng,
+          p_radius_km: 10,
+        });
 
-      if (error) throw error;
-      setDonations(data || []);
+        if (error) throw error;
+        setDonations((data || []).map((d: any) => ({
+          ...d,
+          pickup_location: d.masked_location,
+          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
+          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+          distance_km: d.distance_km,
+        })));
+      } else {
+        // Fallback: show all donations
+        const { data, error } = await supabase
+          .from('food_donations')
+          .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, created_at, expiry_date, rating, image_url')
+          .eq('status', 'available')
+          .is('deleted_at', null);
+
+        if (error) throw error;
+        setDonations(data || []);
+      }
     } catch (error) {
       toast.error('Failed to load donations');
     } finally {
@@ -1024,6 +1088,53 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
+              {/* Location Status Banner */}
+              {locationStatus === 'loading' && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Detecting your location...</span>
+                </div>
+              )}
+              {locationStatus === 'denied' && (
+                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <MapPinOff className="h-4 w-4 shrink-0" />
+                    <span>Location access denied. Showing all donations. Enable location for nearby results.</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={requestLocation} className="shrink-0">
+                    Retry
+                  </Button>
+                </div>
+              )}
+              {locationStatus === 'unavailable' && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <MapPinOff className="h-4 w-4" />
+                  <span>Location services not available. Showing all donations.</span>
+                </div>
+              )}
+              {locationStatus === 'granted' && !showAllDonations && (
+                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Navigation className="h-4 w-4" />
+                    <span>Showing donations within 10 km</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
+                    Show All
+                  </Button>
+                </div>
+              )}
+              {showAllDonations && locationStatus === 'granted' && (
+                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>Showing all donations</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(false)} className="shrink-0 text-xs">
+                    Show Nearby Only
+                  </Button>
+                </div>
+              )}
+
               {/* Diet Type Filter */}
               <div className="flex items-center gap-1.5">
                 <Filter className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1074,10 +1185,21 @@ export default function Dashboard() {
                     <CardContent className="py-12 text-center">
                       <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p className="text-muted-foreground">
-                        {dietFilter === 'all' 
-                          ? 'No donations available at the moment'
-                          : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
+                        {receiverLocation && !showAllDonations
+                          ? 'No donations found within 10 km'
+                          : dietFilter === 'all' 
+                            ? 'No donations available at the moment'
+                            : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
                       </p>
+                      {receiverLocation && !showAllDonations && (
+                        <Button 
+                          variant="link" 
+                          className="mt-2"
+                          onClick={() => setShowAllDonations(true)}
+                        >
+                          Show all donations
+                        </Button>
+                      )}
                       {dietFilter !== 'all' && (
                         <Button 
                           variant="link" 
@@ -1172,6 +1294,14 @@ export default function Dashboard() {
                           <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                           <span className="line-clamp-2">{donation.pickup_location}</span>
                         </div>
+
+                        {/* Distance Badge */}
+                        {donation.distance_km != null && (
+                          <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                            <Navigation className="h-4 w-4 shrink-0" />
+                            <span>{donation.distance_km < 1 ? `${Math.round(donation.distance_km * 1000)} m away` : `${donation.distance_km.toFixed(1)} km away`}</span>
+                          </div>
+                        )}
                         
                         {/* Expiry Date - Softer Styling */}
                         {donation.expiry_date && (
