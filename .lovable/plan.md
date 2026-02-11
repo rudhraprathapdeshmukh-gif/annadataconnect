@@ -1,76 +1,68 @@
 
+# Fix: Recreate the Missing `food_donations` Table
 
-# Fix: Reject Requests & Prevent Multiple Accepts
+The `food_donations` table was accidentally dropped from the database (via a manual DROP TABLE CASCADE). This broke donations, requests, messages, and many other features. Here is the plan to restore it.
 
-## Problems Identified
+## What Happened
+The table was manually deleted from the database just minutes ago. Since it was dropped with CASCADE, the foreign key from `food_requests` to `food_donations` was also removed, along with the view `public_food_donations` and associated triggers.
 
-### 1. Cannot Reject Requests After One Is Accepted
-When a donor accepts a request, the donation status changes to `claimed`. The RLS policy "Donors can update requests for their donations" blocks updates to pending requests when the donation is claimed -- it only allows updating `approved` rows. So rejecting other pending requests fails silently.
+## What Will Be Recreated
 
-### 2. No Guard Against Accepting Multiple Requests
-The `handleRequestAction` function does not check whether another request for the same donation is already approved. A donor can currently click "Accept" on multiple requests.
+### 1. The `food_donations` table with all columns
+- id, donor_id, title, description, quantity, quantity_unit, food_type, diet_type, phone_number, pickup_location, latitude, longitude, expiry_date, rating, image_url, otp, status, deleted_at, created_at, updated_at
 
----
+### 2. RLS Policies
+- Donors can view their own donations (SELECT)
+- Receivers can view donations related to their requests (SELECT)  
+- Donors can create donations (INSERT)
+- Donors can update their own donations (UPDATE)
+- Donors can soft-delete their own donations (UPDATE on deleted_at)
 
-## Solution
+### 3. Foreign Keys
+- Re-add `food_requests.donation_id` -> `food_donations.id` foreign key
+- Re-add `messages.donation_id` -> `food_donations.id` foreign key
 
-### Step 1: Fix RLS Policy (Database Migration)
+### 4. Triggers
+- `update_food_donations_updated_at` trigger
+- `notify_receivers_on_donation_delete` trigger
+- `notify_nearby_on_donation_insert` trigger
 
-Update the "Donors can update requests for their donations" policy to also allow donors to **reject** pending requests even when the donation is claimed:
+### 5. View
+- Recreate the `public_food_donations` view for receivers to see available donations with masked locations
 
-```text
-Current USING condition:
-  ... AND ((NOT is_donation_claimed(donation_id)) OR (status = 'approved'))
-
-Updated USING condition:
-  ... AND ((NOT is_donation_claimed(donation_id)) OR (status = 'approved') OR (status = 'pending'))
-```
-
-This allows donors to reject remaining pending requests after accepting one.
-
-### Step 2: Auto-Reject Other Pending Requests on Accept (Frontend)
-
-In `src/pages/Dashboard.tsx`, update the `handleRequestAction` function so that when a donor **accepts** a request:
-
-1. Check if any other request for the same donation is already approved -- if so, block the accept with a toast message.
-2. After successfully accepting, automatically reject all other **pending** requests for the same donation.
-3. Send notifications to the rejected requesters informing them.
-
-### Step 3: Disable Accept Button for Already-Claimed Donations (Frontend)
-
-In the `DonorRequestCard` component within `Dashboard.tsx`, disable the "Accept" button if the donation already has an approved request (i.e., another request for the same `donation_id` in the `requests` array has `status === 'approved'`).
-
----
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| Database migration (SQL) | Update RLS policy to allow rejecting pending requests on claimed donations |
-| `src/pages/Dashboard.tsx` | Add auto-reject logic on accept; add guard against multiple accepts; disable Accept button when donation is already claimed |
+### 6. Related RLS policies on other tables
+- Restore donor-based policies on `food_requests` that reference `food_donations`
 
 ## Technical Details
 
-**RLS Policy SQL:**
+A single database migration will be created containing:
+
 ```sql
-DROP POLICY IF EXISTS "Donors can update requests for their donations" ON food_requests;
-CREATE POLICY "Donors can update requests for their donations" ON food_requests
-  FOR UPDATE USING (
-    (auth.uid() IN (SELECT food_donations.donor_id FROM food_donations WHERE food_donations.id = food_requests.donation_id))
-    AND (NOT has_completed_request(donation_id))
-    AND ((NOT is_donation_claimed(donation_id)) OR (status = 'approved') OR (status = 'pending'))
-  );
+-- Recreate food_donations table
+CREATE TABLE public.food_donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  donor_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  title text NOT NULL,
+  description text,
+  quantity text NOT NULL,
+  quantity_unit text NOT NULL DEFAULT 'kg',
+  food_type text NOT NULL,
+  diet_type text DEFAULT 'veg',
+  phone_number text,
+  pickup_location text NOT NULL,
+  latitude double precision,
+  longitude double precision,
+  expiry_date timestamptz,
+  rating integer,
+  image_url text,
+  otp text,
+  status text DEFAULT 'available',
+  deleted_at timestamptz,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Enable RLS, add policies, triggers, view, and restore foreign keys
 ```
 
-**Accept handler changes (pseudocode):**
-```text
-handleRequestAction('approved'):
-  1. Find the donation_id from the request
-  2. Check if any request for that donation_id already has status 'approved'
-     -> If yes, show toast error "This donation already has an accepted request"
-     -> Return early
-  3. Update the request to 'approved' (existing logic)
-  4. Fetch all other pending requests for the same donation_id
-  5. Reject them all in bulk
-  6. Send notification to each rejected requester
-```
+No code file changes are needed -- the frontend code already references `food_donations` correctly. This is purely a database restoration.
