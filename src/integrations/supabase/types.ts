@@ -374,6 +374,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_nearby_donations: {
+        Args: { p_lat: number; p_lng: number; p_radius_km?: number }
+        Returns: {
+          approx_latitude: number
+          approx_longitude: number
+          created_at: string
+          description: string
+          diet_type: string
+          distance_km: number
+          expiry_date: string
+          food_type: string
+          id: string
+          image_url: string
+          masked_location: string
+          quantity: string
+          quantity_unit: string
+          rating: number
+          status: string
+          title: string
+        }[]
+      }
       get_public_donations: {
         Args: never
         Returns: {
