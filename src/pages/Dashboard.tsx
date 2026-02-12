@@ -17,7 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation, Map } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DonationMap from '@/components/DonationMap';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -136,6 +138,8 @@ export default function Dashboard() {
   const [receiverLocation, setReceiverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('loading');
   const [showAllDonations, setShowAllDonations] = useState(false);
+  const [searchRadius, setSearchRadius] = useState(10);
+  const [showMap, setShowMap] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -385,7 +389,7 @@ export default function Dashboard() {
     if (receiverLocation || locationStatus === 'denied' || locationStatus === 'unavailable') {
       fetchDonations();
     }
-  }, [receiverLocation, locationStatus, showAllDonations]);
+  }, [receiverLocation, locationStatus, showAllDonations, searchRadius]);
 
   const fetchDonations = async () => {
     try {
@@ -394,7 +398,7 @@ export default function Dashboard() {
         const { data, error } = await supabase.rpc('get_nearby_donations', {
           p_lat: receiverLocation.lat,
           p_lng: receiverLocation.lng,
-          p_radius_km: 10,
+          p_radius_km: searchRadius,
         });
 
         if (error) throw error;
@@ -1116,11 +1120,28 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
                   <div className="flex items-center gap-2 text-primary">
                     <Navigation className="h-4 w-4" />
-                    <span>Showing donations within 10 km</span>
+                    <span>Showing donations within</span>
+                    <Select value={String(searchRadius)} onValueChange={(v) => setSearchRadius(Number(v))}>
+                      <SelectTrigger className="h-7 w-[80px] text-xs border-primary/30 bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 km</SelectItem>
+                        <SelectItem value="10">10 km</SelectItem>
+                        <SelectItem value="25">25 km</SelectItem>
+                        <SelectItem value="50">50 km</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
-                    Show All
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => setShowMap(!showMap)} className="shrink-0 text-xs gap-1">
+                      <Map className="h-3.5 w-3.5" />
+                      {showMap ? 'Hide Map' : 'Show Map'}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
+                      Show All
+                    </Button>
+                  </div>
                 </div>
               )}
               {showAllDonations && locationStatus === 'granted' && (
@@ -1133,6 +1154,15 @@ export default function Dashboard() {
                     Show Nearby Only
                   </Button>
                 </div>
+              )}
+
+              {/* Map Preview */}
+              {showMap && locationStatus === 'granted' && receiverLocation && !showAllDonations && (
+                <DonationMap
+                  center={receiverLocation}
+                  radiusKm={searchRadius}
+                  donations={donations.filter(d => d.latitude && d.longitude)}
+                />
               )}
 
               {/* Diet Type Filter */}
@@ -1186,7 +1216,7 @@ export default function Dashboard() {
                       <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p className="text-muted-foreground">
                         {receiverLocation && !showAllDonations
-                          ? 'No donations found within 10 km'
+                          ? `No donations found within ${searchRadius} km`
                           : dietFilter === 'all' 
                             ? 'No donations available at the moment'
                             : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
