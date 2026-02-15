@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
 import { shouldBlockUser } from '@/lib/reliabilityScore';
+import { reverseGeocode } from '@/lib/geoUtils';
 
 interface PublicDonation {
   id: string;
@@ -140,6 +141,7 @@ export default function Dashboard() {
   const [showAllDonations, setShowAllDonations] = useState(false);
   const [searchRadius, setSearchRadius] = useState(10);
   const [showMap, setShowMap] = useState(true);
+  const [receiverDistrict, setReceiverDistrict] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -163,9 +165,28 @@ export default function Dashboard() {
         if (user) {
           await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng }).eq('id', user.id);
         }
+        // Auto-detect district via reverse geocoding
+        const district = await reverseGeocode(loc.lat, loc.lng);
+        if (district) {
+          setReceiverDistrict(district);
+        }
       },
-      () => {
+      async () => {
         setLocationStatus('denied');
+        // Try to get district from profile coords
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('latitude, longitude')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (profile?.latitude && profile?.longitude) {
+            const district = await reverseGeocode(profile.latitude, profile.longitude);
+            if (district) {
+              setReceiverDistrict(district);
+            }
+          }
+        }
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
@@ -389,7 +410,7 @@ export default function Dashboard() {
     if (receiverLocation || locationStatus === 'denied' || locationStatus === 'unavailable') {
       fetchDonations();
     }
-  }, [receiverLocation, locationStatus, showAllDonations, searchRadius]);
+  }, [receiverLocation, locationStatus, showAllDonations, searchRadius, receiverDistrict]);
 
   const fetchDonations = async () => {
     try {
@@ -410,8 +431,22 @@ export default function Dashboard() {
           longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
           distance_km: d.distance_km,
         })));
+      } else if (receiverDistrict) {
+        // District-filtered "Show All"
+        const { data, error } = await supabase.rpc('get_district_donations', {
+          p_district: receiverDistrict,
+        });
+
+        if (error) throw error;
+        const now = new Date().toISOString();
+        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+          ...d,
+          pickup_location: d.masked_location,
+          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
+          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+        })));
       } else {
-        // Fallback: show all donations
+        // Fallback: show all donations globally
         const { data, error } = await supabase
           .from('food_donations')
           .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, created_at, expiry_date, rating, image_url')
@@ -1105,7 +1140,11 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
                   <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                     <MapPinOff className="h-4 w-4 shrink-0" />
-                    <span>Location access denied. Showing all donations. Enable location for nearby results.</span>
+                    <span>
+                      {receiverDistrict 
+                        ? `Location denied. Showing donations in ${receiverDistrict}.`
+                        : 'Location access denied. Showing all donations. Enable location for nearby results.'}
+                    </span>
                   </div>
                   <Button variant="outline" size="sm" onClick={requestLocation} className="shrink-0">
                     Retry
@@ -1141,7 +1180,7 @@ export default function Dashboard() {
                       {showMap ? 'Hide Map' : 'Show Map'}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
-                      Show All
+                      {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show All'}
                     </Button>
                   </div>
                 </div>
@@ -1150,7 +1189,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    <span>Showing all donations</span>
+                    <span>{receiverDistrict ? `Showing donations in ${receiverDistrict}` : 'Showing all donations'}</span>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(false)} className="shrink-0 text-xs">
                     Show Nearby Only
@@ -1219,9 +1258,11 @@ export default function Dashboard() {
                       <p className="text-muted-foreground">
                         {receiverLocation && !showAllDonations
                           ? `No donations found within ${searchRadius} km`
-                          : dietFilter === 'all' 
-                            ? 'No donations available at the moment'
-                            : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
+                          : showAllDonations && receiverDistrict
+                            ? `No donations found in ${receiverDistrict}`
+                            : dietFilter === 'all' 
+                              ? 'No donations available at the moment'
+                              : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
                       </p>
                       {receiverLocation && !showAllDonations && (
                         <Button 
@@ -1229,7 +1270,7 @@ export default function Dashboard() {
                           className="mt-2"
                           onClick={() => setShowAllDonations(true)}
                         >
-                          Show all donations
+                          {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show all donations'}
                         </Button>
                       )}
                       {dietFilter !== 'all' && (

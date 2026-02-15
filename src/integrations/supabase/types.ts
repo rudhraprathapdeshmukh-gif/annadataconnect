@@ -375,6 +375,26 @@ export type Database = {
     }
     Functions: {
       auto_expire_donations: { Args: never; Returns: undefined }
+      get_district_donations: {
+        Args: { p_district: string }
+        Returns: {
+          approx_latitude: number
+          approx_longitude: number
+          created_at: string
+          description: string
+          diet_type: string
+          expiry_date: string
+          food_type: string
+          id: string
+          image_url: string
+          masked_location: string
+          quantity: string
+          quantity_unit: string
+          rating: number
+          status: string
+          title: string
+        }[]
+      }
       get_nearby_donations: {
         Args: { p_lat: number; p_lng: number; p_radius_km?: number }
         Returns: {
