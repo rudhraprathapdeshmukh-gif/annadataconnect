@@ -402,7 +402,8 @@ export default function Dashboard() {
         });
 
         if (error) throw error;
-        setDonations((data || []).map((d: any) => ({
+        const now = new Date().toISOString();
+        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
@@ -418,7 +419,8 @@ export default function Dashboard() {
           .is('deleted_at', null);
 
         if (error) throw error;
-        setDonations(data || []);
+        const now = new Date().toISOString();
+        setDonations((data || []).filter(d => !d.expiry_date || d.expiry_date > now));
       }
     } catch (error) {
       toast.error('Failed to load donations');

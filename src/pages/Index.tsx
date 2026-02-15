@@ -76,9 +76,12 @@ const Index = () => {
             ascending: false
           }).limit(6);
           if (error) throw error;
-          if (donations) {
+            if (donations) {
+            // Filter out expired donations client-side
+            const now = new Date().toISOString();
+            const activeDonationsList = donations.filter(d => !d.expiry_date || d.expiry_date > now);
             // Fetch pending requests count for each donation
-            const donationsWithCounts = await Promise.all(donations.map(async donation => {
+            const donationsWithCounts = await Promise.all(activeDonationsList.map(async donation => {
               const { count } = await supabase.from('food_requests').select('*', {
                 count: 'exact',
                 head: true
