@@ -374,6 +374,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_expire_donations: { Args: never; Returns: undefined }
       get_nearby_donations: {
         Args: { p_lat: number; p_lng: number; p_radius_km?: number }
         Returns: {
