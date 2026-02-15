@@ -1,64 +1,31 @@
 
-# Reorganize Receiver Dashboard Layout
+# Make the Receiver Map Interactive
 
 ## Overview
-Restructure the receiver's "Available Food" tab to follow a clear top-down hierarchy: control bar (distance + map actions) -> map -> filters -> donation cards. Replace the distance dropdown with inline radius buttons (1km, 2km, 5km, 10km, 15km, 20km).
+Currently the map is fully static -- all interactions (dragging, zooming, scrolling) are disabled. This plan enables interactivity so receivers can pan, zoom, and tap on donation markers to see details.
 
 ## Changes
 
-### `src/pages/Dashboard.tsx` - Receiver Section (lines ~1098-1411)
+### `src/components/DonationMap.tsx`
 
-**1. Replace distance dropdown with radius buttons**
-- Remove the `Select` component for distance (lines 1168-1178)
-- Replace with a row of pill buttons: 1km, 2km, 5km, 10km, 15km, 20km
-- Active button gets `bg-primary text-primary-foreground`, inactive gets `bg-muted text-muted-foreground`
-- Update default `searchRadius` from `10` to `5`
+**1. Enable map interactions**
+- Remove the disabled flags: set `dragging: true`, `scrollWheelZoom: true`, `doubleClickZoom: true`, `touchZoom: true`
+- Add `zoomControl: true` so users can zoom in/out with +/- buttons
 
-**2. Restructure the "Available Food" TabsContent layout**
+**2. Make the map taller**
+- Change height from `h-48` to `h-64` to give more room for interaction
 
-Current order (scattered):
-- Location status banners (loading/denied/unavailable/granted) mixed together
-- Map
-- Diet filter
-- Cards
+**3. Add clickable popups on donation markers**
+- Replace `bindTooltip` on donation markers with `bindPopup` showing the donation title and distance (e.g., "Rice - 2 servings\n1.2 km away")
+- Keep the "You" tooltip on the user marker as-is (hover is fine for that)
 
-New order (clean vertical hierarchy):
+**4. Add an `onDonationClick` callback (optional enhancement)**
+- Accept an optional `onDonationClick?: (id: string) => void` prop
+- When a donation marker popup is opened, include a small "View" link that calls the callback
+- This lets the Dashboard scroll to or highlight the corresponding card
 
-```
-+--------------------------------------------------+
-| [Available Food]  [My Requests]    <- Tabs        |
-+--------------------------------------------------+
-| Location Status (loading/denied/unavailable)      |
-+--------------------------------------------------+
-| Control Bar (when location granted):              |
-| [Nav icon] Showing nearby   [1] [2] [5] [10]...  |
-|                    [Hide Map] [Show All]           |
-+--------------------------------------------------+
-| Map (collapsible)                                 |
-+--------------------------------------------------+
-| Filters: [All] [Veg] [Non-Veg]                   |
-+--------------------------------------------------+
-| Donation Cards Grid                               |
-+--------------------------------------------------+
-```
+**5. Fit bounds to show all markers**
+- After adding all markers, use `map.fitBounds()` on a group containing the user marker and all donation markers, with some padding
+- Fall back to the radius-based zoom if there are no donation markers
 
-- The control bar combines the distance selector and map/show-all actions in one unified row
-- Map sits below the control bar as a context section
-- Diet filters clearly sit above the results grid
-- All sections have consistent spacing using `space-y-4`
-
-**3. Control bar styling**
-- Use a subtle `bg-muted/30 rounded-xl p-4` container
-- Distance buttons in a flex-wrap row with `gap-1.5`
-- Map toggle and "Show All" buttons right-aligned on the same row
-- On mobile, the buttons wrap naturally
-
-**4. Clean up unused imports**
-- Remove `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` imports if not used elsewhere in the file (check donor section first)
-
-## Technical Details
-
-### Files Modified
-- **`src/pages/Dashboard.tsx`**: Restructure receiver tab content order, replace Select dropdown with radius buttons, update default searchRadius to 5
-
-### No database changes needed.
+### No other files need changes -- the Dashboard already passes the required props.
