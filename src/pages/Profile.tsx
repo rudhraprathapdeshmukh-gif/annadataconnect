@@ -196,7 +196,7 @@ export default function Profile() {
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
-
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
