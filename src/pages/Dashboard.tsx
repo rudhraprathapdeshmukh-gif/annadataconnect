@@ -431,10 +431,12 @@ export default function Dashboard() {
           longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
           distance_km: d.distance_km,
         })));
-      } else if (receiverDistrict) {
-        // District-filtered "Show All"
-        const { data, error } = await supabase.rpc('get_district_donations', {
-          p_district: receiverDistrict,
+      } else if (receiverLocation && showAllDonations) {
+        // Coordinate-based "Show All in District" with 50km radius
+        const { data, error } = await supabase.rpc('get_nearby_donations', {
+          p_lat: receiverLocation.lat,
+          p_lng: receiverLocation.lng,
+          p_radius_km: 50,
         });
 
         if (error) throw error;
@@ -444,6 +446,7 @@ export default function Dashboard() {
           pickup_location: d.masked_location,
           latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
           longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+          distance_km: d.distance_km,
         })));
       } else {
         // Fallback: show all donations globally

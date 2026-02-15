@@ -56,8 +56,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
     const address = data?.address;
     if (!address) return null;
 
-    // Try state_district first, then city, then town, then county
-    return address.state_district || address.city || address.town || address.county || null;
+    // Prefer city/town (more recognizable) over state_district
+    return address.city || address.town || address.state_district || address.county || null;
   } catch {
     return null;
   }
