@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import type { SavedAddress } from '@/types/savedAddress';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -27,9 +26,9 @@ const donationSchema = z.object({
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
   diet_type: z.enum(['veg', 'non-veg'], { message: "Please select diet type" }),
   phone_number: phoneSchema,
-  city: z.string().trim().min(1, { message: "City is required" }).max(100, { message: "City name must be less than 100 characters" }),
-  area: z.string().trim().min(1, { message: "Area is required" }).max(100, { message: "Area name must be less than 100 characters" }),
-  complete_address: z.string().trim().min(1, { message: "Complete address is required" }).max(300, { message: "Address must be less than 300 characters" }),
+  city: z.string().optional(),
+  area: z.string().optional(),
+  complete_address: z.string().optional(),
   expiry_datetime: z.date({
     required_error: "Expiry date and time are required",
   }).refine((date) => {
@@ -74,8 +73,7 @@ export default function Donate() {
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const [selectedSavedAddress, setSelectedSavedAddress] = useState<string>('');
+  const locationAutoTriggered = useRef(false);
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
 
@@ -86,46 +84,13 @@ export default function Donate() {
     return [hours, parseInt(minute)];
   };
 
-  const fetchSavedAddresses = async () => {
-    if (!user?.id) return;
-    
-    const { data, error } = await supabase
-      .from('saved_addresses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      setSavedAddresses(data);
-      const defaultAddr = data.find(addr => addr.is_default);
-      if (defaultAddr && !formData.city && !formData.area) {
-        handleSelectSavedAddress(defaultAddr.id);
-      }
+  // Auto-trigger location detection when step 2 loads
+  useEffect(() => {
+    if (currentStep === 2 && !coordinates && !locationAutoTriggered.current) {
+      locationAutoTriggered.current = true;
+      handleUseCurrentLocation();
     }
-  };
-
-  const handleSelectSavedAddress = (addressId: string) => {
-    const address = savedAddresses.find(addr => addr.id === addressId);
-    if (!address) return;
-    
-    setSelectedSavedAddress(addressId);
-    setFormData(prev => ({
-      ...prev,
-      city: address.city,
-      area: address.area,
-      complete_address: address.complete_address,
-    }));
-    
-    if (address.latitude && address.longitude) {
-      setCoordinates({
-        lat: address.latitude,
-        lng: address.longitude
-      });
-    }
-    
-    toast.success(`Address "${address.address_name}" loaded`);
-  };
+  }, [currentStep]);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -222,11 +187,6 @@ export default function Donate() {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSavedAddresses();
-    }
-  }, [user]);
 
   useEffect(() => {
     const fetchUserType = async () => {
@@ -328,6 +288,12 @@ export default function Donate() {
           expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate(),
           hours24, mins, 0, 0
         );
+      }
+
+      if (!coordinates) {
+        toast.error('Please detect your current location before submitting');
+        setSubmitting(false);
+        return;
       }
 
       const validation = donationSchema.safeParse({ 
@@ -447,9 +413,7 @@ export default function Donate() {
                 setSafetyConfirmed={setSafetyConfirmed}
                 loadingLocation={loadingLocation}
                 onUseCurrentLocation={handleUseCurrentLocation}
-                savedAddresses={savedAddresses}
-                selectedSavedAddress={selectedSavedAddress}
-                onSelectSavedAddress={handleSelectSavedAddress}
+                locationDetected={!!coordinates}
                 submitting={submitting}
                 onBack={() => setCurrentStep(1)}
                 onSubmit={handleSubmit}
