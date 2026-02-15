@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation, Map } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import DonationMap from '@/components/DonationMap';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -139,7 +139,7 @@ export default function Dashboard() {
   const [receiverLocation, setReceiverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>('loading');
   const [showAllDonations, setShowAllDonations] = useState(false);
-  const [searchRadius, setSearchRadius] = useState(10);
+  const [searchRadius, setSearchRadius] = useState(5);
   const [showMap, setShowMap] = useState(true);
   const [receiverDistrict, setReceiverDistrict] = useState<string | null>(null);
 
@@ -1132,7 +1132,7 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-              {/* Location Status Banner */}
+              {/* Location Status Banners */}
               {locationStatus === 'loading' && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1160,31 +1160,40 @@ export default function Dashboard() {
                   <span>Location services not available. Showing all donations.</span>
                 </div>
               )}
+
+              {/* Unified Control Bar (when location granted) */}
               {locationStatus === 'granted' && !showAllDonations && (
-                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Navigation className="h-4 w-4" />
-                    <span>Showing donations within</span>
-                    <Select value={String(searchRadius)} onValueChange={(v) => setSearchRadius(Number(v))}>
-                      <SelectTrigger className="h-7 w-[80px] text-xs border-primary/30 bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5 km</SelectItem>
-                        <SelectItem value="10">10 km</SelectItem>
-                        <SelectItem value="25">25 km</SelectItem>
-                        <SelectItem value="50">50 km</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm text-primary min-w-0">
+                      <Navigation className="h-4 w-4 shrink-0" />
+                      <span className="shrink-0">Showing nearby</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => setShowMap(!showMap)} className="shrink-0 text-xs gap-1">
+                        <Map className="h-3.5 w-3.5" />
+                        {showMap ? 'Hide Map' : 'Show Map'}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
+                        {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show All'}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => setShowMap(!showMap)} className="shrink-0 text-xs gap-1">
-                      <Map className="h-3.5 w-3.5" />
-                      {showMap ? 'Hide Map' : 'Show Map'}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
-                      {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show All'}
-                    </Button>
+                  {/* Radius Buttons */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1, 2, 5, 10, 15, 20].map((radius) => (
+                      <button
+                        key={radius}
+                        onClick={() => setSearchRadius(radius)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                          searchRadius === radius
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {radius} km
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
