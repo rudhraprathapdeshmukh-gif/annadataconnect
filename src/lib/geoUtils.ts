@@ -34,6 +34,36 @@ function toRad(degrees: number): number {
 }
 
 /**
+ * Reverse geocode coordinates to get district/city name using Nominatim API
+ * @param lat Latitude
+ * @param lng Longitude
+ * @returns District or city name, or null if not found
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      {
+        headers: {
+          'Accept-Language': 'en',
+        },
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const address = data?.address;
+    if (!address) return null;
+
+    // Try state_district first, then city, then town, then county
+    return address.state_district || address.city || address.town || address.county || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if user is within geofence radius of a location
  * @param userLat User's current latitude
  * @param userLon User's current longitude
