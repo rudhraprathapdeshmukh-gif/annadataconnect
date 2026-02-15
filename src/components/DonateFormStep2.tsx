@@ -6,10 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Clock, ShieldCheck, MapPin, Loader2, ChevronLeft, Home } from 'lucide-react';
+import { CalendarIcon, Clock, ShieldCheck, MapPin, Loader2, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { format, addDays, addMonths, addYears } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { SavedAddress } from '@/types/savedAddress';
 
 interface FormData {
   title: string;
@@ -40,9 +39,7 @@ interface DonateFormStep2Props {
   setSafetyConfirmed: (confirmed: boolean) => void;
   loadingLocation: boolean;
   onUseCurrentLocation: () => void;
-  savedAddresses: SavedAddress[];
-  selectedSavedAddress: string;
-  onSelectSavedAddress: (addressId: string) => void;
+  locationDetected: boolean;
   submitting: boolean;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -63,9 +60,7 @@ export function DonateFormStep2({
   setSafetyConfirmed,
   loadingLocation,
   onUseCurrentLocation,
-  savedAddresses,
-  selectedSavedAddress,
-  onSelectSavedAddress,
+  locationDetected,
   submitting,
   onBack,
   onSubmit,
@@ -206,74 +201,53 @@ export function DonateFormStep2({
           <Label className="text-base font-semibold">Pickup Location *</Label>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onUseCurrentLocation}
-            disabled={loadingLocation}
-            className="h-12 text-sm"
-          >
-            {loadingLocation ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <MapPin className="mr-2 h-4 w-4" />
-            )}
-            {loadingLocation ? 'Detecting...' : 'Current Location'}
-          </Button>
-
-          {savedAddresses.length > 0 && (
-            <Select value={selectedSavedAddress} onValueChange={onSelectSavedAddress}>
-              <SelectTrigger className="h-12">
-                <Home className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Saved Address" />
-              </SelectTrigger>
-              <SelectContent>
-                {savedAddresses.map((addr) => (
-                  <SelectItem key={addr.id} value={addr.id}>
-                    {addr.address_name} {addr.is_default && '(Default)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Address Fields */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="city" className="text-sm">City *</Label>
-            <Input
-              id="city"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              placeholder="City"
-              className="h-11"
-            />
+        {locationDetected ? (
+          <div className="bg-muted/50 p-4 rounded-xl border border-primary/20 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Location Detected</span>
+            </div>
+            <p className="text-sm text-foreground">
+              {formData.complete_address || `${formData.area}, ${formData.city}`}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onUseCurrentLocation}
+              disabled={loadingLocation}
+              className="text-xs text-muted-foreground px-0 h-auto"
+            >
+              {loadingLocation ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <MapPin className="mr-1 h-3 w-3" />
+              )}
+              Re-detect Location
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="area" className="text-sm">Area *</Label>
-            <Input
-              id="area"
-              value={formData.area}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              placeholder="Area/Locality"
-              className="h-11"
-            />
+        ) : (
+          <div className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onUseCurrentLocation}
+              disabled={loadingLocation}
+              className="w-full h-12"
+            >
+              {loadingLocation ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="mr-2 h-4 w-4" />
+              )}
+              {loadingLocation ? 'Detecting Location...' : 'Use Current Location'}
+            </Button>
+            <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Current location is required for pickup. Please allow location access when prompted.</span>
+            </div>
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="complete_address" className="text-sm">Complete Address *</Label>
-          <Input
-            id="complete_address"
-            value={formData.complete_address}
-            onChange={(e) => setFormData({ ...formData, complete_address: e.target.value })}
-            placeholder="House/Building, Street, Landmark"
-            className="h-11"
-          />
-        </div>
+        )}
       </div>
 
       {/* Safety Confirmation */}
@@ -290,7 +264,7 @@ export function DonateFormStep2({
               htmlFor="safety" 
               className="text-sm leading-relaxed cursor-pointer flex items-start gap-2"
             >
-              <ShieldCheck className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+              <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <span>
                 I confirm this food is <strong>safe to consume</strong>, properly stored, and suitable for donation. 
                 I understand that food safety is my responsibility.
@@ -313,7 +287,7 @@ export function DonateFormStep2({
         </Button>
         <Button
           type="submit"
-          disabled={submitting || !safetyConfirmed}
+          disabled={submitting || !safetyConfirmed || !locationDetected}
           className="flex-[2] h-12 text-base font-semibold"
         >
           {submitting ? (
