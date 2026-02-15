@@ -1,94 +1,57 @@
 
 
-# Auto-Detect Receiver's District for "Show All" Filtering
+# Fix: "Show All in [District]" Not Displaying Donations
 
-## Overview
-Instead of showing ALL donations globally when "Show All" is clicked (or location is denied), the app will auto-detect the receiver's district using reverse geocoding and only show donations within that district.
+## Root Cause
 
-## How It Works
+The reverse geocoding API (Nominatim) returns `"Hanumakonda"` as the district for the user's coordinates, but the donation's `pickup_location` field contains `"Warangal"` (e.g., "Chinnys Hostel, Rangampet, Warangal"). The SQL `ILIKE '%Hanumakonda%'` filter does not match `"Warangal"`, so zero results are returned.
 
-1. **Auto-detect district**: When the receiver's location is obtained, call the OpenStreetMap Nominatim reverse geocoding API to get their district/city name (e.g., "Warangal", "Hanumakonda").
+This is a district name mismatch: the administrative district name ("Hanumakonda") differs from the commonly used city/area name ("Warangal") stored in the pickup location text.
 
-2. **Store district in state**: Save the detected district name so it can be used for filtering and displayed in the UI.
+## Solution
 
-3. **Filter "Show All" by district**: When "Show All" is clicked, instead of fetching every available donation, query donations where `pickup_location` contains the detected district name (case-insensitive match using `ILIKE`).
+Use **coordinate-based filtering** instead of text matching. When "Show All in [District]" is clicked, use a larger radius (e.g., 50 km) via the existing `get_nearby_donations` RPC rather than relying on matching district names in text. This approach is more reliable because it does not depend on matching place names.
 
-4. **Fallback for denied location**: If location is denied, try to detect district from the user's saved profile coordinates. If no coordinates are available at all, fall back to showing all donations as before.
+Additionally, improve the district display name by checking multiple address fields from Nominatim to pick the most recognizable name for the user.
 
-## What Changes
+## Changes
 
-### 1. New utility function: `reverseGeocode`
-A small helper in `src/lib/geoUtils.ts` that calls the Nominatim API:
+### 1. `src/pages/Dashboard.tsx` - Update `fetchDonations`
+
+Replace the district-based RPC call with a large-radius nearby query:
+
+- When `showAllDonations` is true and `receiverLocation` is available, call `get_nearby_donations` with a 50 km radius instead of calling `get_district_donations`
+- When `showAllDonations` is true but no location is available, fall back to showing all donations globally (existing behavior)
+- Remove the `get_district_donations` RPC call entirely from the frontend
+
+The logic becomes:
 ```
-GET https://nominatim.openstreetmap.org/reverse?lat=X&lon=Y&format=json
-```
-Extracts the district/city from `address.state_district` or `address.city` fields.
-
-### 2. Dashboard state additions
-- `receiverDistrict`: string or null -- the auto-detected district name
-- Update the `requestLocation` success handler to also call `reverseGeocode` and store the district
-
-### 3. Updated `fetchDonations` logic
-- **Nearby mode** (current behavior): Uses `get_nearby_donations` RPC -- no change
-- **"Show All" mode** (new behavior): Creates a new database function `get_district_donations(p_district text)` that filters donations where `pickup_location ILIKE '%' || p_district || '%'`, with location masking. Falls back to all donations if no district is detected.
-
-### 4. New database function: `get_district_donations`
-A `SECURITY DEFINER` function similar to `get_public_donations` but with a district filter:
-```sql
-CREATE OR REPLACE FUNCTION public.get_district_donations(p_district text)
-RETURNS TABLE(
-  id uuid, title text, description text, quantity text,
-  quantity_unit text, food_type text, diet_type text,
-  expiry_date timestamptz, status text, created_at timestamptz,
-  rating integer, image_url text,
-  approx_latitude numeric, approx_longitude numeric,
-  masked_location text
-)
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT
-    fd.id, fd.title, fd.description, fd.quantity,
-    fd.quantity_unit, fd.food_type, fd.diet_type,
-    fd.expiry_date, fd.status, fd.created_at,
-    fd.rating, fd.image_url,
-    ROUND(fd.latitude::numeric, 2),
-    ROUND(fd.longitude::numeric, 2),
-    CASE WHEN fd.pickup_location IS NOT NULL
-      THEN regexp_replace(fd.pickup_location, '^[^,]+', 'Address hidden until approved')
-      ELSE 'Location not available'
-    END
-  FROM food_donations fd
-  WHERE fd.status = 'available'
-    AND fd.deleted_at IS NULL
-    AND fd.pickup_location ILIKE '%' || p_district || '%'
-  ORDER BY fd.created_at DESC;
-$$;
+if (receiverLocation && !showAllDonations) -> nearby with user-selected radius
+else if (receiverLocation && showAllDonations) -> nearby with 50km radius  
+else -> all donations globally
 ```
 
-### 5. UI updates
-- Location banner updates to show detected district: "Showing donations in Warangal district"
-- "Show All" button label changes to "Show all in [District]"
-- Empty state for district mode: "No donations found in [District]"
+### 2. `src/lib/geoUtils.ts` - Improve district name detection
+
+Update `reverseGeocode` to prefer the most user-friendly name. Try `city` or `town` before `state_district`, since those tend to match what people actually call the area:
+
+```
+return address.city || address.town || address.state_district || address.county || null;
+```
+
+### 3. UI label update
+
+Update the "Show All" button and banner to say "Show all in [District]" and "Showing all donations in [District]" using the improved district name.
+
+### 4. Remove unused database function
+
+The `get_district_donations` database function can be dropped since we are switching to coordinate-based filtering, which is more reliable.
 
 ## Technical Details
 
 ### Files Modified
-- **New migration**: Creates `get_district_donations` function
-- **`src/lib/geoUtils.ts`**: Add `reverseGeocode(lat, lng)` helper function
-- **`src/pages/Dashboard.tsx`**: Add district state, call reverse geocode on location grant, update `fetchDonations` to use district filtering for "Show All" mode, update UI banners
+- **`src/pages/Dashboard.tsx`**: Change "Show All" fetch logic from district RPC to large-radius nearby query
+- **`src/lib/geoUtils.ts`**: Reorder address field priority for better display names
 
-### Reverse Geocoding (Nominatim)
-- Free, no API key needed
-- Rate limited to 1 request/second (only called once on location grant -- no issue)
-- Returns structured address with `state_district`, `city`, `town`, `county` fields
-- We extract district by checking `state_district` first, then `city`, then `county` as fallbacks
-
-### Error Handling
-| Scenario | Behavior |
-|----------|----------|
-| District detected + "Show All" | Show donations matching that district |
-| Reverse geocode fails | Fall back to showing all donations globally |
-| No donations in district | Empty state: "No donations in [District]" with option to show all globally |
-| Location denied, profile has coords | Reverse geocode from profile coords for district |
-| Location denied, no profile coords | Show all donations globally (existing behavior) |
+### Why Not Fix the Text Matching?
+Text matching between Nominatim results and user-entered pickup locations is inherently fragile. Users may enter "Warangal" while the official district is "Hanumakonda". Coordinate-based filtering is deterministic and always works regardless of naming conventions.
