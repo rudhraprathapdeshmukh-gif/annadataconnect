@@ -1,27 +1,54 @@
 
-# Fix Map Tiles Not Loading After Click
+
+# Fix Map Tiles Not Loading
 
 ## Problem
-When clicking the "Click to interact" overlay, the overlay disappears and the map becomes interactive, but the map tiles (the actual street/satellite imagery) don't render -- only the markers and radius circle show on a blank dark background. This happens because Leaflet calculated the container dimensions while the overlay was present and doesn't re-check automatically.
+Map tiles (the actual street imagery from OpenStreetMap) are not rendering. The map shows the circle and markers on a blank dark background. This is caused by Tailwind CSS's preflight styles -- specifically `img { max-width: 100% }` and `img { height: auto }` -- which override Leaflet's internal tile image sizing, preventing tiles from displaying correctly.
 
 ## Solution
-Call `map.invalidateSize()` after activating the map so Leaflet recalculates the container dimensions and loads tiles correctly. Apply this fix in all three places where the map is activated.
+Add CSS overrides in `src/index.css` to restore Leaflet's expected styling for tile images and other internal elements. Also add an `invalidateSize()` call after the initial map render to ensure tiles load even if the container was briefly hidden.
 
 ## Changes
 
-### `src/components/DonationMap.tsx`
+### 1. `src/index.css` -- Add Leaflet CSS fix
+Add styles to override Tailwind's preflight for Leaflet elements:
 
-1. **In the map `click` event handler (line ~111-117)**: Add `map.invalidateSize()` after enabling interactions
-2. **In the overlay `onClick` handler (line ~160-168)**: Add `map.invalidateSize()` after enabling interactions
-3. **Wrap `invalidateSize` in a `setTimeout`** to ensure the DOM has updated (overlay removed) before Leaflet recalculates
+```css
+/* Fix Leaflet tiles broken by Tailwind's img reset */
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
 
-### Technical Detail
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+}
 
-```typescript
-// In both activation handlers, after enabling interactions:
-setTimeout(() => {
-  map.invalidateSize();
-}, 100);
+.leaflet-tile {
+  filter: inherit;
+  visibility: inherit;
+}
 ```
 
-This gives the browser a moment to re-render after the overlay is removed, then tells Leaflet to recalculate its container size and reload tiles.
+### 2. `src/components/DonationMap.tsx` -- Add initial invalidateSize
+Call `invalidateSize()` shortly after the map is created to ensure tiles load correctly on initial render (handles cases where the container size isn't fully settled):
+
+```typescript
+// After mapInstanceRef.current = map;
+setTimeout(() => { map.invalidateSize(); }, 200);
+```
+
+## Files Modified
+- `src/index.css` -- Add Leaflet CSS overrides
+- `src/components/DonationMap.tsx` -- Add initial invalidateSize call
