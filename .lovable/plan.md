@@ -1,32 +1,27 @@
 
-# Show Accurate Donation Locations on Map
+# Fix Map Tiles Not Loading After Click
 
 ## Problem
-Currently, donation markers on the map use coordinates rounded to 2 decimal places (about 1 km accuracy). This is because the `get_nearby_donations` database function intentionally rounds coordinates for privacy when showing donations to unauthenticated or general views. However, for the map to be useful, receivers need to see more precise locations.
+When clicking the "Click to interact" overlay, the overlay disappears and the map becomes interactive, but the map tiles (the actual street/satellite imagery) don't render -- only the markers and radius circle show on a blank dark background. This happens because Leaflet calculated the container dimensions while the overlay was present and doesn't re-check automatically.
 
 ## Solution
-Update the `get_nearby_donations` database function to return higher-precision coordinates (4 decimal places, roughly 11-meter accuracy) alongside the existing approximate ones. Then update the Dashboard to use these precise coordinates for map markers.
+Call `map.invalidateSize()` after activating the map so Leaflet recalculates the container dimensions and loads tiles correctly. Apply this fix in all three places where the map is activated.
 
 ## Changes
 
-### 1. Database Migration
-Update the `get_nearby_donations` function to return `map_latitude` and `map_longitude` rounded to 4 decimal places (about 11m accuracy -- good enough for the map without revealing the exact address).
+### `src/components/DonationMap.tsx`
 
-### 2. `src/pages/Dashboard.tsx`
-- Use the new `map_latitude` / `map_longitude` fields (4 decimal places) when passing donation data to the DonationMap component
-- Keep using `approx_latitude` / `approx_longitude` for any other display purposes
+1. **In the map `click` event handler (line ~111-117)**: Add `map.invalidateSize()` after enabling interactions
+2. **In the overlay `onClick` handler (line ~160-168)**: Add `map.invalidateSize()` after enabling interactions
+3. **Wrap `invalidateSize` in a `setTimeout`** to ensure the DOM has updated (overlay removed) before Leaflet recalculates
 
-### Technical Details
+### Technical Detail
 
-**Database function change:**
-The `get_nearby_donations` function will add two new return columns:
-- `map_latitude` -- `ROUND(fd.latitude::numeric, 4)` (11m precision)
-- `map_longitude` -- `ROUND(fd.longitude::numeric, 4)` (11m precision)
-
-**Dashboard mapping change:**
-```
-latitude: d.map_latitude ? Number(d.map_latitude) : undefined,
-longitude: d.map_longitude ? Number(d.map_longitude) : undefined,
+```typescript
+// In both activation handlers, after enabling interactions:
+setTimeout(() => {
+  map.invalidateSize();
+}, 100);
 ```
 
-No changes needed to `DonationMap.tsx` -- it already uses the `latitude`/`longitude` fields from the donations array.
+This gives the browser a moment to re-render after the overlay is removed, then tells Leaflet to recalculate its container size and reload tiles.
