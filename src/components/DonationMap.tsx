@@ -119,6 +119,8 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
 
     mapInstanceRef.current = map;
 
+    setTimeout(() => { map.invalidateSize(); }, 200);
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
