@@ -263,6 +263,7 @@ export type Database = {
           avatar_url: string | null
           average_pickup_time: number | null
           created_at: string
+          district: string | null
           email: string | null
           first_name: string | null
           id: string
@@ -285,6 +286,7 @@ export type Database = {
           avatar_url?: string | null
           average_pickup_time?: number | null
           created_at?: string
+          district?: string | null
           email?: string | null
           first_name?: string | null
           id: string
@@ -307,6 +309,7 @@ export type Database = {
           avatar_url?: string | null
           average_pickup_time?: number | null
           created_at?: string
+          district?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
