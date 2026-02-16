@@ -1,45 +1,32 @@
 
-# Make Map Interactive Only On Click
+# Show Accurate Donation Locations on Map
 
-## Overview
-Start the map in a non-interactive (locked) state so users can scroll the page without accidentally panning/zooming the map. When the user clicks on the map, it activates interactions. Clicking outside the map deactivates them again. A subtle overlay hint ("Click to interact") is shown when the map is locked.
+## Problem
+Currently, donation markers on the map use coordinates rounded to 2 decimal places (about 1 km accuracy). This is because the `get_nearby_donations` database function intentionally rounds coordinates for privacy when showing donations to unauthenticated or general views. However, for the map to be useful, receivers need to see more precise locations.
+
+## Solution
+Update the `get_nearby_donations` database function to return higher-precision coordinates (4 decimal places, roughly 11-meter accuracy) alongside the existing approximate ones. Then update the Dashboard to use these precise coordinates for map markers.
 
 ## Changes
 
-### `src/components/DonationMap.tsx`
+### 1. Database Migration
+Update the `get_nearby_donations` function to return `map_latitude` and `map_longitude` rounded to 4 decimal places (about 11m accuracy -- good enough for the map without revealing the exact address).
 
-**1. Initialize map with interactions disabled**
-- Set `dragging: false`, `scrollWheelZoom: false`, `doubleClickZoom: false`, `touchZoom: false`
-- Keep `zoomControl: true` (zoom buttons always work)
-
-**2. Enable interactions on click**
-- Add a `click` event listener on the map that enables `dragging`, `scrollWheelZoom`, `doubleClickZoom`, and `touchZoom`
-- Add an outline/border style change to indicate the map is active
-
-**3. Disable interactions when clicking outside**
-- Add a `mousedown` event listener on `document` that checks if the click target is outside the map container
-- If outside, disable all interactions again and remove the active styling
-
-**4. Show "Click to interact" overlay**
-- Add a `useState` for `isActive` (default `false`)
-- When `isActive` is false, render a semi-transparent overlay with "Click to interact" text
-- When the map is clicked, set `isActive` to true and hide the overlay
-- When clicking outside, set `isActive` to false and show the overlay again
+### 2. `src/pages/Dashboard.tsx`
+- Use the new `map_latitude` / `map_longitude` fields (4 decimal places) when passing donation data to the DonationMap component
+- Keep using `approx_latitude` / `approx_longitude` for any other display purposes
 
 ### Technical Details
 
-```text
-State: isActive = false
-  -> Map renders with overlay "Click to interact"
-  -> dragging/zoom disabled
-  -> User clicks map
-State: isActive = true
-  -> Overlay hidden
-  -> dragging/zoom enabled
-  -> User clicks outside map
-State: isActive = false (back to locked)
+**Database function change:**
+The `get_nearby_donations` function will add two new return columns:
+- `map_latitude` -- `ROUND(fd.latitude::numeric, 4)` (11m precision)
+- `map_longitude` -- `ROUND(fd.longitude::numeric, 4)` (11m precision)
+
+**Dashboard mapping change:**
+```
+latitude: d.map_latitude ? Number(d.map_latitude) : undefined,
+longitude: d.map_longitude ? Number(d.map_longitude) : undefined,
 ```
 
-**Files modified:** `src/components/DonationMap.tsx` only.
-
-No database changes needed.
+No changes needed to `DonationMap.tsx` -- it already uses the `latitude`/`longitude` fields from the donations array.
