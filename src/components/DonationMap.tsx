@@ -114,6 +114,7 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
       map.scrollWheelZoom.enable();
       map.doubleClickZoom.enable();
       map.touchZoom.enable();
+      setTimeout(() => { map.invalidateSize(); }, 100);
     });
 
     mapInstanceRef.current = map;
@@ -165,6 +166,7 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
               map.scrollWheelZoom.enable();
               map.doubleClickZoom.enable();
               map.touchZoom.enable();
+              setTimeout(() => { map.invalidateSize(); }, 100);
             }
           }}
         >
