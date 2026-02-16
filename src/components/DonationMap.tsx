@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -18,7 +18,6 @@ interface DonationMapProps {
 export default function DonationMap({ center, radiusKm, donations, onDonationClick }: DonationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -31,10 +30,10 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
     const map = L.map(mapRef.current, {
       zoomControl: true,
       attributionControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
+      dragging: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      touchZoom: true,
     }).setView([center.lat, center.lng], getZoomForRadius(radiusKm));
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -107,16 +106,6 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
       map.fitBounds(L.latLngBounds(boundsPoints), { padding: [30, 30], maxZoom: 15 });
     }
 
-    // Activate on map click
-    map.on('click', () => {
-      setIsActive(true);
-      map.dragging.enable();
-      map.scrollWheelZoom.enable();
-      map.doubleClickZoom.enable();
-      map.touchZoom.enable();
-      setTimeout(() => { map.invalidateSize(); }, 100);
-    });
-
     mapInstanceRef.current = map;
 
     setTimeout(() => { map.invalidateSize(); }, 200);
@@ -129,55 +118,12 @@ export default function DonationMap({ center, radiusKm, donations, onDonationCli
     };
   }, [center.lat, center.lng, radiusKm, donations, onDonationClick]);
 
-  // Deactivate when clicking outside the map
-  useEffect(() => {
-    if (!isActive) return;
-
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (mapRef.current && !mapRef.current.contains(e.target as Node)) {
-        setIsActive(false);
-        const map = mapInstanceRef.current;
-        if (map) {
-          map.dragging.disable();
-          map.scrollWheelZoom.disable();
-          map.doubleClickZoom.disable();
-          map.touchZoom.disable();
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isActive]);
-
   return (
-    <div className="relative">
-      <div
-        ref={mapRef}
-        className={`w-full h-64 rounded-lg border overflow-hidden transition-colors ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
-        style={{ zIndex: 0 }}
-      />
-      {!isActive && (
-        <div
-          className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg cursor-pointer"
-          onClick={() => {
-            setIsActive(true);
-            const map = mapInstanceRef.current;
-            if (map) {
-              map.dragging.enable();
-              map.scrollWheelZoom.enable();
-              map.doubleClickZoom.enable();
-              map.touchZoom.enable();
-              setTimeout(() => { map.invalidateSize(); }, 100);
-            }
-          }}
-        >
-          <span className="bg-background/90 text-foreground text-sm font-medium px-3 py-1.5 rounded-full shadow-sm">
-            Click to interact
-          </span>
-        </div>
-      )}
-    </div>
+    <div
+      ref={mapRef}
+      className="w-full h-64 rounded-lg border border-border overflow-hidden"
+      style={{ zIndex: 0 }}
+    />
   );
 }
 
