@@ -408,6 +408,8 @@ export type Database = {
           food_type: string
           id: string
           image_url: string
+          map_latitude: number
+          map_longitude: number
           masked_location: string
           quantity: string
           quantity_unit: string
