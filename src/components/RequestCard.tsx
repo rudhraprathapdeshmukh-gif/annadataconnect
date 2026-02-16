@@ -31,6 +31,8 @@ interface FoodDonation {
   image_url?: string | null;
   phone_number?: string | null;
   pickup_location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   otp?: string | null;
   donor_profile?: {
     first_name: string;
@@ -278,7 +280,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <span>{request.food_donations.pickup_location}</span>
             </div>
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(request.food_donations.pickup_location)}`}
+              href={
+                request.food_donations.latitude && request.food_donations.longitude
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${request.food_donations.latitude},${request.food_donations.longitude}`
+                  : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(request.food_donations.pickup_location)}`
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-primary hover:underline text-xs mt-1"
