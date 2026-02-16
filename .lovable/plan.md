@@ -1,103 +1,55 @@
 
-# District-Wide Notifications for Receivers
+# Push Notifications + Sound Effect for In-App Notifications
 
 ## Overview
-Currently, the notification system only alerts receivers within a **10km radius** of a new donation. This plan expands it to notify **all registered receivers in the same district** by storing each user's district in the database and matching it when a donation is created.
+The browser push notification system already exists but may not be prompting users effectively. This plan adds:
+1. A **notification sound effect** that plays when an in-app toast notification appears
+2. **Auto-prompt for push notification permission** for receivers who haven't granted it yet
+3. Ensure push notifications work reliably for `nearby_donation` type
 
 ## Changes
 
-### 1. Database Migration -- Add `district` column to `profiles`
+### 1. Add a notification sound file
+- Create/add a short notification sound audio file (e.g., `public/notification.mp3`) -- a brief, pleasant chime sound
+- This will be a small MP3 file embedded in the project
 
-Add a `district` text column to the `profiles` table so we can match receivers by district without making N reverse-geocode API calls at notification time.
+### 2. Update `src/hooks/useNotifications.ts` -- Play sound on new notification
 
-```sql
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS district text;
-```
-
-### 2. Frontend -- Save district to profile on location detection
-
-**File: `src/pages/Dashboard.tsx`**
-
-When the receiver's location is detected and reverse-geocoded, also save the district string to their profile alongside `latitude`/`longitude`. Update the two places where `reverseGeocode` is called:
-
-- **Location granted path** (~line 166): After saving lat/lng, also save the district:
-  ```typescript
-  await supabase.from('profiles').update({
-    latitude: loc.lat,
-    longitude: loc.lng,
-    district: district || null,
-  }).eq('id', user.id);
-  ```
-
-- **Location denied fallback path** (~line 184): If a district is resolved from stored coords, save it too.
-
-### 3. Edge Function -- Expand `notify-nearby-users` to include district matching
-
-**File: `supabase/functions/notify-nearby-users/index.ts`**
-
-Update the function to:
-
-1. **Reverse-geocode** the donation's coordinates to determine its district (using Nominatim, same logic as the frontend).
-2. **Query receivers** who match by district (`profiles.district`) OR are within 10km (existing logic), excluding the donor and users with push disabled.
-3. **Deduplicate** users who match both criteria.
-4. **Customize the notification message**: distance-based for nearby users (e.g., "1.2 km away"), district-based for farther users (e.g., "available in Hyderabad").
-
-Key changes in the edge function:
+Add a sound playback function that triggers alongside the toast notification:
 
 ```typescript
-// 1. Reverse-geocode donation location to get district
-async function getDistrict(lat: number, lng: number): Promise<string | null> {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-    { headers: { 'Accept-Language': 'en' } }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  const addr = data?.address;
-  return addr?.city || addr?.town || addr?.state_district || addr?.county || null;
+// Inside the realtime INSERT callback, before/alongside the toast:
+const playNotificationSound = () => {
+  try {
+    const audio = new Audio('/notification.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(() => {}); // Silently fail if autoplay blocked
+  } catch {}
+};
+
+// In the callback:
+if (pushEnabled) {
+  playNotificationSound();
+  toast.info(newNotification.title, {
+    description: newNotification.message,
+  });
 }
-
-// 2. Query profiles -- now also select `district`
-const { data: allReceivers } = await supabase
-  .from("profiles")
-  .select("id, latitude, longitude, notification_push, user_type, district")
-  .or("user_type.eq.receiver,user_type.eq.both");
-
-// 3. Filter: include if within 10km OR same district
-// 4. Deduplicate by user id
-// 5. Customize message per user
 ```
 
-### 4. Update the database trigger payload (no change needed)
+### 3. Update `src/pages/Dashboard.tsx` -- Auto-prompt push permission for receivers
 
-The existing `notify_nearby_on_donation_insert()` trigger already passes `latitude`, `longitude`, and `title` to the edge function -- no changes required.
+When a receiver loads the dashboard and hasn't granted notification permission yet, automatically prompt them:
 
-## How It Works (End-to-End Flow)
-
-```text
-Donor creates donation
-        |
-        v
-DB trigger fires --> calls notify-nearby-users edge function
-        |
-        v
-Edge function reverse-geocodes donation coords --> gets district name
-        |
-        v
-Queries all receiver profiles with:
-  - Same district (district-level reach)
-  - OR within 10km radius (proximity reach)
-        |
-        v
-Inserts notification rows --> Supabase Realtime picks them up
-        |
-        v
-useNotifications hook receives INSERT event
-  - Shows in-app toast notification
-  - Shows browser push notification (if permitted)
+```typescript
+// After location detection, if user is a receiver and permission is 'default':
+if (permission === 'default' && Notification) {
+  requestPermission();
+}
 ```
+
+This uses the existing `requestPermission` from `useNotifications`.
 
 ## Files Modified
-- **Database migration**: Add `district` column to `profiles`
-- **`src/pages/Dashboard.tsx`**: Save district to profile when location is detected
-- **`supabase/functions/notify-nearby-users/index.ts`**: Add district-based matching alongside existing radius-based matching
+- `public/notification.mp3` -- New notification sound file
+- `src/hooks/useNotifications.ts` -- Add sound playback on new notifications
+- `src/pages/Dashboard.tsx` -- Auto-prompt push notification permission for receivers
