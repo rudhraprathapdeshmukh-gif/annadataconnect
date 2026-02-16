@@ -163,12 +163,14 @@ export default function Dashboard() {
         setLocationStatus('granted');
         // Save to profile for nearby notifications
         if (user) {
-          await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng }).eq('id', user.id);
-        }
-        // Auto-detect district via reverse geocoding
-        const district = await reverseGeocode(loc.lat, loc.lng);
-        if (district) {
-          setReceiverDistrict(district);
+          // Auto-detect district via reverse geocoding and save to profile
+          const district = await reverseGeocode(loc.lat, loc.lng);
+          await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng, district: district || null } as any).eq('id', user.id);
+          if (district) {
+            setReceiverDistrict(district);
+          }
+        } else {
+          await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng } as any).eq('id', user.id);
         }
       },
       async () => {
@@ -184,6 +186,8 @@ export default function Dashboard() {
             const district = await reverseGeocode(profile.latitude, profile.longitude);
             if (district) {
               setReceiverDistrict(district);
+              // Save district to profile if not already set
+              await supabase.from('profiles').update({ district } as any).eq('id', user.id);
             }
           }
         }
