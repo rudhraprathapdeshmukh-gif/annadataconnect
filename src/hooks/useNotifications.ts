@@ -17,6 +17,7 @@ interface Notification {
 interface NotificationPreferences {
   notification_push: boolean | null;
   notification_email: boolean | null;
+  user_type: string | null;
 }
 
 export const useNotifications = () => {
@@ -30,13 +31,18 @@ export const useNotifications = () => {
   // Only explicit FALSE means disabled.
   const isPushEnabled = (prefs: NotificationPreferences | null) => prefs?.notification_push !== false;
   
-  // Use ref to always have latest preferences in realtime callback
+  // Use refs to always have latest values in realtime callback
   const preferencesRef = useRef<NotificationPreferences | null>(null);
+  const permissionRef = useRef<NotificationPermission>('default');
   
-  // Keep ref in sync with state
+  // Keep refs in sync with state
   useEffect(() => {
     preferencesRef.current = preferences;
   }, [preferences]);
+
+  useEffect(() => {
+    permissionRef.current = permission;
+  }, [permission]);
 
   // Request browser notification permission
   useEffect(() => {
@@ -65,7 +71,7 @@ export const useNotifications = () => {
     const loadPreferences = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('notification_push, notification_email')
+        .select('notification_push, notification_email, user_type')
         .eq('id', user.id)
         .single();
 
@@ -95,6 +101,7 @@ export const useNotifications = () => {
           setPreferences({
             notification_push: updated.notification_push,
             notification_email: updated.notification_email,
+            user_type: updated.user_type,
           });
         }
       )
@@ -156,7 +163,7 @@ export const useNotifications = () => {
           const pushEnabled = isPushEnabled(currentPrefs);
 
           // Only show browser notification if push notifications are enabled
-          if (pushEnabled && permission === 'granted') {
+          if (pushEnabled && permissionRef.current === 'granted') {
             new Notification(newNotification.title, {
               body: newNotification.message,
               icon: '/favicon.ico',
@@ -254,6 +261,18 @@ export const useNotifications = () => {
     setUnreadCount(0);
     toast.success('All notifications removed');
   };
+
+  // Auto-prompt push permission for receivers
+  useEffect(() => {
+    if (
+      user &&
+      (preferences?.user_type === 'receiver' || preferences?.user_type === 'both') &&
+      permission === 'default' &&
+      'Notification' in window
+    ) {
+      requestPermission();
+    }
+  }, [user, preferences?.user_type, permission]);
 
   return {
     notifications,
