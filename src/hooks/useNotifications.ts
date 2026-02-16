@@ -166,6 +166,13 @@ export const useNotifications = () => {
 
           // Only show toast notification if push notifications are enabled
           if (pushEnabled) {
+            // Play notification sound
+            try {
+              const audio = new Audio('/notification.mp3');
+              audio.volume = 0.5;
+              audio.play().catch(() => {});
+            } catch {}
+
             toast.info(newNotification.title, {
               description: newNotification.message,
             });
