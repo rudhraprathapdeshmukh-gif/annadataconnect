@@ -231,7 +231,7 @@ export function DonateFormStep1({
             <SelectItem value="Grains">Grains</SelectItem>
             <SelectItem value="Dairy">Dairy</SelectItem>
             <SelectItem value="Prepared Food">Prepared Food</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value="Bakery Products">Bakery Products</SelectItem>
           </SelectContent>
         </Select>
       </div>

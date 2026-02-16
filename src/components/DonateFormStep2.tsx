@@ -71,6 +71,7 @@ export function DonateFormStep2({
   const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
   const isDairy = formData.food_type === 'Dairy';
   const isGrains = formData.food_type === 'Grains';
+  const isBakery = formData.food_type === 'Bakery Products';
 
   const getDateConstraints = () => {
     const today = new Date();
@@ -84,6 +85,8 @@ export function DonateFormStep2({
       return { min: today, max: addDays(today, 2) };
     } else if (isGrains) {
       return { min: today, max: addMonths(today, 5) };
+    } else if (isBakery) {
+      return { min: today, max: addDays(today, 2) };
     }
     return { min: today, max: addYears(today, 2) };
   };
@@ -95,6 +98,7 @@ export function DonateFormStep2({
     if (isVegetableOrFruit) return 'Vegetables/Fruits: Expiry within 4 days';
     if (isDairy) return 'Dairy: Expiry within 2 days';
     if (isGrains) return 'Grains: Expiry within 5 months';
+    if (isBakery) return 'Bakery Products: Expiry within 2 days';
     return 'Select expiry date (up to 2 years)';
   };
 
