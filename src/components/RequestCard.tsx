@@ -277,6 +277,15 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{request.food_donations.pickup_location}</span>
             </div>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(request.food_donations.pickup_location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-primary hover:underline text-xs mt-1"
+            >
+              <MapPin className="h-3 w-3" />
+              Open in Google Maps
+            </a>
             {request.food_donations.donor_profile && (
               <div className="space-y-1 text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
                 <p className="font-medium text-foreground">Donor Contact:</p>
