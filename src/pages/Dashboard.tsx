@@ -29,7 +29,7 @@ import { useCountdown } from '@/hooks/useCountdown';
 import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
 import { shouldBlockUser } from '@/lib/reliabilityScore';
 import { reverseGeocode } from '@/lib/geoUtils';
-import { useNotifications } from '@/hooks/useNotifications';
+
 
 interface PublicDonation {
   id: string;
@@ -197,25 +197,11 @@ export default function Dashboard() {
     );
   };
 
-  const { permission, requestPermission } = useNotifications();
-
   useEffect(() => {
     if (user && (userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both')) {
       requestLocation();
     }
   }, [user, userProfile?.user_type]);
-
-  // Auto-prompt push notification permission for receivers
-  useEffect(() => {
-    if (
-      user &&
-      (userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') &&
-      permission === 'default' &&
-      'Notification' in window
-    ) {
-      requestPermission();
-    }
-  }, [user, userProfile?.user_type, permission]);
 
   useEffect(() => {
     fetchDonations();
