@@ -427,8 +427,8 @@ export default function Dashboard() {
         setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
-          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
-          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+          latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
+          longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
         })));
       } else if (receiverLocation && showAllDonations) {
@@ -444,8 +444,8 @@ export default function Dashboard() {
         setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
-          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
-          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+          latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
+          longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
         })));
       } else {
