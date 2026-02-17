@@ -278,6 +278,7 @@ export type Database = {
           on_time_count: number | null
           phone_number: string | null
           reliability_score: number | null
+          suspended_until: string | null
           total_pickups: number | null
           updated_at: string
           user_type: string | null
@@ -301,6 +302,7 @@ export type Database = {
           on_time_count?: number | null
           phone_number?: string | null
           reliability_score?: number | null
+          suspended_until?: string | null
           total_pickups?: number | null
           updated_at?: string
           user_type?: string | null
@@ -324,6 +326,7 @@ export type Database = {
           on_time_count?: number | null
           phone_number?: string | null
           reliability_score?: number | null
+          suspended_until?: string | null
           total_pickups?: number | null
           updated_at?: string
           user_type?: string | null

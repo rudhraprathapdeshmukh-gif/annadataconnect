@@ -325,6 +325,35 @@ export default function Dashboard() {
         title: 'Low Rating Warning',
         message: 'Your recent food donations received low ratings in multiple orders. Please ensure food quality and hygiene standards. Continued low ratings may restrict your account.',
       });
+
+      // Check for suspension: last 5 ratings all <= 2
+      const { data: last5 } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .in('donation_id', donations.map(d => d.id))
+        .not('receiver_rating', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(5);
+
+      if (last5 && last5.length >= 5 && last5.every(r => (r.receiver_rating ?? 0) <= 2)) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('suspended_until')
+          .eq('id', donorId)
+          .single();
+
+        if (!profile?.suspended_until || new Date(profile.suspended_until) < new Date()) {
+          const suspendUntil = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+          await supabase.from('profiles').update({ suspended_until: suspendUntil } as any).eq('id', donorId);
+
+          await supabase.from('notifications').insert({
+            user_id: donorId,
+            type: 'account_suspended',
+            title: 'Account Suspended',
+            message: `Your account has been suspended for 48 hours due to consistently low ratings on your donations. Please ensure food quality and hygiene standards. Your suspension will be lifted on ${new Date(suspendUntil).toLocaleString()}.`,
+          });
+        }
+      }
     } catch (err) {
       console.error('Error checking donor low ratings:', err);
     }

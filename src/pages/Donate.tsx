@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -74,6 +76,7 @@ export default function Donate() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const locationAutoTriggered = useRef(false);
+  const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
 
@@ -187,6 +190,16 @@ export default function Donate() {
     }
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    if (user) {
+      supabase.from('profiles').select('suspended_until').eq('id', user.id).single()
+        .then(({ data }) => {
+          if ((data as any)?.suspended_until && new Date((data as any).suspended_until) > new Date()) {
+            setSuspendedUntil((data as any).suspended_until);
+          }
+        });
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchUserType = async () => {
@@ -385,6 +398,16 @@ export default function Donate() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {suspendedUntil ? (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Account Suspended</AlertTitle>
+                <AlertDescription>
+                  Your account has been suspended due to consistently low ratings on your donations. Please ensure food quality and hygiene standards. Your suspension will be lifted on {new Date(suspendedUntil).toLocaleString()}.
+                </AlertDescription>
+              </Alert>
+            ) : (
+            <>
             <DonateStepIndicator currentStep={currentStep} />
             
             {currentStep === 1 ? (
@@ -418,6 +441,8 @@ export default function Donate() {
                 onBack={() => setCurrentStep(1)}
                 onSubmit={handleSubmit}
               />
+            )}
+            </>
             )}
           </CardContent>
         </Card>
