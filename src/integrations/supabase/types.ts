@@ -504,6 +504,10 @@ export type Database = {
         Args: { _donation_id: string }
         Returns: undefined
       }
+      verify_otp_and_complete: {
+        Args: { _otp_value: string; _request_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
