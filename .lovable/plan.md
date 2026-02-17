@@ -1,113 +1,109 @@
 
 
-# Suspend Donors After 5 Low-Rated Donations
+# Permanently Block Donors After 7 Consecutive Low Ratings
 
 ## Overview
-If a donor continues to receive ratings of 2 or below even after 5 completed donations (not just 3), their account will be suspended for 48 hours. During suspension, the donor cannot create new donations and sees a clear error message explaining why they are suspended and when the suspension lifts.
+If a donor receives ratings of 2 or below on their last 7 completed donations, their account will be permanently blocked. They will no longer be able to create donations and will see an error message explaining the permanent block.
 
 ## Implementation
 
-### 1. Add `suspended_until` column to `profiles` table
+### 1. Add `permanently_blocked` column to `profiles` table
 
-A new nullable `timestamp with time zone` column called `suspended_until` will be added to the `profiles` table. When set to a future timestamp, the donor is considered suspended.
+A new boolean column `permanently_blocked` (default `false`) will be added to the `profiles` table. When set to `true`, the donor is permanently blocked.
+
+Add `'account_blocked'` to the `notifications` type check constraint.
 
 ### 2. Extend `checkDonorLowRatings` in `src/pages/Dashboard.tsx`
 
-After checking the last 3 ratings (existing warning logic), add a second check for the last 5 ratings:
+After the existing 5-rating suspension check, add a third check for the last 7 ratings:
 
-- Fetch the last 5 `receiver_rating` values for the donor's donations
-- If all 5 are <= 2, update the donor's profile to set `suspended_until` to `now() + 48 hours`
-- Also insert a notification of type `'account_suspended'` informing them
+- Fetch the last 7 `receiver_rating` values for the donor's donations
+- If all 7 are <= 2, set `permanently_blocked = true` on the donor's profile
+- Insert an `account_blocked` notification informing them
 
 ### 3. Block donation creation in `src/pages/Donate.tsx`
 
-On page load, fetch the current user's `suspended_until` from their profile. If it is in the future:
-- Display a prominent error/alert banner with the message: "Your account has been suspended due to consistently low ratings on your donations. Please ensure food quality and hygiene standards. Your suspension will be lifted on [date/time]."
-- Disable the donation form entirely
+Extend the existing suspension check to also fetch `permanently_blocked`. If `true`:
+- Display a prominent error alert: "Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error."
+- Hide the donation form entirely
 
 ### 4. Database migration
 
-- Add `suspended_until` column to `profiles`
-- Add `'account_suspended'` to the `notifications` type check constraint
+```sql
+ALTER TABLE public.profiles ADD COLUMN permanently_blocked boolean DEFAULT false;
+
+ALTER TABLE public.notifications DROP CONSTRAINT notifications_type_check;
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
+CHECK (type IN ('nearby_donation', 'request_approved', 'donation_cancelled', 'donation_expired', 'message_received', 'low_rating_warning', 'account_suspended', 'account_blocked'));
+```
 
 ## Technical Details
 
-### Database Migration
-
-```sql
--- Add suspended_until to profiles
-ALTER TABLE public.profiles ADD COLUMN suspended_until timestamptz DEFAULT NULL;
-
--- Update notifications type constraint
-ALTER TABLE public.notifications DROP CONSTRAINT notifications_type_check;
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
-CHECK (type IN ('nearby_donation', 'request_approved', 'donation_cancelled', 'donation_expired', 'message_received', 'low_rating_warning', 'account_suspended'));
-```
-
 ### Changes to `src/pages/Dashboard.tsx` - `checkDonorLowRatings`
 
-After the existing 3-rating warning logic, add:
+After the existing suspension block (line ~356), add:
 
 ```typescript
-// Check for suspension: last 5 ratings all <= 2
-if (recentRatings.length >= 5 || /* re-fetch with limit 5 */) {
-  const { data: last5 } = await supabase
-    .from('food_requests')
-    .select('receiver_rating')
-    .in('donation_id', donations.map(d => d.id))
-    .not('receiver_rating', 'is', null)
-    .order('updated_at', { ascending: false })
-    .limit(5);
+// Check for permanent block: last 7 ratings all <= 2
+const { data: last7 } = await supabase
+  .from('food_requests')
+  .select('receiver_rating')
+  .in('donation_id', donations.map(d => d.id))
+  .not('receiver_rating', 'is', null)
+  .order('updated_at', { ascending: false })
+  .limit(7);
 
-  if (last5 && last5.length >= 5 && last5.every(r => (r.receiver_rating ?? 0) <= 2)) {
-    // Check not already suspended
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('suspended_until')
-      .eq('id', donorId)
-      .single();
+if (last7 && last7.length >= 7 && last7.every(r => (r.receiver_rating ?? 0) <= 2)) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('permanently_blocked')
+    .eq('id', donorId)
+    .single();
 
-    if (!profile?.suspended_until || new Date(profile.suspended_until) < new Date()) {
-      const suspendUntil = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-      await supabase.from('profiles').update({ suspended_until: suspendUntil }).eq('id', donorId);
+  if (!profile?.permanently_blocked) {
+    await supabase.from('profiles')
+      .update({ permanently_blocked: true })
+      .eq('id', donorId);
 
-      await supabase.from('notifications').insert({
-        user_id: donorId,
-        type: 'account_suspended',
-        title: 'Account Suspended',
-        message: 'Your account has been suspended for 48 hours due to consistently low ratings...',
-      });
-    }
+    await supabase.from('notifications').insert({
+      user_id: donorId,
+      type: 'account_blocked',
+      title: 'Account Permanently Blocked',
+      message: 'Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error.',
+    });
   }
 }
 ```
 
 ### Changes to `src/pages/Donate.tsx`
 
+Update the existing suspension `useEffect` to also check `permanently_blocked`:
+
 ```typescript
-const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
+const [permanentlyBlocked, setPermanentlyBlocked] = useState(false);
 
 useEffect(() => {
   if (user) {
-    supabase.from('profiles').select('suspended_until').eq('id', user.id).single()
+    supabase.from('profiles').select('suspended_until, permanently_blocked')
+      .eq('id', user.id).single()
       .then(({ data }) => {
-        if (data?.suspended_until && new Date(data.suspended_until) > new Date()) {
-          setSuspendedUntil(data.suspended_until);
+        if ((data as any)?.permanently_blocked) {
+          setPermanentlyBlocked(true);
+        } else if ((data as any)?.suspended_until && new Date((data as any).suspended_until) > new Date()) {
+          setSuspendedUntil((data as any).suspended_until);
         }
       });
   }
 }, [user]);
-
-// In render, if suspendedUntil is set, show alert and block form
 ```
 
-The alert will use the existing `Alert` component with a destructive variant showing the suspension reason and end time.
+In the render, show a permanent block alert (taking priority over the suspension alert) with the message explaining the block is permanent.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| Database migration | Add `suspended_until` column to `profiles`; update notification type constraint |
-| `src/pages/Dashboard.tsx` | Extend `checkDonorLowRatings` to suspend after 5 low ratings |
-| `src/pages/Donate.tsx` | Check suspension status on load; show error and block form if suspended |
+| Database migration | Add `permanently_blocked` column to `profiles`; update notification type constraint |
+| `src/pages/Dashboard.tsx` | Extend `checkDonorLowRatings` to permanently block after 7 low ratings |
+| `src/pages/Donate.tsx` | Check permanent block status on load; show error and hide form if blocked |
 
