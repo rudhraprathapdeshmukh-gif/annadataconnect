@@ -3,12 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { playDonationAlertSound } from '@/lib/donationAlertSound';
+import { playNotificationSound } from '@/lib/notificationSound';
 import { registerServiceWorkerAndSubscribe } from '@/lib/pushSubscription';
 
 interface Notification {
   id: string;
   user_id: string;
-  type: 'request_approved' | 'message_received' | 'extension_request' | 'extension_granted' | 'extension_rejected' | 'donation_cancelled' | 'nearby_donation';
+  type: 'request_approved' | 'message_received' | 'extension_request' | 'extension_granted' | 'extension_rejected' | 'donation_cancelled' | 'donation_expired' | 'nearby_donation' | 'donation_requested' | 'low_rating_warning' | 'account_suspended' | 'account_blocked';
   title: string;
   message: string;
   related_id: string | null;
@@ -179,11 +180,7 @@ export const useNotifications = () => {
             if (newNotification.type === 'nearby_donation') {
               playDonationAlertSound();
             } else {
-              try {
-                const audio = new Audio('/notification.mp3');
-                audio.volume = 0.5;
-                audio.play().catch(() => {});
-              } catch {}
+              playNotificationSound();
             }
 
             toast.info(newNotification.title, {
