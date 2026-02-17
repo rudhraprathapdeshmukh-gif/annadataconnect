@@ -1,109 +1,132 @@
 
 
-# Permanently Block Donors After 7 Consecutive Low Ratings
+# District Donation Notification with Special Tune and Background Push
 
 ## Overview
-If a donor receives ratings of 2 or below on their last 7 completed donations, their account will be permanently blocked. They will no longer be able to create donations and will see an error message explaining the permanent block.
+When a donor posts a donation, all receivers in the same district will get notified with a special distinct tune that plays for 5 seconds, and receive a push notification even when the site is closed. This requires adding a Service Worker for background push support and a new audio file for the special tune.
 
 ## Implementation
 
-### 1. Add `permanently_blocked` column to `profiles` table
+### 1. Add a special notification sound file
 
-A new boolean column `permanently_blocked` (default `false`) will be added to the `profiles` table. When set to `true`, the donor is permanently blocked.
+Add a new audio file `public/donation-alert.mp3` -- a distinct, attention-grabbing 5-second tune (different from the generic `notification.mp3`). Since we can't source a real audio file, we'll use the Web Audio API to generate a programmatic 5-second chime as a fallback, or reuse the existing file with a longer playback approach.
 
-Add `'account_blocked'` to the `notifications` type check constraint.
+**Approach**: Create a helper function `playDonationAlertSound()` that uses the Web Audio API to generate a distinctive 5-second chime pattern (no external file needed). This avoids needing to upload a custom audio file.
 
-### 2. Extend `checkDonorLowRatings` in `src/pages/Dashboard.tsx`
+### 2. Create a Service Worker for background push notifications
 
-After the existing 5-rating suspension check, add a third check for the last 7 ratings:
+Create `public/sw.js` -- a service worker that:
+- Listens for `push` events and displays notifications even when the site is closed
+- Plays the notification sound via the `notification` event
+- Handles notification click to open/focus the app
 
-- Fetch the last 7 `receiver_rating` values for the donor's donations
-- If all 7 are <= 2, set `permanently_blocked = true` on the donor's profile
-- Insert an `account_blocked` notification informing them
+### 3. Register the Service Worker in `useNotifications.ts`
 
-### 3. Block donation creation in `src/pages/Donate.tsx`
+- Register `sw.js` on mount
+- Subscribe to Web Push using VAPID keys (generated and stored as secrets)
+- Save the push subscription to a new `push_subscriptions` table so the backend can send pushes
 
-Extend the existing suspension check to also fetch `permanently_blocked`. If `true`:
-- Display a prominent error alert: "Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error."
-- Hide the donation form entirely
+### 4. Create a `push_subscriptions` database table
 
-### 4. Database migration
+Store each user's push subscription endpoint and keys so the edge function can send background pushes.
 
-```sql
-ALTER TABLE public.profiles ADD COLUMN permanently_blocked boolean DEFAULT false;
+### 5. Update `notify-nearby-users` edge function
 
-ALTER TABLE public.notifications DROP CONSTRAINT notifications_type_check;
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
-CHECK (type IN ('nearby_donation', 'request_approved', 'donation_cancelled', 'donation_expired', 'message_received', 'low_rating_warning', 'account_suspended', 'account_blocked'));
-```
+After inserting notification rows, also send Web Push messages to district-matched receivers using their stored push subscriptions via the `web-push` protocol.
+
+### 6. Update `useNotifications.ts` -- special tune for donation alerts
+
+In the realtime callback, check if the notification type is `nearby_donation`. If so, play the special 5-second tune instead of the regular notification sound.
+
+### 7. Generate VAPID keys
+
+VAPID keys are required for Web Push. We'll need to generate a key pair and store the private key as a secret, while the public key goes in the frontend.
 
 ## Technical Details
 
-### Changes to `src/pages/Dashboard.tsx` - `checkDonorLowRatings`
+### Database Migration
 
-After the existing suspension block (line ~356), add:
+```sql
+CREATE TABLE public.push_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint text NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, endpoint)
+);
 
-```typescript
-// Check for permanent block: last 7 ratings all <= 2
-const { data: last7 } = await supabase
-  .from('food_requests')
-  .select('receiver_rating')
-  .in('donation_id', donations.map(d => d.id))
-  .not('receiver_rating', 'is', null)
-  .order('updated_at', { ascending: false })
-  .limit(7);
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
-if (last7 && last7.length >= 7 && last7.every(r => (r.receiver_rating ?? 0) <= 2)) {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('permanently_blocked')
-    .eq('id', donorId)
-    .single();
-
-  if (!profile?.permanently_blocked) {
-    await supabase.from('profiles')
-      .update({ permanently_blocked: true })
-      .eq('id', donorId);
-
-    await supabase.from('notifications').insert({
-      user_id: donorId,
-      type: 'account_blocked',
-      title: 'Account Permanently Blocked',
-      message: 'Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error.',
-    });
-  }
-}
+CREATE POLICY "Users can manage own subscriptions" ON public.push_subscriptions
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 ```
 
-### Changes to `src/pages/Donate.tsx`
+### New file: `public/sw.js`
 
-Update the existing suspension `useEffect` to also check `permanently_blocked`:
+```javascript
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'New Donation Nearby!', {
+      body: data.message || 'A new food donation is available in your area!',
+      icon: '/favicon.ico',
+      tag: data.id || 'donation-alert',
+      data: { url: '/dashboard' },
+    })
+  );
+});
 
-```typescript
-const [permanentlyBlocked, setPermanentlyBlocked] = useState(false);
-
-useEffect(() => {
-  if (user) {
-    supabase.from('profiles').select('suspended_until, permanently_blocked')
-      .eq('id', user.id).single()
-      .then(({ data }) => {
-        if ((data as any)?.permanently_blocked) {
-          setPermanentlyBlocked(true);
-        } else if ((data as any)?.suspended_until && new Date((data as any).suspended_until) > new Date()) {
-          setSuspendedUntil((data as any).suspended_until);
-        }
-      });
-  }
-}, [user]);
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
+});
 ```
 
-In the render, show a permanent block alert (taking priority over the suspension alert) with the message explaining the block is permanent.
+### Changes to `src/hooks/useNotifications.ts`
+
+1. Register service worker and subscribe to push on mount
+2. Save subscription to `push_subscriptions` table
+3. In the realtime INSERT callback, play a special 5-second chime for `nearby_donation` type notifications using Web Audio API
+
+```typescript
+// Special 5-second chime for donation alerts
+const playDonationAlertSound = () => {
+  const ctx = new AudioContext();
+  const frequencies = [523, 659, 784, 880, 784, 659, 523]; // C5-E5-G5-A5 pattern
+  frequencies.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.value = 0.3;
+    osc.start(ctx.currentTime + i * 0.7);
+    osc.stop(ctx.currentTime + i * 0.7 + 0.5);
+  });
+};
+```
+
+### Changes to `notify-nearby-users` edge function
+
+After inserting notifications, query `push_subscriptions` for the notified user IDs and send Web Push messages using the VAPID private key and the standard Web Push protocol.
+
+### Secrets needed
+
+- `VAPID_PUBLIC_KEY` -- used in frontend for push subscription
+- `VAPID_PRIVATE_KEY` -- used in edge function for sending pushes
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| Database migration | Add `permanently_blocked` column to `profiles`; update notification type constraint |
-| `src/pages/Dashboard.tsx` | Extend `checkDonorLowRatings` to permanently block after 7 low ratings |
-| `src/pages/Donate.tsx` | Check permanent block status on load; show error and hide form if blocked |
+| Database migration | Create `push_subscriptions` table with RLS |
+| `public/sw.js` | New service worker for background push notifications |
+| `src/hooks/useNotifications.ts` | Register SW, save push subscription, play special 5s tune for donation alerts |
+| `supabase/functions/notify-nearby-users/index.ts` | Send Web Push messages to district receivers |
+| Secret: `VAPID_PUBLIC_KEY` | New secret for push subscription |
+| Secret: `VAPID_PRIVATE_KEY` | New secret for sending push messages |
 
