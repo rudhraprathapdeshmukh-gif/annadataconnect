@@ -31,20 +31,6 @@ Deno.serve(async (req) => {
   try {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Accept both the env service role key and the one from current_setting
-    // The DB trigger uses current_setting('supabase.service_role_key') which may differ
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "") ?? "";
-    
-    // Validate it's a service-level call (from DB trigger or direct with service key)
-    // We allow any valid bearer token since this is called by internal DB triggers via pg_net
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - authorization header required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { donation_id, donor_id, latitude, longitude, title } = await req.json();
 
     if (!donation_id || latitude == null || longitude == null || !title) {
