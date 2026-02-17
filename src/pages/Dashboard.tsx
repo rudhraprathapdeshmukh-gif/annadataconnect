@@ -354,6 +354,36 @@ export default function Dashboard() {
           });
         }
       }
+
+      // Check for permanent block: last 7 ratings all <= 2
+      const { data: last7 } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .in('donation_id', donations.map(d => d.id))
+        .not('receiver_rating', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(7);
+
+      if (last7 && last7.length >= 7 && last7.every(r => (r.receiver_rating ?? 0) <= 2)) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('permanently_blocked')
+          .eq('id', donorId)
+          .single();
+
+        if (!(profile as any)?.permanently_blocked) {
+          await supabase.from('profiles')
+            .update({ permanently_blocked: true } as any)
+            .eq('id', donorId);
+
+          await supabase.from('notifications').insert({
+            user_id: donorId,
+            type: 'account_blocked',
+            title: 'Account Permanently Blocked',
+            message: 'Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error.',
+          });
+        }
+      }
     } catch (err) {
       console.error('Error checking donor low ratings:', err);
     }
