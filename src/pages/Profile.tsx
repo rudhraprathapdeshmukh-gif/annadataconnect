@@ -339,7 +339,16 @@ export default function Profile() {
                             : t('profile.receiver')}
                       </Badge>
                     </div>
-                  </div>
+                </div>
+                  {averageRating && (
+                    <div className="pt-3">
+                      <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
+                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                        <span className="font-bold text-lg">{averageRating}</span>
+                        <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </CardContent>
