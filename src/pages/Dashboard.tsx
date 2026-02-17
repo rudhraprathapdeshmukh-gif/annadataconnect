@@ -285,109 +285,7 @@ export default function Dashboard() {
     }
   };
 
-  const checkDonorLowRatings = async (donorId: string) => {
-    try {
-      const { data: donations } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', donorId);
-
-      if (!donations || donations.length === 0) return;
-
-      const { data: recentRatings } = await supabase
-        .from('food_requests')
-        .select('receiver_rating')
-        .in('donation_id', donations.map(d => d.id))
-        .not('receiver_rating', 'is', null)
-        .order('updated_at', { ascending: false })
-        .limit(3);
-
-      if (!recentRatings || recentRatings.length < 3) return;
-
-      const allLow = recentRatings.every(r => (r.receiver_rating ?? 0) <= 2);
-      if (!allLow) return;
-
-      // Check for duplicate warning in last 7 days
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: existingWarning } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', donorId)
-        .eq('type', 'low_rating_warning')
-        .gte('created_at', sevenDaysAgo)
-        .limit(1);
-
-      if (existingWarning && existingWarning.length > 0) return;
-
-      await supabase.from('notifications').insert({
-        user_id: donorId,
-        type: 'low_rating_warning',
-        title: 'Low Rating Warning',
-        message: 'Your recent food donations received low ratings in multiple orders. Please ensure food quality and hygiene standards. Continued low ratings may restrict your account.',
-      });
-
-      // Check for suspension: last 5 ratings all <= 2
-      const { data: last5 } = await supabase
-        .from('food_requests')
-        .select('receiver_rating')
-        .in('donation_id', donations.map(d => d.id))
-        .not('receiver_rating', 'is', null)
-        .order('updated_at', { ascending: false })
-        .limit(5);
-
-      if (last5 && last5.length >= 5 && last5.every(r => (r.receiver_rating ?? 0) <= 2)) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('suspended_until')
-          .eq('id', donorId)
-          .single();
-
-        if (!profile?.suspended_until || new Date(profile.suspended_until) < new Date()) {
-          const suspendUntil = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-          await supabase.from('profiles').update({ suspended_until: suspendUntil } as any).eq('id', donorId);
-
-          await supabase.from('notifications').insert({
-            user_id: donorId,
-            type: 'account_suspended',
-            title: 'Account Suspended',
-            message: `Your account has been suspended for 48 hours due to consistently low ratings on your donations. Please ensure food quality and hygiene standards. Your suspension will be lifted on ${new Date(suspendUntil).toLocaleString()}.`,
-          });
-        }
-      }
-
-      // Check for permanent block: last 7 ratings all <= 2
-      const { data: last7 } = await supabase
-        .from('food_requests')
-        .select('receiver_rating')
-        .in('donation_id', donations.map(d => d.id))
-        .not('receiver_rating', 'is', null)
-        .order('updated_at', { ascending: false })
-        .limit(7);
-
-      if (last7 && last7.length >= 7 && last7.every(r => (r.receiver_rating ?? 0) <= 2)) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('permanently_blocked')
-          .eq('id', donorId)
-          .single();
-
-        if (!(profile as any)?.permanently_blocked) {
-          await supabase.from('profiles')
-            .update({ permanently_blocked: true } as any)
-            .eq('id', donorId);
-
-          await supabase.from('notifications').insert({
-            user_id: donorId,
-            type: 'account_blocked',
-            title: 'Account Permanently Blocked',
-            message: 'Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error.',
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Error checking donor low ratings:', err);
-    }
-  };
+  // Rating moderation is now handled by the check_donor_low_ratings database trigger
 
   const handleGlobalRatingSubmit = async () => {
     if (globalRating === 0 || !pendingRating) {
@@ -407,21 +305,7 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // If receiver just rated a donor, check for low rating warning
-      if (pendingRating.type === 'receiver') {
-        const { data: requestData } = await supabase
-          .from('food_requests')
-          .select('donation_id, food_donations!inner(donor_id)')
-          .eq('id', pendingRating.requestId)
-          .maybeSingle();
-
-        if (requestData?.food_donations) {
-          const donorId = (requestData.food_donations as any).donor_id;
-          if (donorId) {
-            checkDonorLowRatings(donorId);
-          }
-        }
-      }
+      // Rating moderation (warnings/suspension/blocking) is handled by the database trigger
 
       toast.success('Thank you for your rating!');
       setPendingRating(null);

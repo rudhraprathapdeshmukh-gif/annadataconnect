@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64UrlEncode } from "https://deno.land/std@0.208.0/encoding/base64url.ts";
-import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
+import webpush from "https://esm.sh/web-push@3.6.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +29,6 @@ Deno.serve(async (req) => {
 
   try {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const { donation_id, donor_id, latitude, longitude, title } = await req.json();
 
     if (!donation_id || latitude == null || longitude == null || !title) {
@@ -48,11 +46,9 @@ Deno.serve(async (req) => {
     const donLat = Number(latitude);
     const donLng = Number(longitude);
 
-    // Reverse-geocode donation location to get district
     const donationDistrict = await getDistrict(donLat, donLng);
     console.log(`Donation district resolved: ${donationDistrict}`);
 
-    // Query all receiver profiles (including district)
     const { data: allReceivers, error: queryError } = await supabase
       .from("profiles")
       .select("id, latitude, longitude, notification_push, user_type, district")
@@ -76,7 +72,6 @@ Deno.serve(async (req) => {
     const RADIUS_KM = 10;
     const toRad = (deg: number) => deg * (Math.PI / 180);
 
-    // Build notification list: nearby (within 10km) OR same district, deduplicated
     const notificationMap = new Map<string, { id: string; message: string }>();
 
     for (const u of allReceivers) {
@@ -86,7 +81,6 @@ Deno.serve(async (req) => {
       let isNearby = false;
       let distance = Infinity;
 
-      // Check distance if user has coordinates
       if (u.latitude != null && u.longitude != null) {
         const uLat = Number(u.latitude);
         const uLng = Number(u.longitude);
@@ -104,7 +98,6 @@ Deno.serve(async (req) => {
         isNearby = distance <= RADIUS_KM;
       }
 
-      // Check district match
       const isDistrictMatch =
         donationDistrict &&
         u.district &&
@@ -153,12 +146,18 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully sent ${notificationRows.length} notifications (nearby + district)`);
 
-    // Send Web Push notifications to users with push subscriptions
+    // Send Web Push notifications with proper VAPID signing
     const notifiedUserIds = Array.from(notificationMap.keys());
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
 
     if (vapidPrivateKey && vapidPublicKey && notifiedUserIds.length > 0) {
+      webpush.setVapidDetails(
+        "mailto:noreply@annadataconnect.lovable.app",
+        vapidPublicKey,
+        vapidPrivateKey
+      );
+
       const { data: subscriptions } = await supabase
         .from("push_subscriptions")
         .select("endpoint, p256dh, auth, user_id")
@@ -166,6 +165,8 @@ Deno.serve(async (req) => {
 
       if (subscriptions && subscriptions.length > 0) {
         let pushSent = 0;
+        const staleEndpoints: string[] = [];
+
         for (const sub of subscriptions) {
           const userNotif = notificationMap.get(sub.user_id);
           const payload = JSON.stringify({
@@ -175,24 +176,33 @@ Deno.serve(async (req) => {
           });
 
           try {
-            // Use simple fetch-based web push (no crypto signing for simplicity - relies on endpoint accepting)
-            const res = await fetch(sub.endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "TTL": "86400",
+            await webpush.sendNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: { p256dh: sub.p256dh, auth: sub.auth },
               },
-              body: payload,
-            });
-            if (res.ok || res.status === 201) {
-              pushSent++;
-            } else {
-              console.warn(`Push failed for ${sub.user_id}: ${res.status}`);
+              payload
+            );
+            pushSent++;
+          } catch (pushErr: any) {
+            const statusCode = pushErr?.statusCode;
+            console.warn(`Push failed for ${sub.user_id}: ${statusCode || pushErr}`);
+            // Clean up stale subscriptions (gone or not found)
+            if (statusCode === 404 || statusCode === 410) {
+              staleEndpoints.push(sub.endpoint);
             }
-          } catch (pushErr) {
-            console.error(`Push error for ${sub.user_id}:`, pushErr);
           }
         }
+
+        // Remove stale subscriptions
+        if (staleEndpoints.length > 0) {
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .in("endpoint", staleEndpoints);
+          console.log(`Cleaned up ${staleEndpoints.length} stale push subscriptions`);
+        }
+
         console.log(`Sent ${pushSent}/${subscriptions.length} web push notifications`);
       }
     }
