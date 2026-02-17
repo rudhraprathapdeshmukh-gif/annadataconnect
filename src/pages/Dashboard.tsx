@@ -285,6 +285,51 @@ export default function Dashboard() {
     }
   };
 
+  const checkDonorLowRatings = async (donorId: string) => {
+    try {
+      const { data: donations } = await supabase
+        .from('food_donations')
+        .select('id')
+        .eq('donor_id', donorId);
+
+      if (!donations || donations.length === 0) return;
+
+      const { data: recentRatings } = await supabase
+        .from('food_requests')
+        .select('receiver_rating')
+        .in('donation_id', donations.map(d => d.id))
+        .not('receiver_rating', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(3);
+
+      if (!recentRatings || recentRatings.length < 3) return;
+
+      const allLow = recentRatings.every(r => (r.receiver_rating ?? 0) <= 2);
+      if (!allLow) return;
+
+      // Check for duplicate warning in last 7 days
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: existingWarning } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', donorId)
+        .eq('type', 'low_rating_warning')
+        .gte('created_at', sevenDaysAgo)
+        .limit(1);
+
+      if (existingWarning && existingWarning.length > 0) return;
+
+      await supabase.from('notifications').insert({
+        user_id: donorId,
+        type: 'low_rating_warning',
+        title: 'Low Rating Warning',
+        message: 'Your recent food donations received low ratings in multiple orders. Please ensure food quality and hygiene standards. Continued low ratings may restrict your account.',
+      });
+    } catch (err) {
+      console.error('Error checking donor low ratings:', err);
+    }
+  };
+
   const handleGlobalRatingSubmit = async () => {
     if (globalRating === 0 || !pendingRating) {
       toast.error('Please select a rating');
@@ -302,6 +347,22 @@ export default function Dashboard() {
         .eq('id', pendingRating.requestId);
 
       if (error) throw error;
+
+      // If receiver just rated a donor, check for low rating warning
+      if (pendingRating.type === 'receiver') {
+        const { data: requestData } = await supabase
+          .from('food_requests')
+          .select('donation_id, food_donations!inner(donor_id)')
+          .eq('id', pendingRating.requestId)
+          .maybeSingle();
+
+        if (requestData?.food_donations) {
+          const donorId = (requestData.food_donations as any).donor_id;
+          if (donorId) {
+            checkDonorLowRatings(donorId);
+          }
+        }
+      }
 
       toast.success('Thank you for your rating!');
       setPendingRating(null);
