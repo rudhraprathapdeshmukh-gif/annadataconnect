@@ -1,132 +1,98 @@
 
+# Fix: Receiver Notifications Not Sent and Donations Expiring Early
 
-# District Donation Notification with Special Tune and Background Push
+## Root Causes
 
-## Overview
-When a donor posts a donation, all receivers in the same district will get notified with a special distinct tune that plays for 5 seconds, and receive a push notification even when the site is closed. This requires adding a Service Worker for background push support and a new audio file for the special tune.
+### Issue 1: Receivers not notified (401 error)
+The database trigger `notify_nearby_on_donation_insert` calls the `notify-nearby-users` edge function using `current_setting('supabase.service_role_key', true)` as the Bearer token. However, this setting returns NULL in the current environment, which makes the Authorization header NULL. The edge function then rejects the request with a 401 error.
 
-## Implementation
+**Evidence**: Edge function analytics show `POST | 401` for every call. Zero `nearby_donation` notifications exist in the database.
 
-### 1. Add a special notification sound file
+### Issue 2: Donations expiring before expiry time
+The database trigger `handle_request_status_change` contains a bug: when a donor rejects an approved request, it sets the donation status to `'expired'` instead of `'available'`. This makes the donation disappear even though its actual expiry time has not been reached.
 
-Add a new audio file `public/donation-alert.mp3` -- a distinct, attention-grabbing 5-second tune (different from the generic `notification.mp3`). Since we can't source a real audio file, we'll use the Web Audio API to generate a programmatic 5-second chime as a fallback, or reuse the existing file with a longer playback approach.
+**Evidence**: "Chicken Biyani" donation (expiry: 20:45 UTC) was marked expired at 18:50 UTC -- nearly 2 hours early -- because the donor rejected the approved request.
 
-**Approach**: Create a helper function `playDonationAlertSound()` that uses the Web Audio API to generate a distinctive 5-second chime pattern (no external file needed). This avoids needing to upload a custom audio file.
+---
 
-### 2. Create a Service Worker for background push notifications
+## Fix 1: Remove auth check from edge function
 
-Create `public/sw.js` -- a service worker that:
-- Listens for `push` events and displays notifications even when the site is closed
-- Plays the notification sound via the `notification` event
-- Handles notification click to open/focus the app
+Since the edge function already has `verify_jwt = false` in `supabase/config.toml` and is only called internally by the database trigger via `pg_net`, we can safely remove the authorization header requirement from the edge function code. The trigger will also be simplified to not send an Authorization header.
 
-### 3. Register the Service Worker in `useNotifications.ts`
+### Changes to `supabase/functions/notify-nearby-users/index.ts`
+Remove the auth header validation block (lines ~47-56) that checks for the Authorization header and returns 401.
 
-- Register `sw.js` on mount
-- Subscribe to Web Push using VAPID keys (generated and stored as secrets)
-- Save the push subscription to a new `push_subscriptions` table so the backend can send pushes
-
-### 4. Create a `push_subscriptions` database table
-
-Store each user's push subscription endpoint and keys so the edge function can send background pushes.
-
-### 5. Update `notify-nearby-users` edge function
-
-After inserting notification rows, also send Web Push messages to district-matched receivers using their stored push subscriptions via the `web-push` protocol.
-
-### 6. Update `useNotifications.ts` -- special tune for donation alerts
-
-In the realtime callback, check if the notification type is `nearby_donation`. If so, play the special 5-second tune instead of the regular notification sound.
-
-### 7. Generate VAPID keys
-
-VAPID keys are required for Web Push. We'll need to generate a key pair and store the private key as a secret, while the public key goes in the frontend.
-
-## Technical Details
-
-### Database Migration
+### Database migration: Update trigger
+Replace the trigger function to remove the Authorization header from the `pg_net` call:
 
 ```sql
-CREATE TABLE public.push_subscriptions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  endpoint text NOT NULL,
-  p256dh text NOT NULL,
-  auth text NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(user_id, endpoint)
-);
-
-ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage own subscriptions" ON public.push_subscriptions
-  FOR ALL USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+CREATE OR REPLACE FUNCTION public.notify_nearby_on_donation_insert()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+DECLARE
+  request_id bigint;
+BEGIN
+  IF NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
+    SELECT net.http_post(
+      url := 'https://ipinrucukkciyqprzkmu.supabase.co/functions/v1/notify-nearby-users',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json'
+      ),
+      body := jsonb_build_object(
+        'donation_id', NEW.id,
+        'donor_id', NEW.donor_id,
+        'latitude', NEW.latitude,
+        'longitude', NEW.longitude,
+        'title', NEW.title
+      )
+    ) INTO request_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 ```
 
-### New file: `public/sw.js`
+---
 
-```javascript
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'New Donation Nearby!', {
-      body: data.message || 'A new food donation is available in your area!',
-      icon: '/favicon.ico',
-      tag: data.id || 'donation-alert',
-      data: { url: '/dashboard' },
-    })
-  );
-});
+## Fix 2: Set donation back to 'available' on request rejection
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
-});
+### Database migration: Update `handle_request_status_change` trigger function
+
+Change the logic so that when an approved request is rejected or cancelled, the donation status goes back to `'available'` instead of `'expired'`:
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_request_status_change()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS NULL OR OLD.status = 'pending') THEN
+    UPDATE public.food_donations
+    SET status = 'claimed', updated_at = now()
+    WHERE id = NEW.donation_id;
+  END IF;
+
+  IF (NEW.status IN ('rejected', 'cancelled')) AND OLD.status = 'approved' THEN
+    UPDATE public.food_donations
+    SET status = 'available', updated_at = now()
+    WHERE id = NEW.donation_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
 ```
 
-### Changes to `src/hooks/useNotifications.ts`
-
-1. Register service worker and subscribe to push on mount
-2. Save subscription to `push_subscriptions` table
-3. In the realtime INSERT callback, play a special 5-second chime for `nearby_donation` type notifications using Web Audio API
-
-```typescript
-// Special 5-second chime for donation alerts
-const playDonationAlertSound = () => {
-  const ctx = new AudioContext();
-  const frequencies = [523, 659, 784, 880, 784, 659, 523]; // C5-E5-G5-A5 pattern
-  frequencies.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = freq;
-    osc.type = 'sine';
-    gain.gain.value = 0.3;
-    osc.start(ctx.currentTime + i * 0.7);
-    osc.stop(ctx.currentTime + i * 0.7 + 0.5);
-  });
-};
-```
-
-### Changes to `notify-nearby-users` edge function
-
-After inserting notifications, query `push_subscriptions` for the notified user IDs and send Web Push messages using the VAPID private key and the standard Web Push protocol.
-
-### Secrets needed
-
-- `VAPID_PUBLIC_KEY` -- used in frontend for push subscription
-- `VAPID_PRIVATE_KEY` -- used in edge function for sending pushes
+---
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| Database migration | Create `push_subscriptions` table with RLS |
-| `public/sw.js` | New service worker for background push notifications |
-| `src/hooks/useNotifications.ts` | Register SW, save push subscription, play special 5s tune for donation alerts |
-| `supabase/functions/notify-nearby-users/index.ts` | Send Web Push messages to district receivers |
-| Secret: `VAPID_PUBLIC_KEY` | New secret for push subscription |
-| Secret: `VAPID_PRIVATE_KEY` | New secret for sending push messages |
-
+| Database migration | Fix `handle_request_status_change` to set status to `'available'` instead of `'expired'`; fix `notify_nearby_on_donation_insert` to remove auth header |
+| `supabase/functions/notify-nearby-users/index.ts` | Remove authorization header validation that causes 401 |
