@@ -650,22 +650,29 @@ export default function Dashboard() {
       // Keep full copy for rating logic
       setDonorRequestsAll(allRequests || []);
 
-      // 3) Auto-reject expired approved requests (10 minutes since accepted_at)
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      const { data: expiredRequests } = await supabase
+      // 3) Auto-reject expired approved requests (past their timer_duration)
+      const { data: approvedRequests } = await supabase
         .from('food_requests')
-        .select('id')
+        .select('id, accepted_at, timer_duration')
         .eq('status', 'approved')
-        .lt('accepted_at', tenMinutesAgo)
         .in('donation_id', donationIds);
 
-      if (expiredRequests && expiredRequests.length > 0) {
+      const now = Date.now();
+      const expiredRequestIds = (approvedRequests || [])
+        .filter(r => {
+          if (!r.accepted_at) return false;
+          const timerMs = (r.timer_duration || 30) * 60 * 1000;
+          return now > new Date(r.accepted_at).getTime() + timerMs;
+        })
+        .map(r => r.id);
+
+      if (expiredRequestIds.length > 0) {
         await supabase
           .from('food_requests')
           .update({ status: 'rejected' })
-          .in('id', expiredRequests.map(r => r.id));
+          .in('id', expiredRequestIds);
 
-        toast.info(`${expiredRequests.length} expired request(s) automatically rejected`);
+        toast.info(`${expiredRequestIds.length} expired request(s) automatically rejected`);
       }
 
       // 4) Derive ACTIVE requests for donor UI
