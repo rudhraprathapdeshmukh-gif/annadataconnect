@@ -1,55 +1,67 @@
 
 
-# Fix: Notification Popups with Sound for Requests, Approvals, and Messages
+# Fix: In-App Notifications Not Working on Mobile
 
 ## Root Cause
 
-A recent database migration accidentally **removed** several notification types from the `notifications_type_check` constraint. The current constraint only allows:
-`nearby_donation`, `request_approved`, `donation_cancelled`, `donation_expired`, `message_received`, `low_rating_warning`, `account_suspended`, `account_blocked`
+The `notifications` table has **no INSERT RLS policy** for regular users. This means:
 
-**Missing types**: `donation_requested`, `extension_request`, `extension_granted`, `extension_rejected`
+- **`request_approved`** notifications: WORK (created by `notify_request_approval` trigger with SECURITY DEFINER)
+- **`message_received`** notifications: WORK (created by `notify_new_message` trigger with SECURITY DEFINER)  
+- **`donation_requested`** notifications: FAIL SILENTLY (inserted from client-side JavaScript in Dashboard.tsx, blocked by RLS)
 
-This means when a receiver sends a food request, the client-side insert of a `donation_requested` notification **silently fails** because the database rejects the row. The donor never gets notified.
+On mobile, the Supabase Realtime subscription for new notifications works fine -- but the notifications are never inserted in the first place because the client INSERT is rejected by RLS. The donor never gets notified when someone requests their food.
 
-The `request_approved` and `message_received` types ARE in the constraint, so those notifications should be created. However, the notification sound uses `notification.mp3` via `new Audio()`, which can be unreliable on mobile due to autoplay restrictions.
+## Fix
 
-## Fixes
+Create a database trigger `notify_donation_requested()` that fires when a new row is inserted into `food_requests`. This runs as `SECURITY DEFINER` (bypassing RLS), looks up the donor and donation title, and inserts a `donation_requested` notification automatically.
 
-### 1. Database Migration: Restore missing notification types
+Then remove the client-side notification insert from Dashboard.tsx since it's redundant (and broken due to RLS).
 
-Update the CHECK constraint to include all required types:
+## Technical Details
+
+### 1. Database Migration
+
+Create trigger function and trigger:
 
 ```sql
-ALTER TABLE public.notifications DROP CONSTRAINT notifications_type_check;
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
-CHECK (type IN (
-  'nearby_donation', 'request_approved', 'donation_cancelled', 
-  'donation_expired', 'message_received', 'low_rating_warning', 
-  'account_suspended', 'account_blocked',
-  'donation_requested', 'extension_request', 
-  'extension_granted', 'extension_rejected'
-));
+CREATE OR REPLACE FUNCTION public.notify_donation_requested()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path TO 'public' AS $$
+DECLARE
+  donation_title text;
+  v_donor_id uuid;
+BEGIN
+  SELECT title, donor_id INTO donation_title, v_donor_id
+  FROM public.food_donations WHERE id = NEW.donation_id;
+
+  IF v_donor_id IS NOT NULL AND v_donor_id != NEW.requester_id THEN
+    INSERT INTO public.notifications (user_id, type, title, message, related_id)
+    VALUES (
+      v_donor_id,
+      'donation_requested',
+      'New Food Request!',
+      'Someone has requested your donation: "' || COALESCE(donation_title, 'Unknown') || '"',
+      NEW.donation_id
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_food_request_created
+  AFTER INSERT ON public.food_requests
+  FOR EACH ROW EXECUTE FUNCTION public.notify_donation_requested();
 ```
 
-### 2. Replace unreliable `notification.mp3` with Web Audio API popup sound
+### 2. Dashboard.tsx Changes
 
-Create a simple, short popup sound using the Web Audio API (same approach as the donation alert chime) that works reliably across mobile and desktop browsers. This will be a brief two-tone "ding" sound -- pleasant and non-intrusive.
-
-**New file**: `src/lib/notificationSound.ts`
-- A simple two-note chime (C5 -> E5) lasting about 0.5 seconds
-- Uses Web Audio API (no external file dependency)
-- Works on mobile where `new Audio()` often fails
-
-### 3. Update `useNotifications.ts` to use the new sound
-
-- Add `donation_requested` to the TypeScript `Notification` type union
-- Replace the `new Audio('/notification.mp3')` call with the new Web Audio popup sound
-- Keep the special 5-second chime for `nearby_donation` alerts
+Remove the client-side notification insert (lines 675-695 approximately) that tries to insert into the `notifications` table. The trigger now handles this automatically and reliably.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| Database migration | Restore `donation_requested`, `extension_request`, `extension_granted`, `extension_rejected` to type constraint |
-| `src/lib/notificationSound.ts` | New file: simple Web Audio API popup sound |
-| `src/hooks/useNotifications.ts` | Add missing types to interface; replace `notification.mp3` with Web Audio sound |
+| Database migration | Create `notify_donation_requested()` trigger function and trigger on `food_requests` INSERT |
+| `src/pages/Dashboard.tsx` | Remove the failing client-side notification insert for `donation_requested` |
+
