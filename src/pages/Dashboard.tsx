@@ -1741,34 +1741,20 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
 
     setIsVerifying(true);
     try {
-      // Fetch the donation OTP
-      const { data: donation, error: fetchError } = await supabase
-        .from('food_donations')
-        .select('otp')
-        .eq('id', request.food_donations.id)
-        .single();
+      // Use security definer function to verify OTP and complete the request
+      const { error: rpcError } = await supabase.rpc('verify_otp_and_complete', {
+        _request_id: request.id,
+        _otp_value: otpValue,
+      });
 
-      if (fetchError) throw fetchError;
-
-      if (donation.otp !== otpValue) {
-        toast.error('Invalid OTP. Please check and try again.');
-        setIsVerifying(false);
-        return;
+      if (rpcError) {
+        if (rpcError.message?.includes('Invalid OTP')) {
+          toast.error('Invalid OTP. Please check and try again.');
+          setIsVerifying(false);
+          return;
+        }
+        throw rpcError;
       }
-
-      // Update request status to completed AND set actual_pickup_at
-      const { error: requestError } = await supabase
-        .from('food_requests')
-        .update({ 
-          status: 'completed',
-          actual_pickup_at: new Date().toISOString()
-        })
-        .eq('id', request.id);
-
-      if (requestError) throw requestError;
-
-      // Donation status update is handled by backend trigger on_request_completed()
-      // No manual update needed here
 
       toast.success('Pickup confirmed! Thank you for donating.');
       setShowOtpDialog(false);
@@ -1778,9 +1764,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         await supabase.functions.invoke('send-completion-email', {
           body: { requestId: request.id }
         });
-        if (import.meta.env.DEV) console.log('Completion emails sent successfully');
       } catch (emailError) {
-        console.error('Failed to send completion emails:', emailError);
         // Don't show error to user - email is not critical
       }
       
