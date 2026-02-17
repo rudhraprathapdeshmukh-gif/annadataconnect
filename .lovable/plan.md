@@ -1,60 +1,68 @@
 
 
-# Fix: Mobile Pop-Up Notifications Not Visible
+# Full-Screen Moderation Alerts for Warning, Suspension, and Block
 
-## Root Cause
+## Overview
 
-The Sonner toast component (`<Sonner />` in App.tsx) is rendering with default settings that cause issues on mobile:
+Replace the small inline alerts and toast notifications for `low_rating_warning`, `account_suspended`, and `account_blocked` with full-screen overlay dialogs that demand attention on both mobile and desktop.
 
-1. **No z-index override**: The toasts render behind the sticky navbar (`z-50`) and other modal/dialog elements on mobile
-2. **Default position (`bottom-right`)**: On mobile browsers, this position can be obscured by the browser's bottom navigation bar or other UI elements
-3. **No `richColors` or `expand`**: Toasts appear too subtle on small screens and may be missed
+## Current Behavior
 
-The notifications ARE being received (they show in the bell icon because the Realtime subscription and state updates work). The `toast.info()` call in `useNotifications.ts` IS firing, but the visual toast is hidden behind other elements on mobile.
+- **Donate page**: Shows a small `Alert` component inline when suspended/blocked -- easy to miss
+- **Realtime notifications**: Shows a small toast popup for warning/suspension/blocked -- dismissed in seconds
+- **Other pages (Dashboard, History, etc.)**: No moderation alerts shown at all
 
-## Fix
+## Proposed Changes
 
-Update `src/components/ui/sonner.tsx` to:
+### 1. New Component: `AccountModerationOverlay.tsx`
 
-1. Set `position="top-center"` -- most visible on mobile, not obscured by bottom bars
-2. Add `richColors` for better visibility
-3. Add `expand={true}` so toasts are always expanded on mobile
-4. Set a high z-index via `style` to ensure toasts render above the sticky navbar and any modals
+Create a new full-screen overlay component that:
+- Checks the user's `suspended_until` and `permanently_blocked` status from the `profiles` table on mount
+- Listens for realtime `low_rating_warning`, `account_suspended`, and `account_blocked` notification types
+- Renders a full-screen, non-dismissible overlay (using AlertDialog without a cancel button) when any moderation state is active
+- Shows different content based on the moderation type:
+  - **Warning**: Yellow/amber full-screen alert with the warning message, dismissible with an "I Understand" button
+  - **Suspension**: Red full-screen alert showing suspension reason and lift date, with only a "Log Out" or "OK" button
+  - **Blocked**: Red full-screen alert explaining permanent block, with only a "Log Out" button
 
-### Changes to `src/components/ui/sonner.tsx`
+### 2. Update `useNotifications.ts`
 
-```tsx
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+- Stop showing toast notifications for `low_rating_warning`, `account_suspended`, and `account_blocked` types
+- These three types will be handled exclusively by the new full-screen overlay
 
-  return (
-    <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      position="top-center"
-      richColors
-      expand
-      style={{ zIndex: 9999 }}
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props}
-    />
-  );
-};
+### 3. Update `src/pages/Donate.tsx`
+
+- Remove the inline `Alert` components for suspension and blocked states (lines 404-419)
+- Remove the `suspendedUntil` and `permanentlyBlocked` state and related fetch logic (lines 79-80, 194-205)
+- The form disabling logic stays -- but is now driven by the overlay component or a shared check
+
+### 4. Update `src/App.tsx`
+
+- Add the `AccountModerationOverlay` component inside the `AppContent` so it renders on all authenticated routes
+- It will check moderation status globally, so donors see the full-screen message regardless of which page they are on
+
+## Technical Details
+
+### `AccountModerationOverlay.tsx` Structure
+
+```
+- Uses AlertDialog (non-dismissible overlay)
+- On mount: fetches profiles.suspended_until, profiles.permanently_blocked
+- Subscribes to notifications table for types: low_rating_warning, account_suspended, account_blocked
+- Three visual states:
+  1. Warning overlay (amber, dismissible)
+  2. Suspension overlay (red, shows lift date)
+  3. Blocked overlay (red, permanent)
+- Full viewport coverage with high z-index
+- Responsive design for both mobile and desktop
 ```
 
-## Summary
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/ui/sonner.tsx` | Add `position="top-center"`, `richColors`, `expand`, and `style={{ zIndex: 9999 }}` to ensure toasts are always visible on mobile |
-
-This is a single-file fix. No backend or database changes needed -- the notification insertion and Realtime subscription are working correctly (proven by the bell icon updating). The issue is purely the toast visibility on mobile.
+| `src/components/AccountModerationOverlay.tsx` | New component -- full-screen moderation alerts |
+| `src/hooks/useNotifications.ts` | Skip toast for `low_rating_warning`, `account_suspended`, `account_blocked` |
+| `src/pages/Donate.tsx` | Remove inline Alert components and related state for suspension/blocked |
+| `src/App.tsx` | Add `AccountModerationOverlay` to authenticated routes |
 
