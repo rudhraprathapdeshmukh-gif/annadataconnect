@@ -1,51 +1,60 @@
 
 
-# Fix: Donor Cannot Rate Receiver + Display Ratings on Both Profiles
+# Fix: Mobile Pop-Up Notifications Not Visible
 
-## Issue 1: Donor Cannot Rate the Receiver
+## Root Cause
 
-### Root Cause
-The RLS policy **"Donors can update requests for their donations"** on `food_requests` restricts updates to requests with `status IN ('pending', 'approved')`:
+The Sonner toast component (`<Sonner />` in App.tsx) is rendering with default settings that cause issues on mobile:
 
-```sql
-USING: status = ANY (ARRAY['pending', 'approved'])
-WITH CHECK: status = ANY (ARRAY['pending', 'approved', 'rejected'])
+1. **No z-index override**: The toasts render behind the sticky navbar (`z-50`) and other modal/dialog elements on mobile
+2. **Default position (`bottom-right`)**: On mobile browsers, this position can be obscured by the browser's bottom navigation bar or other UI elements
+3. **No `richColors` or `expand`**: Toasts appear too subtle on small screens and may be missed
+
+The notifications ARE being received (they show in the bell icon because the Realtime subscription and state updates work). The `toast.info()` call in `useNotifications.ts` IS firing, but the visual toast is hidden behind other elements on mobile.
+
+## Fix
+
+Update `src/components/ui/sonner.tsx` to:
+
+1. Set `position="top-center"` -- most visible on mobile, not obscured by bottom bars
+2. Add `richColors` for better visibility
+3. Add `expand={true}` so toasts are always expanded on mobile
+4. Set a high z-index via `style` to ensure toasts render above the sticky navbar and any modals
+
+### Changes to `src/components/ui/sonner.tsx`
+
+```tsx
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = "system" } = useTheme();
+
+  return (
+    <Sonner
+      theme={theme as ToasterProps["theme"]}
+      className="toaster group"
+      position="top-center"
+      richColors
+      expand
+      style={{ zIndex: 9999 }}
+      toastOptions={{
+        classNames: {
+          toast:
+            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+          description: "group-[.toast]:text-muted-foreground",
+          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+        },
+      }}
+      {...props}
+    />
+  );
+};
 ```
 
-When a donor tries to submit a `donor_rating` on a **completed** request, the update is silently rejected because `'completed'` is not in the allowed statuses.
-
-There IS a policy for receivers: **"Receivers can rate completed requests"** which allows `requester_id = auth.uid() AND status = 'completed'`. But there is no equivalent policy for donors.
-
-### Fix
-Add a new RLS policy that allows donors to rate completed requests:
-
-```sql
-CREATE POLICY "Donors can rate completed requests"
-ON public.food_requests FOR UPDATE
-TO authenticated
-USING (
-  status = 'completed'
-  AND donation_id IN (
-    SELECT id FROM food_donations WHERE donor_id = auth.uid()
-  )
-)
-WITH CHECK (
-  status = 'completed'
-  AND donation_id IN (
-    SELECT id FROM food_donations WHERE donor_id = auth.uid()
-  )
-);
-```
-
-## Issue 2: Profile Rating Display
-
-The rating display is already present in both the own-profile and other-user-profile sections (confirmed in Profile.tsx lines 248-253 and 343-349). Both sections show the average rating and total ratings count. No UI changes are needed here -- the rating display will work correctly once the donor can actually submit ratings (which populates the data).
-
-## Summary of Changes
+## Summary
 
 | File | Change |
 |------|--------|
-| Database migration | Add "Donors can rate completed requests" RLS policy on `food_requests` |
+| `src/components/ui/sonner.tsx` | Add `position="top-center"`, `richColors`, `expand`, and `style={{ zIndex: 9999 }}` to ensure toasts are always visible on mobile |
 
-This is a single migration fix. No frontend code changes are needed -- the rating submission logic in Dashboard.tsx and display in Profile.tsx are already correct. The only blocker was the missing RLS policy preventing the database UPDATE from succeeding.
+This is a single-file fix. No backend or database changes needed -- the notification insertion and Realtime subscription are working correctly (proven by the bell icon updating). The issue is purely the toast visibility on mobile.
 
