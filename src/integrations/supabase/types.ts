@@ -276,6 +276,7 @@ export type Database = {
           notification_push: boolean | null
           notification_sms: boolean | null
           on_time_count: number | null
+          permanently_blocked: boolean | null
           phone_number: string | null
           reliability_score: number | null
           suspended_until: string | null
@@ -300,6 +301,7 @@ export type Database = {
           notification_push?: boolean | null
           notification_sms?: boolean | null
           on_time_count?: number | null
+          permanently_blocked?: boolean | null
           phone_number?: string | null
           reliability_score?: number | null
           suspended_until?: string | null
@@ -324,6 +326,7 @@ export type Database = {
           notification_push?: boolean | null
           notification_sms?: boolean | null
           on_time_count?: number | null
+          permanently_blocked?: boolean | null
           phone_number?: string | null
           reliability_score?: number | null
           suspended_until?: string | null

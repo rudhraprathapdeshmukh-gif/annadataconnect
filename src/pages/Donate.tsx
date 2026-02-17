@@ -77,6 +77,7 @@ export default function Donate() {
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const locationAutoTriggered = useRef(false);
   const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
+  const [permanentlyBlocked, setPermanentlyBlocked] = useState(false);
 
   const isPreparedFood = formData.food_type === 'Prepared Food';
 
@@ -192,9 +193,11 @@ export default function Donate() {
 
   useEffect(() => {
     if (user) {
-      supabase.from('profiles').select('suspended_until').eq('id', user.id).single()
+      supabase.from('profiles').select('suspended_until, permanently_blocked').eq('id', user.id).single()
         .then(({ data }) => {
-          if ((data as any)?.suspended_until && new Date((data as any).suspended_until) > new Date()) {
+          if ((data as any)?.permanently_blocked) {
+            setPermanentlyBlocked(true);
+          } else if ((data as any)?.suspended_until && new Date((data as any).suspended_until) > new Date()) {
             setSuspendedUntil((data as any).suspended_until);
           }
         });
@@ -398,7 +401,15 @@ export default function Donate() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {suspendedUntil ? (
+            {permanentlyBlocked ? (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Account Permanently Blocked</AlertTitle>
+                <AlertDescription>
+                  Your account has been permanently blocked due to consistently low ratings across 7 donations. You can no longer create donations. Please contact support if you believe this is an error.
+                </AlertDescription>
+              </Alert>
+            ) : suspendedUntil ? (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Account Suspended</AlertTitle>
