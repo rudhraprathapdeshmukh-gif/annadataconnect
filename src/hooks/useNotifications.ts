@@ -174,8 +174,12 @@ export const useNotifications = () => {
             });
           }
 
-          // Only show toast notification if push notifications are enabled
-          if (pushEnabled) {
+          // Skip toasts for moderation types — handled by AccountModerationOverlay
+          const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
+          const isModerationNotification = moderationTypes.includes(newNotification.type);
+
+          // Only show toast notification if push notifications are enabled and not a moderation type
+          if (pushEnabled && !isModerationNotification) {
             // Play special 5-second chime for donation alerts, regular sound for others
             if (newNotification.type === 'nearby_donation') {
               playDonationAlertSound();
