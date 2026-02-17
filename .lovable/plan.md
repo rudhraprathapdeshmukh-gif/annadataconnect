@@ -1,86 +1,77 @@
 
 
-# Fix: Receivers Not Receiving In-App or Push Notifications
+# Warn Donors with Low Ratings
 
-## Root Cause
+## Overview
+After a receiver submits a rating for a donor, check if the donor has received ratings of 2 or below on their last 3 completed orders. If so, send a warning notification to the donor.
 
-There are two issues preventing notifications from working:
+## Implementation
 
-### Issue 1: Duplicate Realtime Channels (Primary)
-`useNotifications()` is called in **two separate components** simultaneously:
-- `NotificationBell.tsx` (in the Navbar -- always mounted)
-- `Dashboard.tsx` (added recently for auto-prompting push permission)
+### 1. Add a check function after rating submission in `src/pages/Dashboard.tsx`
 
-Each call creates its own Supabase realtime channel with the **same name** (`'notifications'`). When two channels share the same name, Supabase can silently drop or conflict on one of them, causing the notification listener in `NotificationBell` to stop receiving events.
+After `handleGlobalRatingSubmit` succeeds and the rating type is `'receiver'` (meaning a receiver just rated a donor), call a new function `checkDonorLowRatings` that:
 
-### Issue 2: Stale `permission` in Callback Closure
-The realtime callback in `useNotifications.ts` captures `permission` at the time the subscription is created. If the user grants permission later (via the auto-prompt), the callback still sees `'default'` and skips the browser push notification. The `preferences` value was already fixed with a ref, but `permission` was not.
+1. Gets the donor's ID from the pending rating context
+2. Fetches the donor's last 3 completed requests that have a `receiver_rating`
+3. If all 3 ratings are <= 2, insert a warning notification into the `notifications` table for the donor
 
-## Fix
+### 2. New helper function `checkDonorLowRatings`
 
-### 1. Remove duplicate `useNotifications()` from Dashboard.tsx
-
-Instead of calling the full hook in Dashboard, move the auto-prompt logic into the existing `useNotifications` hook itself. This way there's only one instance of the hook (in `NotificationBell`), and no duplicate realtime channels.
-
-**File: `src/hooks/useNotifications.ts`**
-- Add a `useEffect` inside the hook that auto-prompts for permission when the user is a receiver and permission is `'default'`.
-- Load the user's `user_type` from the profile data already fetched by the hook (the `preferences` query can be extended to include `user_type`).
-
-**File: `src/pages/Dashboard.tsx`**
-- Remove the `useNotifications()` call entirely.
-- Remove the auto-prompt `useEffect`.
-- Remove the `useNotifications` import.
-
-### 2. Use a ref for `permission` in the realtime callback
-
-**File: `src/hooks/useNotifications.ts`**
-- Create a `permissionRef` (similar to the existing `preferencesRef`) to always have the latest permission value inside the realtime callback.
-- Use `permissionRef.current` instead of `permission` when checking whether to show browser push notifications.
-
-## Technical Details
-
-### Changes to `src/hooks/useNotifications.ts`
+Location: Inside `src/pages/Dashboard.tsx` (near the rating submission logic)
 
 ```typescript
-// Add permissionRef alongside existing preferencesRef
-const permissionRef = useRef<NotificationPermission>('default');
+const checkDonorLowRatings = async (donorId: string) => {
+  // Get the donor's donations
+  const { data: donations } = await supabase
+    .from('food_donations')
+    .select('id')
+    .eq('donor_id', donorId);
 
-useEffect(() => {
-  permissionRef.current = permission;
-}, [permission]);
+  if (!donations || donations.length === 0) return;
 
-// In the realtime callback, replace:
-//   if (pushEnabled && permission === 'granted')
-// with:
-//   if (pushEnabled && permissionRef.current === 'granted')
+  // Get last 3 receiver_ratings for this donor's donations
+  const { data: recentRatings } = await supabase
+    .from('food_requests')
+    .select('receiver_rating')
+    .in('donation_id', donations.map(d => d.id))
+    .not('receiver_rating', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(3);
 
-// Add auto-prompt logic inside the hook:
-useEffect(() => {
-  if (!user) return;
-  // Load user_type from preferences query (already fetched)
-  // If user_type is 'receiver' or 'both' and permission is 'default', auto-prompt
-  if (
-    (preferences?.user_type === 'receiver' || preferences?.user_type === 'both') &&
-    permission === 'default' &&
-    'Notification' in window
-  ) {
-    requestPermission();
-  }
-}, [user, preferences?.user_type, permission]);
+  if (!recentRatings || recentRatings.length < 3) return;
+
+  // Check if all 3 are <= 2
+  const allLow = recentRatings.every(r => r.receiver_rating! <= 2);
+  if (!allLow) return;
+
+  // Send warning notification to donor
+  await supabase.from('notifications').insert({
+    user_id: donorId,
+    type: 'low_rating_warning',
+    title: 'Low Rating Warning',
+    message: 'Your recent food donations received low ratings in multiple orders. Please ensure food quality and hygiene standards. Continued low ratings may restrict your account.',
+  });
+};
 ```
 
-The `preferences` query will be extended to also select `user_type` from the profiles table.
+### 3. Call the check after rating submission
 
-### Changes to `src/pages/Dashboard.tsx`
+In `handleGlobalRatingSubmit`, after successful update, if `pendingRating.type === 'receiver'` (receiver rating a donor), call `checkDonorLowRatings(donorId)`.
 
-- Remove line: `import { useNotifications } from '@/hooks/useNotifications';`
-- Remove line: `const { permission, requestPermission } = useNotifications();`
-- Remove the auto-prompt `useEffect` block (lines 208-218)
+The donor ID is available from the request's donation data.
 
-## Summary of File Changes
+### 4. Add notification type to database constraint
+
+The `notifications` table has a check constraint on the `type` column. We need to add `'low_rating_warning'` to the allowed values.
+
+### 5. Prevent duplicate warnings
+
+Add a check before inserting the notification: query if a `low_rating_warning` notification already exists for this donor in the last 7 days. If so, skip sending another one.
+
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/hooks/useNotifications.ts` | Add `permissionRef`, extend preferences to include `user_type`, add auto-prompt logic inside the hook |
-| `src/pages/Dashboard.tsx` | Remove `useNotifications` import, call, and auto-prompt effect |
+| `src/pages/Dashboard.tsx` | Add `checkDonorLowRatings` function; call it after receiver submits a rating |
+| Database migration | Add `'low_rating_warning'` to the notification type check constraint |
 
