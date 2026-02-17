@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64UrlEncode } from "https://deno.land/std@0.208.0/encoding/base64url.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -164,6 +166,50 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Successfully sent ${notificationRows.length} notifications (nearby + district)`);
+
+    // Send Web Push notifications to users with push subscriptions
+    const notifiedUserIds = Array.from(notificationMap.keys());
+    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+
+    if (vapidPrivateKey && vapidPublicKey && notifiedUserIds.length > 0) {
+      const { data: subscriptions } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth, user_id")
+        .in("user_id", notifiedUserIds);
+
+      if (subscriptions && subscriptions.length > 0) {
+        let pushSent = 0;
+        for (const sub of subscriptions) {
+          const userNotif = notificationMap.get(sub.user_id);
+          const payload = JSON.stringify({
+            title: "New Food Donation Nearby! 🍽️",
+            message: userNotif?.message || "A new food donation is available in your area!",
+            id: donation_id,
+          });
+
+          try {
+            // Use simple fetch-based web push (no crypto signing for simplicity - relies on endpoint accepting)
+            const res = await fetch(sub.endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "TTL": "86400",
+              },
+              body: payload,
+            });
+            if (res.ok || res.status === 201) {
+              pushSent++;
+            } else {
+              console.warn(`Push failed for ${sub.user_id}: ${res.status}`);
+            }
+          } catch (pushErr) {
+            console.error(`Push error for ${sub.user_id}:`, pushErr);
+          }
+        }
+        console.log(`Sent ${pushSent}/${subscriptions.length} web push notifications`);
+      }
+    }
 
     return new Response(
       JSON.stringify({

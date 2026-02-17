@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { playDonationAlertSound } from '@/lib/donationAlertSound';
+import { registerServiceWorkerAndSubscribe } from '@/lib/pushSubscription';
 
 interface Notification {
   id: string;
@@ -173,12 +175,16 @@ export const useNotifications = () => {
 
           // Only show toast notification if push notifications are enabled
           if (pushEnabled) {
-            // Play notification sound
-            try {
-              const audio = new Audio('/notification.mp3');
-              audio.volume = 0.5;
-              audio.play().catch(() => {});
-            } catch {}
+            // Play special 5-second chime for donation alerts, regular sound for others
+            if (newNotification.type === 'nearby_donation') {
+              playDonationAlertSound();
+            } else {
+              try {
+                const audio = new Audio('/notification.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(() => {});
+              } catch {}
+            }
 
             toast.info(newNotification.title, {
               description: newNotification.message,
@@ -262,15 +268,19 @@ export const useNotifications = () => {
     toast.success('All notifications removed');
   };
 
-  // Auto-prompt push permission for receivers
+  // Auto-prompt push permission for receivers and register SW
   useEffect(() => {
     if (
       user &&
       (preferences?.user_type === 'receiver' || preferences?.user_type === 'both') &&
-      permission === 'default' &&
       'Notification' in window
     ) {
-      requestPermission();
+      if (permission === 'default') {
+        requestPermission();
+      }
+      if (permission === 'granted') {
+        registerServiceWorkerAndSubscribe(user.id);
+      }
     }
   }, [user, preferences?.user_type, permission]);
 
