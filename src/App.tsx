@@ -16,6 +16,7 @@ import Privacy from "./pages/Privacy";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import HelpChatbot from "@/components/HelpChatbot";
+import AccountModerationOverlay from "@/components/AccountModerationOverlay";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      {user && <AccountModerationOverlay />}
       {user && isDashboardRoute && <HelpChatbot />}
     </>
   );
