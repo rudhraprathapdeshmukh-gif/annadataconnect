@@ -175,67 +175,86 @@ export const useNotifications = () => {
     loadNotifications();
   }, [user]);
 
-  // Real-time subscription for new notifications
+  // Real-time subscription for new notifications with health monitoring
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          
-          // Keep polling ref in sync
-          lastCheckedAtRef.current = new Date().toISOString();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-          // Add to state
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
+    const setupSubscription = () => {
+      // Clean up previous channel if any
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
 
-          // Use ref to get latest preferences (avoids stale closure)
-          const currentPrefs = preferencesRef.current;
+      channel = supabase
+        .channel('notifications-' + Date.now())
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            
+            // Deduplicate: if polling already picked this up, skip
+            const alreadyExists = notificationsRef.current.some(n => n.id === newNotification.id);
+            if (alreadyExists) return;
+            
+            // Keep polling ref in sync
+            lastCheckedAtRef.current = new Date().toISOString();
 
-          const pushEnabled = isPushEnabled(currentPrefs);
+            // Add to state
+            setNotifications(prev => [newNotification, ...prev]);
+            setUnreadCount(prev => prev + 1);
 
-          // Only show browser notification if push notifications are enabled
-          if (pushEnabled && permissionRef.current === 'granted') {
-            new Notification(newNotification.title, {
-              body: newNotification.message,
-              icon: '/favicon.ico',
-              tag: newNotification.id,
-            });
-          }
+            // Use ref to get latest preferences (avoids stale closure)
+            const currentPrefs = preferencesRef.current;
+            const pushEnabled = isPushEnabled(currentPrefs);
 
-          // Skip toasts for moderation types — handled by AccountModerationOverlay
-          const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
-          const isModerationNotification = moderationTypes.includes(newNotification.type);
-
-          // Only show toast notification if push notifications are enabled and not a moderation type
-          if (pushEnabled && !isModerationNotification) {
-            // Play special 5-second chime for donation alerts, regular sound for others
-            if (newNotification.type === 'nearby_donation') {
-              playDonationAlertSound();
-            } else {
-              playNotificationSound();
+            // Only show browser notification if push notifications are enabled
+            if (pushEnabled && permissionRef.current === 'granted') {
+              new Notification(newNotification.title, {
+                body: newNotification.message,
+                icon: '/favicon.ico',
+                tag: newNotification.id,
+              });
             }
 
-            toast.info(newNotification.title, {
-              description: newNotification.message,
-            });
+            // Skip toasts for moderation types
+            const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
+            const isModerationNotification = moderationTypes.includes(newNotification.type);
+
+            if (pushEnabled && !isModerationNotification) {
+              if (newNotification.type === 'nearby_donation') {
+                playDonationAlertSound();
+              } else {
+                playNotificationSound();
+              }
+              toast.info(newNotification.title, {
+                description: newNotification.message,
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          // Monitor channel health — auto-reconnect on error
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.warn('Notification channel error, reconnecting...', status);
+            setTimeout(() => setupSubscription(), 1000);
+          }
+        });
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, permission]);
 
@@ -391,10 +410,12 @@ export const useNotifications = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const intervalId = setInterval(pollForMissedNotifications, 15000);
+    window.addEventListener('online', pollForMissedNotifications);
+    const intervalId = setInterval(pollForMissedNotifications, 5000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', pollForMissedNotifications);
       clearInterval(intervalId);
     };
   }, [user]);
