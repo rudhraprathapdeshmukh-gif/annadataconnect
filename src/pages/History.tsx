@@ -650,27 +650,6 @@ export default function History() {
                               </p>
                             )}
                           </div>
-                          {!request.donor_rating && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="mt-2 h-7 text-xs"
-                              onClick={() => handleRateUser(
-                                request.id, 
-                                'receiver', 
-                                request.food_donations?.profiles?.first_name || 'Donor'
-                              )}
-                            >
-                              <Star className="h-3 w-3 mr-1" />
-                              Rate Donor
-                            </Button>
-                          )}
-                          {request.donor_rating && (
-                            <div className="flex items-center gap-1 mt-2 text-xs">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>Rated: {request.donor_rating}/5</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </Card>
