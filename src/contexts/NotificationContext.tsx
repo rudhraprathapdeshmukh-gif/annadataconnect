@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { registerServiceWorkerAndSubscribe } from '@/lib/pushSubscription';
 import { playNotificationSound } from '@/lib/notificationSound';
+import { playDonationAlertSound } from '@/lib/donationAlertSound';
 
 interface Notification {
   id: string;
@@ -67,7 +68,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (moderationTypes.includes(n.type)) return;
     if (!isPushEnabled(preferencesRef.current)) return;
 
-    playNotificationSound();
+    if (n.type === 'nearby_donation') {
+      playDonationAlertSound();
+    } else {
+      playNotificationSound();
+    }
     toast.info(n.title, { description: n.message });
 
     toastedIdsRef.current.add(n.id);

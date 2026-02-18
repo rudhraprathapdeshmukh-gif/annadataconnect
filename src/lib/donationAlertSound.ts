@@ -1,41 +1,67 @@
 import { getAudioContext } from './audioContext';
 
 /**
- * Plays a distinctive 5-second chime pattern for donation alerts.
- * Uses the shared AudioContext (warmed on first user gesture) for mobile compatibility.
- * Falls back to the notification.mp3 Audio element if AudioContext is unavailable.
+ * Plays a distinctive 7-note chime pattern (C5-E5-G5-A5-G5-E5-C5) for nearby donation alerts.
+ * Uses the shared AudioContext with mobile resume support.
  */
 export const playDonationAlertSound = () => {
   const ctx = getAudioContext();
 
-  if (ctx && ctx.state === 'running') {
+  const tryPlay = (c: AudioContext) => {
     try {
       const frequencies = [523, 659, 784, 880, 784, 659, 523];
       frequencies.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = c.createOscillator();
+        const gain = c.createGain();
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(c.destination);
         osc.frequency.value = freq;
         osc.type = 'sine';
-        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.7);
-        gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.7 + 0.05);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.7 + 0.5);
-        osc.start(ctx.currentTime + i * 0.7);
-        osc.stop(ctx.currentTime + i * 0.7 + 0.55);
+        const start = c.currentTime + i * 0.5;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.3, start + 0.05);
+        gain.gain.linearRampToValueAtTime(0, start + 0.4);
+        osc.start(start);
+        osc.stop(start + 0.45);
       });
-      return;
     } catch {
-      // fall through to Audio fallback
+      playFallback();
     }
+  };
+
+  if (ctx) {
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => tryPlay(ctx)).catch(() => playFallback());
+    } else {
+      tryPlay(ctx);
+    }
+    return;
   }
 
-  // Fallback: play the bundled mp3
+  playFallback();
+};
+
+function playFallback() {
   try {
-    const audio = new Audio('/notification.mp3');
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const frequencies = [523, 659, 784, 880, 784, 659, 523];
+    frequencies.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      const start = ctx.currentTime + i * 0.5;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.3, start + 0.05);
+      gain.gain.linearRampToValueAtTime(0, start + 0.4);
+      osc.start(start);
+      osc.stop(start + 0.45);
+    });
+    // Close context after chime finishes
+    setTimeout(() => ctx.close().catch(() => {}), 4000);
   } catch {
     // silently fail
   }
-};
+}
