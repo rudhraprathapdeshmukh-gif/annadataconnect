@@ -394,39 +394,21 @@ export default function History() {
         )}
 
         <Tabs defaultValue="donated" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-2 h-auto p-1 overflow-hidden">
+          <TabsList className="w-full h-auto p-1 overflow-hidden">
             {userType !== 'receiver' && (
-              <>
-                <TabsTrigger value="donated" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
-                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                  <span className="truncate">Donated ({donations.length})</span>
-                </TabsTrigger>
-                <TabsTrigger value="achievements" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
-                  <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                  <span className="truncate">Achievements</span>
-                </TabsTrigger>
-              </>
+              <TabsTrigger value="donated" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 w-full min-w-0 overflow-hidden">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
+                <span className="truncate">Donated ({donations.length})</span>
+              </TabsTrigger>
             )}
             {userType === 'receiver' && (
-              <TabsTrigger value="received" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 col-span-2 min-w-0 overflow-hidden">
+              <TabsTrigger value="received" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 w-full min-w-0 overflow-hidden">
                 <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
                 <span className="truncate">Received ({requests.length})</span>
               </TabsTrigger>
             )}
           </TabsList>
           
-          {/* Achievements Tab for Donors */}
-          {userType !== 'receiver' && (
-            <TabsContent value="achievements" className="mt-4">
-              <ImpactScoreCard
-                completedDonations={donationStats.completedDonations}
-                reliabilityScore={reliabilityScore}
-                peopleHelped={donationStats.peopleHelped}
-                isTopDonor={donationStats.completedDonations >= 50}
-                userName={userName}
-              />
-            </TabsContent>
-          )}
           
           {/* Donated Tab */}
           {userType !== 'receiver' && (
