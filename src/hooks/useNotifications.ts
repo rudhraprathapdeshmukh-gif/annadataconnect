@@ -37,6 +37,8 @@ export const useNotifications = () => {
   // Use refs to always have latest values in realtime callback
   const preferencesRef = useRef<NotificationPreferences | null>(null);
   const permissionRef = useRef<NotificationPermission>('default');
+  const lastCheckedAtRef = useRef<string>(new Date().toISOString());
+  const notificationsRef = useRef<Notification[]>([]);
   
   // Keep refs in sync with state
   useEffect(() => {
@@ -46,6 +48,10 @@ export const useNotifications = () => {
   useEffect(() => {
     permissionRef.current = permission;
   }, [permission]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   // Request browser notification permission
   useEffect(() => {
@@ -156,6 +162,9 @@ export const useNotifications = () => {
         (payload) => {
           const newNotification = payload.new as Notification;
           
+          // Keep polling ref in sync
+          lastCheckedAtRef.current = new Date().toISOString();
+
           // Add to state
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
@@ -284,6 +293,81 @@ export const useNotifications = () => {
       }
     }
   }, [user, preferences?.user_type, permission]);
+
+  // Visibility-based polling fallback for mobile
+  useEffect(() => {
+    if (!user) return;
+
+    const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
+
+    const pollForMissedNotifications = async () => {
+      const since = lastCheckedAtRef.current;
+      const now = new Date().toISOString();
+
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .gt('created_at', since)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error polling notifications:', error);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          lastCheckedAtRef.current = now;
+          return;
+        }
+
+        // Deduplicate against current state
+        const existingIds = new Set(notificationsRef.current.map(n => n.id));
+        const newOnes = (data as Notification[]).filter(n => !existingIds.has(n.id));
+
+        if (newOnes.length > 0) {
+          setNotifications(prev => [...newOnes.reverse(), ...prev]);
+          setUnreadCount(prev => prev + newOnes.filter(n => !n.read).length);
+
+          const currentPrefs = preferencesRef.current;
+          const pushEnabled = isPushEnabled(currentPrefs);
+
+          if (pushEnabled) {
+            for (const n of newOnes) {
+              if (moderationTypes.includes(n.type)) continue;
+
+              if (n.type === 'nearby_donation') {
+                playDonationAlertSound();
+              } else {
+                playNotificationSound();
+              }
+
+              toast.info(n.title, { description: n.message });
+            }
+          }
+        }
+
+        lastCheckedAtRef.current = now;
+      } catch (e) {
+        console.error('Unexpected error polling notifications:', e);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        pollForMissedNotifications();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const intervalId = setInterval(pollForMissedNotifications, 30000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
+  }, [user]);
 
   return {
     notifications,
