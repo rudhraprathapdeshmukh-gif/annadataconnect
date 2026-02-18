@@ -1,68 +1,71 @@
 
 
-# Full-Screen Moderation Alerts for Warning, Suspension, and Block
+# Fix: Mobile Users Not Getting Pop-Up Toast Notifications
 
-## Overview
+## Root Cause
 
-Replace the small inline alerts and toast notifications for `low_rating_warning`, `account_suspended`, and `account_blocked` with full-screen overlay dialogs that demand attention on both mobile and desktop.
+Mobile browsers aggressively throttle and kill WebSocket connections when the app is in the background, the screen turns off, or the browser tab loses focus. When the user returns to the app, the Supabase Realtime channel may reconnect, but **missed INSERT events are never replayed**. This means:
 
-## Current Behavior
+- The toast notification (triggered only by the realtime INSERT callback) is never shown
+- The bell icon loads correctly because it fetches all notifications from the database on mount/focus via `loadNotifications()`
 
-- **Donate page**: Shows a small `Alert` component inline when suspended/blocked -- easy to miss
-- **Realtime notifications**: Shows a small toast popup for warning/suspension/blocked -- dismissed in seconds
-- **Other pages (Dashboard, History, etc.)**: No moderation alerts shown at all
+Desktop browsers are much more lenient with WebSocket connections, which is why desktop users see the toasts but mobile users do not.
 
-## Proposed Changes
+## Fix: Add Visibility-Based Polling Fallback
 
-### 1. New Component: `AccountModerationOverlay.tsx`
+Add a `visibilitychange` listener and a periodic polling fallback inside `useNotifications.ts` that:
 
-Create a new full-screen overlay component that:
-- Checks the user's `suspended_until` and `permanently_blocked` status from the `profiles` table on mount
-- Listens for realtime `low_rating_warning`, `account_suspended`, and `account_blocked` notification types
-- Renders a full-screen, non-dismissible overlay (using AlertDialog without a cancel button) when any moderation state is active
-- Shows different content based on the moderation type:
-  - **Warning**: Yellow/amber full-screen alert with the warning message, dismissible with an "I Understand" button
-  - **Suspension**: Red full-screen alert showing suspension reason and lift date, with only a "Log Out" or "OK" button
-  - **Blocked**: Red full-screen alert explaining permanent block, with only a "Log Out" button
+1. **On tab/app regain focus**: Immediately fetches the latest notifications and shows toasts for any new ones received while the app was in the background
+2. **Periodic light poll (every 30s)**: Acts as a safety net for cases where the Realtime WebSocket silently disconnects without the visibility API triggering
+3. **Deduplication**: Tracks the timestamp of the last processed notification to avoid showing duplicate toasts
 
-### 2. Update `useNotifications.ts`
+### Changes to `src/hooks/useNotifications.ts`
 
-- Stop showing toast notifications for `low_rating_warning`, `account_suspended`, and `account_blocked` types
-- These three types will be handled exclusively by the new full-screen overlay
+Add a new `useEffect` that:
+- Tracks `lastCheckedAt` timestamp using a ref
+- On `visibilitychange` (document becomes visible), queries for notifications created after `lastCheckedAt`
+- For each new notification found, triggers the same toast/sound logic as the realtime callback
+- Sets up a 30-second interval poll as backup
+- Updates `lastCheckedAt` after each check
 
-### 3. Update `src/pages/Donate.tsx`
+```text
+Key logic flow:
 
-- Remove the inline `Alert` components for suspension and blocked states (lines 404-419)
-- Remove the `suspendedUntil` and `permanentlyBlocked` state and related fetch logic (lines 79-80, 194-205)
-- The form disabling logic stays -- but is now driven by the overlay component or a shared check
-
-### 4. Update `src/App.tsx`
-
-- Add the `AccountModerationOverlay` component inside the `AppContent` so it renders on all authenticated routes
-- It will check moderation status globally, so donors see the full-screen message regardless of which page they are on
-
-## Technical Details
-
-### `AccountModerationOverlay.tsx` Structure
-
-```
-- Uses AlertDialog (non-dismissible overlay)
-- On mount: fetches profiles.suspended_until, profiles.permanently_blocked
-- Subscribes to notifications table for types: low_rating_warning, account_suspended, account_blocked
-- Three visual states:
-  1. Warning overlay (amber, dismissible)
-  2. Suspension overlay (red, shows lift date)
-  3. Blocked overlay (red, permanent)
-- Full viewport coverage with high z-index
-- Responsive design for both mobile and desktop
+[App loses focus / goes to background]
+    |
+    v
+[WebSocket may disconnect, INSERT events missed]
+    |
+    v
+[User returns to app / screen wakes up]
+    |
+    v
+[visibilitychange fires -> poll for new notifications since lastCheckedAt]
+    |
+    v
+[Show toast + play sound for each new notification found]
+    |
+    v
+[Update lastCheckedAt to now]
 ```
 
-### Files Modified
+### Additional: Deduplicate with state
+
+The existing realtime callback already adds notifications to state. The polling fallback will check against current state IDs to avoid duplicate toasts.
+
+## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `src/components/AccountModerationOverlay.tsx` | New component -- full-screen moderation alerts |
-| `src/hooks/useNotifications.ts` | Skip toast for `low_rating_warning`, `account_suspended`, `account_blocked` |
-| `src/pages/Donate.tsx` | Remove inline Alert components and related state for suspension/blocked |
-| `src/App.tsx` | Add `AccountModerationOverlay` to authenticated routes |
+| `src/hooks/useNotifications.ts` | Add visibility-change listener and 30s polling fallback to catch missed realtime events; show toast + sound for new notifications found via polling |
+
+No other files need changes. The Sonner component is already correctly configured with `position="top-center"`, `richColors`, `expand`, and `zIndex: 9999`.
+
+## Technical Details
+
+- The polling query uses `.gt('created_at', lastCheckedAt)` to fetch only new notifications
+- Moderation notification types are still excluded from toasts (handled by `AccountModerationOverlay`)
+- The `lastCheckedAt` ref is initialized to the current timestamp on mount and updated after each successful poll
+- The 30s interval is cleared on unmount to prevent memory leaks
+- The visibility listener is also cleaned up on unmount
 
