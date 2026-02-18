@@ -1,71 +1,56 @@
 
 
-# Fix: Mobile Users Not Getting Pop-Up Toast Notifications
+# Fix: Mobile Notifications (Toast + Sound) Not Working
 
-## Root Cause
+## Root Causes Identified
 
-Mobile browsers aggressively throttle and kill WebSocket connections when the app is in the background, the screen turns off, or the browser tab loses focus. When the user returns to the app, the Supabase Realtime channel may reconnect, but **missed INSERT events are never replayed**. This means:
+### 1. Sound Fails Silently on Mobile
+Both `playNotificationSound()` and `playDonationAlertSound()` create a **new `AudioContext()` on every call**. Mobile browsers (iOS Safari, Chrome Android) enforce an autoplay policy: `AudioContext` can only be created or resumed after a **user gesture** (tap, click). When these functions are called from a Realtime callback or a polling timer (not a user gesture), the `AudioContext` creation silently fails inside the try-catch block. No sound ever plays on mobile.
 
-- The toast notification (triggered only by the realtime INSERT callback) is never shown
-- The bell icon loads correctly because it fetches all notifications from the database on mount/focus via `loadNotifications()`
+### 2. Toasts Not Showing After Background/Navigation
+There is a race condition when the app returns from background or the user navigates between pages:
+- The hook remounts, setting `lastCheckedAtRef` to "now"
+- `loadNotifications` runs and loads recent unread notifications into state (no toast shown)
+- The polling fallback then checks for notifications created AFTER "now" -- so it never finds the ones that arrived while the app was away
+- Result: notification appears in the bell icon but no toast pop-up is shown
 
-Desktop browsers are much more lenient with WebSocket connections, which is why desktop users see the toasts but mobile users do not.
+## Fixes
 
-## Fix: Add Visibility-Based Polling Fallback
+### Fix 1: Warm AudioContext on First User Interaction
+Create a **shared, persistent AudioContext** that is initialized once on the user's first tap/click/keypress. Reuse this context for all subsequent notification sounds. This satisfies the browser's autoplay policy because the context was created during a user gesture.
 
-Add a `visibilitychange` listener and a periodic polling fallback inside `useNotifications.ts` that:
+**New file: `src/lib/audioContext.ts`**
+- Creates a module-level `AudioContext` variable (initially null)
+- Exports `getAudioContext()` that returns the shared context
+- On first call, registers a one-time `click`/`touchstart` listener that creates the `AudioContext`
+- Also attempts to `resume()` the context if it was suspended
 
-1. **On tab/app regain focus**: Immediately fetches the latest notifications and shows toasts for any new ones received while the app was in the background
-2. **Periodic light poll (every 30s)**: Acts as a safety net for cases where the Realtime WebSocket silently disconnects without the visibility API triggering
-3. **Deduplication**: Tracks the timestamp of the last processed notification to avoid showing duplicate toasts
+**Update: `src/lib/notificationSound.ts`**
+- Import `getAudioContext()` instead of creating `new AudioContext()` each time
+- Fall back to playing `public/notification.mp3` via the `Audio` API if AudioContext is unavailable
 
-### Changes to `src/hooks/useNotifications.ts`
+**Update: `src/lib/donationAlertSound.ts`**
+- Same pattern: use shared `getAudioContext()` instead of creating a new one each time
 
-Add a new `useEffect` that:
-- Tracks `lastCheckedAt` timestamp using a ref
-- On `visibilitychange` (document becomes visible), queries for notifications created after `lastCheckedAt`
-- For each new notification found, triggers the same toast/sound logic as the realtime callback
-- Sets up a 30-second interval poll as backup
-- Updates `lastCheckedAt` after each check
+### Fix 2: Show Toasts for Recent Unread Notifications on Mount
+**Update: `src/hooks/useNotifications.ts`**
+- In `loadNotifications`, after fetching notifications, check for any **unread notifications less than 2 minutes old**
+- Show toasts for those recent ones (they likely arrived while the app was backgrounded or during page navigation)
+- Set `lastCheckedAtRef` to the timestamp of the most recent notification (not "now") to prevent the polling fallback from re-toasting them
+- Reduce polling interval from 30s to 15s for faster catch-up on mobile
 
-```text
-Key logic flow:
-
-[App loses focus / goes to background]
-    |
-    v
-[WebSocket may disconnect, INSERT events missed]
-    |
-    v
-[User returns to app / screen wakes up]
-    |
-    v
-[visibilitychange fires -> poll for new notifications since lastCheckedAt]
-    |
-    v
-[Show toast + play sound for each new notification found]
-    |
-    v
-[Update lastCheckedAt to now]
-```
-
-### Additional: Deduplicate with state
-
-The existing realtime callback already adds notifications to state. The polling fallback will check against current state IDs to avoid duplicate toasts.
-
-## Summary of Changes
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useNotifications.ts` | Add visibility-change listener and 30s polling fallback to catch missed realtime events; show toast + sound for new notifications found via polling |
+| `src/lib/audioContext.ts` | New -- shared AudioContext with user-gesture warm-up |
+| `src/lib/notificationSound.ts` | Use shared AudioContext; fall back to Audio element |
+| `src/lib/donationAlertSound.ts` | Use shared AudioContext |
+| `src/hooks/useNotifications.ts` | Show toasts for recent unread on mount; reduce poll interval to 15s |
 
-No other files need changes. The Sonner component is already correctly configured with `position="top-center"`, `richColors`, `expand`, and `zIndex: 9999`.
+## How This Solves the Problem
 
-## Technical Details
-
-- The polling query uses `.gt('created_at', lastCheckedAt)` to fetch only new notifications
-- Moderation notification types are still excluded from toasts (handled by `AccountModerationOverlay`)
-- The `lastCheckedAt` ref is initialized to the current timestamp on mount and updated after each successful poll
-- The 30s interval is cleared on unmount to prevent memory leaks
-- The visibility listener is also cleaned up on unmount
+- **Sound on mobile**: The AudioContext is created during the user's first interaction with the app (guaranteed user gesture), then reused for all notification sounds
+- **Toasts on mobile**: Recent unread notifications trigger toasts even when loaded via the initial fetch (not just via Realtime/polling), closing the race condition gap
+- **Faster catch-up**: 15s polling ensures notifications are picked up sooner on mobile where Realtime may lag
 
