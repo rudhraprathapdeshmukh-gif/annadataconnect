@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp } from 'lucide-react';
+import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -152,6 +152,7 @@ export default function History() {
   };
 
   const completedDonations = sortDonations(donations.filter(d => d.status === 'completed' && !d.deleted_at), donationSort);
+  const deletedDonations = sortDonations(donations.filter(d => d.deleted_at), donationSort);
   const sortedRequests = sortRequests(requests, requestSort);
 
   useEffect(() => {
@@ -235,8 +236,7 @@ export default function History() {
         .from('food_donations')
         .select('*')
         .eq('donor_id', user.id)
-        .eq('status', 'completed')
-        .is('deleted_at', null)
+        .or('status.eq.completed,deleted_at.not.is.null')
         .order('created_at', { ascending: false });
       
       if (donationsError) throw donationsError;
@@ -394,15 +394,21 @@ export default function History() {
         )}
 
         <Tabs defaultValue="donated" className="space-y-4">
-          <TabsList className="w-full h-auto p-1 overflow-hidden">
+          <TabsList className="w-full grid grid-cols-2 h-auto p-1 overflow-hidden">
             {userType !== 'receiver' && (
-              <TabsTrigger value="donated" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 w-full min-w-0 overflow-hidden">
-                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                <span className="truncate">Donated ({donations.length})</span>
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="donated" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
+                  <span className="truncate">Completed ({completedDonations.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="deleted" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
+                  <span className="truncate">Deleted ({deletedDonations.length})</span>
+                </TabsTrigger>
+              </>
             )}
             {userType === 'receiver' && (
-              <TabsTrigger value="received" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 w-full min-w-0 overflow-hidden">
+              <TabsTrigger value="received" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 col-span-2 w-full min-w-0 overflow-hidden">
                 <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
                 <span className="truncate">Received ({requests.length})</span>
               </TabsTrigger>
@@ -491,6 +497,69 @@ export default function History() {
                               <span>Rated: {donation.completed_request.receiver_rating}/5</span>
                             </div>
                           )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Deleted Tab */}
+          {userType !== 'receiver' && (
+            <TabsContent value="deleted" className="space-y-4 mt-4">
+              <div className="flex justify-end">
+                <Select value={donationSort} onValueChange={setDonationSort}>
+                  <SelectTrigger className="w-[140px] h-9">
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-newest">Newest</SelectItem>
+                    <SelectItem value="date-oldest">Oldest</SelectItem>
+                    <SelectItem value="title-az">A-Z</SelectItem>
+                    <SelectItem value="title-za">Z-A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {deletedDonations.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No deleted donations</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {deletedDonations.map(donation => (
+                    <Card key={donation.id} className="overflow-hidden opacity-75">
+                      <div className="flex">
+                        {donation.image_url && (
+                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
+                            <img 
+                              src={donation.image_url} 
+                              alt={donation.title} 
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
+                            <Badge variant="destructive" className="shrink-0 text-xs">Deleted</Badge>
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                            </p>
+                            <p className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(donation.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </Card>
