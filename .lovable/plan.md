@@ -1,56 +1,55 @@
 
 
-# Fix: Mobile Notifications (Toast + Sound) Not Working
+# Fix: Instant Mobile Notifications (Toast + Sound)
 
-## Root Causes Identified
+## Problem
 
-### 1. Sound Fails Silently on Mobile
-Both `playNotificationSound()` and `playDonationAlertSound()` create a **new `AudioContext()` on every call**. Mobile browsers (iOS Safari, Chrome Android) enforce an autoplay policy: `AudioContext` can only be created or resumed after a **user gesture** (tap, click). When these functions are called from a Realtime callback or a polling timer (not a user gesture), the `AudioContext` creation silently fails inside the try-catch block. No sound ever plays on mobile.
+Mobile users receive notifications only after a page refresh, or with significant delay. Desktop works fine because WebSocket connections are stable there.
 
-### 2. Toasts Not Showing After Background/Navigation
-There is a race condition when the app returns from background or the user navigates between pages:
-- The hook remounts, setting `lastCheckedAtRef` to "now"
-- `loadNotifications` runs and loads recent unread notifications into state (no toast shown)
-- The polling fallback then checks for notifications created AFTER "now" -- so it never finds the ones that arrived while the app was away
-- Result: notification appears in the bell icon but no toast pop-up is shown
+## Root Causes
+
+1. **Realtime WebSocket dies on mobile** -- Mobile browsers aggressively throttle/kill WebSocket connections when the screen turns off, the app is backgrounded, or even during idle periods. Supabase Realtime does NOT replay missed events when it reconnects.
+
+2. **Polling interval too slow (15s)** -- The current 15-second polling fallback means notifications can be delayed up to 15 seconds even when the app is active. Users perceive this as "late."
+
+3. **No Realtime channel health monitoring** -- When the Realtime channel silently disconnects on mobile, there's no detection or forced reconnection. The app just stops receiving events with no fallback until the next poll cycle.
+
+4. **Navbar remounts on every page navigation** -- Each page (Dashboard, Donate, History, etc.) independently renders `<Navbar />`, so navigating between pages unmounts the old hook and mounts a new one. During this gap, events can be missed, and the new hook must re-subscribe (adding latency).
 
 ## Fixes
 
-### Fix 1: Warm AudioContext on First User Interaction
-Create a **shared, persistent AudioContext** that is initialized once on the user's first tap/click/keypress. Reuse this context for all subsequent notification sounds. This satisfies the browser's autoplay policy because the context was created during a user gesture.
+### Fix 1: Aggressive Polling (5s interval)
 
-**New file: `src/lib/audioContext.ts`**
-- Creates a module-level `AudioContext` variable (initially null)
-- Exports `getAudioContext()` that returns the shared context
-- On first call, registers a one-time `click`/`touchstart` listener that creates the `AudioContext`
-- Also attempts to `resume()` the context if it was suspended
+Reduce polling interval from 15 seconds to **5 seconds**. This is a lightweight query (fetching a few rows filtered by user_id and timestamp) and ensures notifications appear within 5 seconds even when Realtime is completely broken.
 
-**Update: `src/lib/notificationSound.ts`**
-- Import `getAudioContext()` instead of creating `new AudioContext()` each time
-- Fall back to playing `public/notification.mp3` via the `Audio` API if AudioContext is unavailable
+### Fix 2: Monitor Realtime Channel Health
 
-**Update: `src/lib/donationAlertSound.ts`**
-- Same pattern: use shared `getAudioContext()` instead of creating a new one each time
+Add subscription status callback to detect `CHANNEL_ERROR`, `TIMED_OUT`, or `CLOSED` states. When detected, immediately tear down and recreate the channel subscription to force a reconnect.
 
-### Fix 2: Show Toasts for Recent Unread Notifications on Mount
-**Update: `src/hooks/useNotifications.ts`**
-- In `loadNotifications`, after fetching notifications, check for any **unread notifications less than 2 minutes old**
-- Show toasts for those recent ones (they likely arrived while the app was backgrounded or during page navigation)
-- Set `lastCheckedAtRef` to the timestamp of the most recent notification (not "now") to prevent the polling fallback from re-toasting them
-- Reduce polling interval from 30s to 15s for faster catch-up on mobile
+### Fix 3: Poll Immediately on Online/Visibility Events
 
-## Files Changed
+In addition to the existing `visibilitychange` listener, add an `online` event listener so notifications are fetched immediately when the device regains network connectivity.
 
-| File | Change |
-|------|--------|
-| `src/lib/audioContext.ts` | New -- shared AudioContext with user-gesture warm-up |
-| `src/lib/notificationSound.ts` | Use shared AudioContext; fall back to Audio element |
-| `src/lib/donationAlertSound.ts` | Use shared AudioContext |
-| `src/hooks/useNotifications.ts` | Show toasts for recent unread on mount; reduce poll interval to 15s |
+### Fix 4: Prevent Duplicate Toasts on Realtime + Poll Race
 
-## How This Solves the Problem
+When both Realtime and polling deliver the same notification, the current deduplication (checking `existingIds`) in the poll is correct. But the Realtime callback should also check against `notificationsRef` to avoid showing a toast for a notification that was already picked up by polling.
 
-- **Sound on mobile**: The AudioContext is created during the user's first interaction with the app (guaranteed user gesture), then reused for all notification sounds
-- **Toasts on mobile**: Recent unread notifications trigger toasts even when loaded via the initial fetch (not just via Realtime/polling), closing the race condition gap
-- **Faster catch-up**: 15s polling ensures notifications are picked up sooner on mobile where Realtime may lag
+## Changes
 
+### `src/hooks/useNotifications.ts`
+
+- Reduce polling interval from `15000` to `5000` ms
+- Add `online` event listener alongside `visibilitychange` for immediate poll on reconnect
+- Add channel subscription status monitoring with automatic reconnect on error
+- Add deduplication check in the Realtime INSERT callback against `notificationsRef`
+
+## Technical Details
+
+| Area | Before | After |
+|------|--------|-------|
+| Poll interval | 15 seconds | 5 seconds |
+| Visibility handler | visibilitychange only | visibilitychange + online |
+| Channel error handling | None | Auto-reconnect on CHANNEL_ERROR/TIMED_OUT/CLOSED |
+| Realtime dedup | None (trusts Realtime) | Check notificationsRef before toasting |
+
+Only one file changes: `src/hooks/useNotifications.ts`
