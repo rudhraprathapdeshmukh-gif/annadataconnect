@@ -37,6 +37,7 @@ export const useNotifications = () => {
   // Use refs to always have latest values in realtime callback
   const preferencesRef = useRef<NotificationPreferences | null>(null);
   const permissionRef = useRef<NotificationPermission>('default');
+  const toastedIdsRef = useRef<Set<string>>(new Set());
   // Initialize to 2 minutes ago so mount-time fetch can toast recent notifications
   const lastCheckedAtRef = useRef<string>(new Date(Date.now() - 2 * 60 * 1000).toISOString());
   const notificationsRef = useRef<Notification[]>([]);
@@ -53,6 +54,31 @@ export const useNotifications = () => {
   useEffect(() => {
     notificationsRef.current = notifications;
   }, [notifications]);
+
+  // Centralized toast helper — ensures each notification toasts exactly once
+  const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
+
+  const showNotificationToast = (n: Notification) => {
+    if (toastedIdsRef.current.has(n.id)) return;
+    if (moderationTypes.includes(n.type)) return;
+
+    const currentPrefs = preferencesRef.current;
+    if (!isPushEnabled(currentPrefs)) return;
+
+    if (n.type === 'nearby_donation') {
+      playDonationAlertSound();
+    } else {
+      playNotificationSound();
+    }
+    toast.info(n.title, { description: n.message });
+
+    toastedIdsRef.current.add(n.id);
+    // Cap size to prevent unbounded growth
+    if (toastedIdsRef.current.size > 200) {
+      const first = toastedIdsRef.current.values().next().value;
+      if (first) toastedIdsRef.current.delete(first);
+    }
+  };
 
   // Request browser notification permission
   useEffect(() => {
@@ -148,20 +174,9 @@ export const useNotifications = () => {
       const recentUnread = allNotifications.filter(
         n => !n.read && n.created_at && n.created_at > twoMinutesAgo
       );
-      const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
-      const currentPrefs = preferencesRef.current;
-      const pushEnabled = isPushEnabled(currentPrefs);
 
-      if (pushEnabled && recentUnread.length > 0) {
-        for (const n of recentUnread) {
-          if (moderationTypes.includes(n.type)) continue;
-          if (n.type === 'nearby_donation') {
-            playDonationAlertSound();
-          } else {
-            playNotificationSound();
-          }
-          toast.info(n.title, { description: n.message });
-        }
+      for (const n of recentUnread) {
+        showNotificationToast(n);
       }
 
       // Set lastCheckedAt to the most recent notification timestamp to avoid re-toasting
@@ -211,12 +226,8 @@ export const useNotifications = () => {
             setNotifications(prev => [newNotification, ...prev]);
             setUnreadCount(prev => prev + 1);
 
-            // Use ref to get latest preferences (avoids stale closure)
-            const currentPrefs = preferencesRef.current;
-            const pushEnabled = isPushEnabled(currentPrefs);
-
-            // Only show browser notification if push notifications are enabled
-            if (pushEnabled && permissionRef.current === 'granted') {
+            // Browser notification (separate from toast dedup)
+            if (isPushEnabled(preferencesRef.current) && permissionRef.current === 'granted') {
               new Notification(newNotification.title, {
                 body: newNotification.message,
                 icon: '/favicon.ico',
@@ -224,20 +235,7 @@ export const useNotifications = () => {
               });
             }
 
-            // Skip toasts for moderation types
-            const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
-            const isModerationNotification = moderationTypes.includes(newNotification.type);
-
-            if (pushEnabled && !isModerationNotification) {
-              if (newNotification.type === 'nearby_donation') {
-                playDonationAlertSound();
-              } else {
-                playNotificationSound();
-              }
-              toast.info(newNotification.title, {
-                description: newNotification.message,
-              });
-            }
+            showNotificationToast(newNotification);
           }
         )
         .subscribe((status) => {
@@ -379,21 +377,8 @@ export const useNotifications = () => {
           setNotifications(prev => [...newOnes.reverse(), ...prev]);
           setUnreadCount(prev => prev + newOnes.filter(n => !n.read).length);
 
-          const currentPrefs = preferencesRef.current;
-          const pushEnabled = isPushEnabled(currentPrefs);
-
-          if (pushEnabled) {
-            for (const n of newOnes) {
-              if (moderationTypes.includes(n.type)) continue;
-
-              if (n.type === 'nearby_donation') {
-                playDonationAlertSound();
-              } else {
-                playNotificationSound();
-              }
-
-              toast.info(n.title, { description: n.message });
-            }
+          for (const n of newOnes) {
+            showNotificationToast(n);
           }
         }
 
