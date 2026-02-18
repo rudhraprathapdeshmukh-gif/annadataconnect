@@ -37,7 +37,8 @@ export const useNotifications = () => {
   // Use refs to always have latest values in realtime callback
   const preferencesRef = useRef<NotificationPreferences | null>(null);
   const permissionRef = useRef<NotificationPermission>('default');
-  const lastCheckedAtRef = useRef<string>(new Date().toISOString());
+  // Initialize to 2 minutes ago so mount-time fetch can toast recent notifications
+  const lastCheckedAtRef = useRef<string>(new Date(Date.now() - 2 * 60 * 1000).toISOString());
   const notificationsRef = useRef<Notification[]>([]);
   
   // Keep refs in sync with state
@@ -138,8 +139,37 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(data as Notification[] || []);
-      setUnreadCount((data || []).filter(n => !n.read).length);
+      const allNotifications = (data as Notification[]) || [];
+      setNotifications(allNotifications);
+      setUnreadCount(allNotifications.filter(n => !n.read).length);
+
+      // Show toasts for recent unread notifications (arrived while app was away)
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const recentUnread = allNotifications.filter(
+        n => !n.read && n.created_at && n.created_at > twoMinutesAgo
+      );
+      const moderationTypes = ['low_rating_warning', 'account_suspended', 'account_blocked'];
+      const currentPrefs = preferencesRef.current;
+      const pushEnabled = isPushEnabled(currentPrefs);
+
+      if (pushEnabled && recentUnread.length > 0) {
+        for (const n of recentUnread) {
+          if (moderationTypes.includes(n.type)) continue;
+          if (n.type === 'nearby_donation') {
+            playDonationAlertSound();
+          } else {
+            playNotificationSound();
+          }
+          toast.info(n.title, { description: n.message });
+        }
+      }
+
+      // Set lastCheckedAt to the most recent notification timestamp to avoid re-toasting
+      if (allNotifications.length > 0 && allNotifications[0].created_at) {
+        lastCheckedAtRef.current = allNotifications[0].created_at;
+      } else {
+        lastCheckedAtRef.current = new Date().toISOString();
+      }
     };
 
     loadNotifications();
@@ -361,7 +391,7 @@ export const useNotifications = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const intervalId = setInterval(pollForMissedNotifications, 30000);
+    const intervalId = setInterval(pollForMissedNotifications, 15000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
