@@ -1,56 +1,45 @@
 
 
-# Fix: Mobile Notifications Not Arriving While App Is Active
+# Add Special Notification Sound for Nearby Donation Alerts
 
 ## Problem
 
-Notifications only appear after a page refresh on mobile because:
+When a donor posts a new donation, receivers in the matching radius/district get a `nearby_donation` notification, but it plays the same generic beep as every other notification. There is an existing `donationAlertSound.ts` file with a distinctive chime pattern, but it is unused and has a stale reference to the deleted `notification.mp3`.
 
-1. **Hook remounts on every page navigation** -- Each page (Dashboard, Donate, History, Profile, Help) independently renders its own `<Navbar />`, which contains `<NotificationBell />`, which calls `useNotifications()`. Navigating between pages unmounts the old Navbar and mounts a new one, killing the Realtime WebSocket channel and restarting the 5-second polling timer. During this gap, notifications are missed.
+## What Already Works
 
-2. **Multiple competing subscriptions** -- On mobile, the teardown/setup cycle is slower, and race conditions between the old channel's cleanup and the new channel's setup can cause the subscription to silently fail.
-
-## Solution
-
-Move the notification logic to a **React Context** at the app level so it stays mounted across all page navigations. The `NotificationBell` component will consume the context instead of running its own hook instance.
+The backend (`notify-nearby-users` edge function + `notify_nearby_on_donation_insert` trigger) already notifies receivers within 10km radius OR matching district when a donation is posted. No backend changes are needed.
 
 ## Changes
 
-### 1. Create `src/contexts/NotificationContext.tsx`
+### 1. Fix `src/lib/donationAlertSound.ts`
 
-- Move ALL logic from `useNotifications` hook into a new `NotificationProvider` component
-- Export a `useNotificationContext()` hook that reads from the context
-- The provider will be mounted once in `App.tsx` and never unmount during navigation
+- Add mobile support (resume suspended AudioContext, same pattern as `notificationSound.ts`)
+- Replace the stale `notification.mp3` fallback with a programmatic Web Audio fallback
+- Keep the distinctive 7-note chime pattern (C5-E5-G5-A5-G5-E5-C5) that makes it clearly different from the standard beep
 
-### 2. Update `src/App.tsx`
+### 2. Update `src/contexts/NotificationContext.tsx`
 
-- Wrap routes with `<NotificationProvider>` inside the `AppContent` component (needs access to `useAuth`)
-- The provider sits above all routes, so navigating between pages does NOT remount it
+- Import `playDonationAlertSound` from `donationAlertSound.ts`
+- In `showNotificationToast()`, check if `n.type === 'nearby_donation'` and play the special chime instead of the generic beep
+- All other notification types continue using the standard beep -- no preference changes
 
-### 3. Update `src/components/NotificationBell.tsx`
+## How It Will Sound
 
-- Replace `import { useNotifications }` with `import { useNotificationContext }`
-- Everything else stays the same -- same props, same UI
+| Notification Type | Sound |
+|---|---|
+| `nearby_donation` (new food posted) | 7-note rising/falling chime (~3.5 seconds) |
+| All other types | Short 2-tone beep (~0.3 seconds) |
 
-### 4. Remove `src/hooks/useNotifications.ts`
+## Technical Detail
 
-- No longer needed since the logic lives in the context provider
+```text
+showNotificationToast(n):
+  if n.type === 'nearby_donation'
+    -> playDonationAlertSound()   (chime)
+  else
+    -> playNotificationSound()    (beep)
+```
 
-## Technical Details
-
-| Aspect | Before | After |
-|--------|--------|-------|
-| Hook location | Inside NotificationBell (per-page) | App-level context (singleton) |
-| Remounts on navigation | Yes (kills WebSocket + restarts polling) | No (stays mounted) |
-| Realtime channel lifetime | Seconds (until next navigation) | Entire session |
-| Polling continuity | Interrupted on every page change | Uninterrupted |
-
-## Why This Fixes Mobile
-
-On mobile, navigations are more disruptive because:
-- WebSocket reconnection is slower on cellular networks
-- The browser may throttle the new subscription setup
-- The 5-second poll timer resets on every mount, creating blind spots
-
-By keeping the provider mounted at the app level, the Realtime channel and polling timer survive all navigations, ensuring continuous notification delivery.
+No notification preferences, backend logic, or other notification behavior will be modified.
 
