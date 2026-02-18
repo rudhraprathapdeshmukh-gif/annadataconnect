@@ -2,8 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { playDonationAlertSound } from '@/lib/donationAlertSound';
-import { playNotificationSound } from '@/lib/notificationSound';
 import { registerServiceWorkerAndSubscribe } from '@/lib/pushSubscription';
 
 interface Notification {
@@ -65,11 +63,6 @@ export const useNotifications = () => {
     const currentPrefs = preferencesRef.current;
     if (!isPushEnabled(currentPrefs)) return;
 
-    if (n.type === 'nearby_donation') {
-      playDonationAlertSound();
-    } else {
-      playNotificationSound();
-    }
     toast.info(n.title, { description: n.message });
 
     toastedIdsRef.current.add(n.id);
