@@ -147,12 +147,21 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+    let unmounted = false;
 
     const setupSubscription = () => {
-      if (channel) supabase.removeChannel(channel);
+      if (unmounted) return;
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+
+      const channelName = 'notifications-' + user.id;
 
       channel = supabase
-        .channel('notifications-' + Date.now())
+        .channel(channelName)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
           (payload) => {
             const n = payload.new as Notification;
@@ -163,21 +172,34 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             setUnreadCount(prev => prev + 1);
 
             if (isPushEnabled(preferencesRef.current) && permissionRef.current === 'granted') {
-              new Notification(n.title, { body: n.message, icon: '/favicon.ico', tag: n.id });
+              try {
+                new window.Notification(n.title, { body: n.message, icon: '/favicon.ico', tag: n.id });
+              } catch (e) { /* mobile may block */ }
             }
             showNotificationToast(n);
           })
         .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.warn('Notification channel error, reconnecting...', status);
-            setTimeout(() => setupSubscription(), 1000);
+          if (unmounted) return;
+          if (status === 'SUBSCRIBED') {
+            retryCount = 0; // reset on successful connection
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+            retryCount++;
+            console.warn(`Notification channel ${status}, retry #${retryCount} in ${delay}ms`);
+            retryTimeout = setTimeout(() => setupSubscription(), delay);
           }
+          // Don't retry on CLOSED — that's triggered by our own cleanup
         });
     };
 
     setupSubscription();
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, [user, permission]);
+
+    return () => {
+      unmounted = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   // CRUD operations
   const markAsRead = async (id: string) => {
