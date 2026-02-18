@@ -346,11 +346,11 @@ export default function Auth() {
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
           // Handle specific error cases for duplicate entries
-          if (error.message?.includes('duplicate key value violates unique constraint')) {
-            if (error.message.includes('profiles_email_key')) {
+          if (error.message?.includes('duplicate key value violates unique constraint') || error.message?.includes('unique constraint')) {
+            if (error.message.includes('profiles_email_key') || error.message.includes('email')) {
               toast.error('This email is already registered. Please use a different email or sign in.');
-            } else if (error.message.includes('profiles_phone_number_key')) {
-              toast.error('This phone number is already registered. Please use a different phone number.');
+            } else if (error.message.includes('idx_profiles_phone_number_unique') || error.message.includes('phone_number')) {
+              toast.error('This phone number is already linked to another account. Each phone number can only be used with one email.');
             } else {
               toast.error('This account information is already registered. Please sign in or use different details.');
             }
