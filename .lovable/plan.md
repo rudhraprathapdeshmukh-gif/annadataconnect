@@ -1,51 +1,56 @@
 
 
-# Fix: In-App Toast Notifications Not Popping Up on Mobile
+# Fix: Mobile Notifications Not Arriving While App Is Active
 
-## Root Cause
+## Problem
 
-In `src/contexts/NotificationContext.tsx`, the `showNotificationToast` function has this guard on line 67:
+Notifications only appear after a page refresh on mobile because:
 
-```typescript
-if (!isPushEnabled(preferencesRef.current)) return;
-```
+1. **Hook remounts on every page navigation** -- Each page (Dashboard, Donate, History, Profile, Help) independently renders its own `<Navbar />`, which contains `<NotificationBell />`, which calls `useNotifications()`. Navigating between pages unmounts the old Navbar and mounts a new one, killing the Realtime WebSocket channel and restarting the 5-second polling timer. During this gap, notifications are missed.
 
-This blocks ALL in-app toast pop-ups when the user's `notification_push` preference is `false` (or not yet loaded). But in-app toasts and browser push notifications are two separate things:
-- **In-app toasts** (the pop-up banners inside the app) should ALWAYS show when the user is actively using the app
-- **Browser push notifications** (the OS-level alerts) should respect the push preference
+2. **Multiple competing subscriptions** -- On mobile, the teardown/setup cycle is slower, and race conditions between the old channel's cleanup and the new channel's setup can cause the subscription to silently fail.
 
-Currently, disabling push also kills in-app toasts, which is why notifications appear in the bell (data arrives via polling) but never pop up visually.
+## Solution
 
-## Fix
+Move the notification logic to a **React Context** at the app level so it stays mounted across all page navigations. The `NotificationBell` component will consume the context instead of running its own hook instance.
 
-### `src/contexts/NotificationContext.tsx`
+## Changes
 
-**Remove the `isPushEnabled` guard from `showNotificationToast`** so that in-app toasts always fire:
+### 1. Create `src/contexts/NotificationContext.tsx`
 
-```typescript
-const showNotificationToast = (n: Notification) => {
-  if (toastedIdsRef.current.has(n.id)) return;
-  if (moderationTypes.includes(n.type)) return;
-  // REMOVED: if (!isPushEnabled(preferencesRef.current)) return;
+- Move ALL logic from `useNotifications` hook into a new `NotificationProvider` component
+- Export a `useNotificationContext()` hook that reads from the context
+- The provider will be mounted once in `App.tsx` and never unmount during navigation
 
-  toast.info(n.title, { description: n.message });
+### 2. Update `src/App.tsx`
 
-  toastedIdsRef.current.add(n.id);
-  if (toastedIdsRef.current.size > 200) {
-    const first = toastedIdsRef.current.values().next().value;
-    if (first) toastedIdsRef.current.delete(first);
-  }
-};
-```
+- Wrap routes with `<NotificationProvider>` inside the `AppContent` component (needs access to `useAuth`)
+- The provider sits above all routes, so navigating between pages does NOT remount it
 
-The `isPushEnabled` check is already correctly used on line 165 to gate the **browser-level `new Notification()`** call -- that stays unchanged.
+### 3. Update `src/components/NotificationBell.tsx`
 
-## Summary
+- Replace `import { useNotifications }` with `import { useNotificationContext }`
+- Everything else stays the same -- same props, same UI
 
-| What | Before | After |
-|------|--------|-------|
-| In-app toast pop-ups | Blocked when push is off | Always shown |
-| Browser push notifications | Gated by preference | Gated by preference (unchanged) |
+### 4. Remove `src/hooks/useNotifications.ts`
 
-One line removed from one file. No other changes needed.
+- No longer needed since the logic lives in the context provider
+
+## Technical Details
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| Hook location | Inside NotificationBell (per-page) | App-level context (singleton) |
+| Remounts on navigation | Yes (kills WebSocket + restarts polling) | No (stays mounted) |
+| Realtime channel lifetime | Seconds (until next navigation) | Entire session |
+| Polling continuity | Interrupted on every page change | Uninterrupted |
+
+## Why This Fixes Mobile
+
+On mobile, navigations are more disruptive because:
+- WebSocket reconnection is slower on cellular networks
+- The browser may throttle the new subscription setup
+- The 5-second poll timer resets on every mount, creating blind spots
+
+By keeping the provider mounted at the app level, the Realtime channel and polling timer survive all navigations, ensuring continuous notification delivery.
 
