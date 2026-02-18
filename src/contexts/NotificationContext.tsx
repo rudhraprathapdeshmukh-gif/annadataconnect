@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { registerServiceWorkerAndSubscribe } from '@/lib/pushSubscription';
+import { playNotificationSound } from '@/lib/notificationSound';
 
 interface Notification {
   id: string;
@@ -66,6 +67,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (moderationTypes.includes(n.type)) return;
     if (!isPushEnabled(preferencesRef.current)) return;
 
+    playNotificationSound();
     toast.info(n.title, { description: n.message });
 
     toastedIdsRef.current.add(n.id);
