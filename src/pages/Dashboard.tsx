@@ -12,13 +12,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation, Map } from 'lucide-react';
+import { Calendar, MapPin, Package, Check, X, Clock, Phone, Mail, Edit, Trash2, User, Info, Upload, KeyRound, Star, Filter, Loader2, MapPinOff, Navigation, Map, TrendingUp, ChevronDown } from 'lucide-react';
 
 import DonationMap from '@/components/DonationMap';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -973,11 +974,26 @@ export default function Dashboard() {
         </div>
 
         {(userProfile?.user_type === 'donor' || userProfile?.user_type === 'both') && (
+          <>
+          <Collapsible defaultOpen={false} className="mb-6">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between gap-2 py-3">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Impact Tracker
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <ImpactDashboard />
+            </CollapsibleContent>
+          </Collapsible>
+
           <Tabs defaultValue="active-donations" className="space-y-6">
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
               <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
-              <TabsTrigger value="impact">Impact Tracker</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -1103,10 +1119,8 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="impact">
-              <ImpactDashboard />
-            </TabsContent>
           </Tabs>
+          </>
         )}
 
         {(userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') && (
