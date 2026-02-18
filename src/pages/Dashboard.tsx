@@ -602,11 +602,24 @@ export default function Dashboard() {
       
       // Filter out requests for claimed or deleted donations and hide completed ones for UI
       // But keep cancelled requests so users see the apology message
-      const activeRequests = (data || []).filter(request => 
-        !request.food_donations.deleted_at &&
-        request.status !== 'completed' &&
-        (request.status === 'approved' || request.food_donations.status !== 'claimed')
-      );
+      // Also hide approved requests whose timer has expired
+      const now = Date.now();
+      const activeRequests = (data || []).filter(request => {
+        if (request.food_donations.deleted_at) return false;
+        if (request.status === 'completed') return false;
+        if (request.status === 'rejected') return false;
+        
+        // Hide approved requests whose timer has expired
+        if (request.status === 'approved' && request.accepted_at) {
+          const timerMs = (request.timer_duration || 30) * 60 * 1000;
+          if (now > new Date(request.accepted_at).getTime() + timerMs) {
+            return false;
+          }
+        }
+        
+        if (request.status !== 'approved' && request.food_donations.status === 'claimed') return false;
+        return true;
+      });
       
       setMyRequests(activeRequests);
     } catch (error) {
