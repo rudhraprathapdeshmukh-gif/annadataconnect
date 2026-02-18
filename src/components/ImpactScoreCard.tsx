@@ -169,7 +169,7 @@ export function ImpactScoreCard({
           <div className="flex flex-col items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
             <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 mb-0.5 sm:mb-1" />
             <span className="text-base sm:text-lg font-bold">{completedDonations}</span>
-            <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">{t('achievements.mealsShared')}</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">{t('achievements.noOfMealsShared', { defaultValue: 'No. of meals shared' })}</span>
           </div>
           <div className="flex flex-col items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
             <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 mb-0.5 sm:mb-1" />
