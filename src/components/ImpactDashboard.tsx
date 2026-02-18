@@ -108,11 +108,20 @@ export function ImpactDashboard() {
 
       const completedReceived = (myRequests || []).filter(r => r.status === 'completed').length;
 
-      // Total quantity donated (completed)
+      // Calculate people helped based on quantity and unit
       const completedDonationDetails = allDonations.filter(d => completedDonationIds.includes(d.id));
-      const totalQty = completedDonationDetails.reduce((sum, d) => {
+      const calcPeopleHelped = completedDonationDetails.reduce((sum, d) => {
         const num = parseFloat(d.quantity);
-        return sum + (isNaN(num) ? 0 : num);
+        if (isNaN(num) || num <= 0) return sum;
+        const unit = (d.quantity_unit || 'kg').toLowerCase();
+        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
+          return sum + Math.ceil(num * 2);
+        }
+        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
+          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
+        }
+        // pieces, servings, plates, boxes, etc.
+        return sum + Math.ceil(num);
       }, 0);
 
       // Monthly data (last 6 months)
@@ -166,8 +175,7 @@ export function ImpactDashboard() {
         completedDonations: completedDonationIds.length,
         completedReceived,
         totalReceived: (myRequests || []).length,
-        peopleHelped: completedDonationIds.length,
-        totalQuantity: Math.round(totalQty * 10) / 10,
+        peopleHelped: calcPeopleHelped,
         streak,
       }));
     } catch (error) {
