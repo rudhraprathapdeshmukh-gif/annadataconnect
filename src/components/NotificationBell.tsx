@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Dialog, DialogContent } from './ui/dialog';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +44,7 @@ export default function NotificationBell() {
     markAllAsRead,
     deleteNotification,
     deleteAllNotifications,
-  } = useNotifications();
+  } = useNotificationContext();
   
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
