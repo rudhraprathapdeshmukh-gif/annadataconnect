@@ -95,7 +95,7 @@ export default function History() {
   });
   const [reliabilityScore, setReliabilityScore] = useState(100);
   const [userName, setUserName] = useState('');
-  const [activeSubTab, setActiveSubTab] = useState('completed');
+  
 
   const getFreshnessLabel = (rating: number): string => {
     switch (rating) {
@@ -152,7 +152,6 @@ export default function History() {
   };
 
   const completedDonations = sortDonations(donations.filter(d => d.status === 'completed' && !d.deleted_at), donationSort);
-  const deletedDonations = sortDonations(donations.filter(d => d.deleted_at), donationSort);
   const sortedRequests = sortRequests(requests, requestSort);
 
   useEffect(() => {
@@ -236,7 +235,8 @@ export default function History() {
         .from('food_donations')
         .select('*')
         .eq('donor_id', user.id)
-        .or('status.eq.completed,deleted_at.not.is.null')
+        .eq('status', 'completed')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       
       if (donationsError) throw donationsError;
@@ -413,24 +413,7 @@ export default function History() {
           {/* Donated Tab */}
           {userType !== 'receiver' && (
             <TabsContent value="donated" className="space-y-4 mt-4">
-              {/* Sub-tabs for Completed/Deleted */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex gap-2">
-                  <Button
-                    variant={activeSubTab === 'completed' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setActiveSubTab('completed')}
-                  >
-                    Completed ({completedDonations.length})
-                  </Button>
-                  <Button
-                    variant={activeSubTab === 'deleted' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setActiveSubTab('deleted')}
-                  >
-                    Deleted ({deletedDonations.length})
-                  </Button>
-                </div>
+              <div className="flex justify-end">
                 <Select value={donationSort} onValueChange={setDonationSort}>
                   <SelectTrigger className="w-[140px] h-9">
                     <ArrowUpDown className="h-3 w-3 mr-1" />
@@ -445,127 +428,74 @@ export default function History() {
                 </Select>
               </div>
 
-              {/* Completed Donations */}
-              {activeSubTab === 'completed' && (
-                <>
-                  {completedDonations.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center">
-                        <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No completed donations yet</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-3">
-                      {completedDonations.map(donation => (
-                        <Card key={donation.id} className="overflow-hidden">
-                          <div className="flex">
-                            {donation.image_url && (
-                              <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
-                                <img 
-                                  src={donation.image_url} 
-                                  alt={donation.title} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 p-3 md:p-4 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
-                                <Badge variant="secondary" className="shrink-0 text-xs">Completed</Badge>
-                              </div>
-                              <div className="space-y-1 text-xs text-muted-foreground">
-                                <p className="flex items-center gap-1">
-                                  <Package className="h-3 w-3" />
-                                  {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                                </p>
-                                <p className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(donation.created_at).toLocaleDateString()}
-                                </p>
-                                {donation.completed_request?.requester_profile && (
-                                  <p className="flex items-center gap-1 text-primary">
-                                    <User className="h-3 w-3" />
-                                    To: {donation.completed_request.requester_profile.first_name}
-                                  </p>
-                                )}
-                              </div>
-                              {donation.completed_request && !donation.completed_request.receiver_rating && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="mt-2 h-7 text-xs"
-                                  onClick={() => handleRateUser(
-                                    donation.completed_request!.id, 
-                                    'donor', 
-                                    `${donation.completed_request?.requester_profile?.first_name || 'Receiver'}`
-                                  )}
-                                >
-                                  <Star className="h-3 w-3 mr-1" />
-                                  Rate Receiver
-                                </Button>
-                              )}
-                              {donation.completed_request?.receiver_rating && (
-                                <div className="flex items-center gap-1 mt-2 text-xs">
-                                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                  <span>Rated: {donation.completed_request.receiver_rating}/5</span>
-                                </div>
-                              )}
-                            </div>
+              {completedDonations.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No completed donations yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {completedDonations.map(donation => (
+                    <Card key={donation.id} className="overflow-hidden">
+                      <div className="flex">
+                        {donation.image_url && (
+                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
+                            <img 
+                              src={donation.image_url} 
+                              alt={donation.title} 
+                              className="w-full h-full object-cover" 
+                            />
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Deleted Donations */}
-              {activeSubTab === 'deleted' && (
-                <>
-                  {deletedDonations.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-12 text-center">
-                        <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No deleted donations</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-3">
-                      {deletedDonations.map(donation => (
-                        <Card key={donation.id} className="overflow-hidden opacity-75">
-                          <div className="flex">
-                            {donation.image_url && (
-                              <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
-                                <img 
-                                  src={donation.image_url} 
-                                  alt={donation.title} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 p-3 md:p-4 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
-                                <Badge variant="destructive" className="shrink-0 text-xs">Deleted</Badge>
-                              </div>
-                              <div className="space-y-1 text-xs text-muted-foreground">
-                                <p className="flex items-center gap-1">
-                                  <Package className="h-3 w-3" />
-                                  {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                                </p>
-                                <p className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(donation.created_at).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
+                        )}
+                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
+                            <Badge variant="secondary" className="shrink-0 text-xs">Completed</Badge>
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                            </p>
+                            <p className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(donation.created_at).toLocaleDateString()}
+                            </p>
+                            {donation.completed_request?.requester_profile && (
+                              <p className="flex items-center gap-1 text-primary">
+                                <User className="h-3 w-3" />
+                                To: {donation.completed_request.requester_profile.first_name}
+                              </p>
+                            )}
+                          </div>
+                          {donation.completed_request && !donation.completed_request.receiver_rating && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2 h-7 text-xs"
+                              onClick={() => handleRateUser(
+                                donation.completed_request!.id, 
+                                'donor', 
+                                `${donation.completed_request?.requester_profile?.first_name || 'Receiver'}`
+                              )}
+                            >
+                              <Star className="h-3 w-3 mr-1" />
+                              Rate Receiver
+                            </Button>
+                          )}
+                          {donation.completed_request?.receiver_rating && (
+                            <div className="flex items-center gap-1 mt-2 text-xs">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span>Rated: {donation.completed_request.receiver_rating}/5</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               )}
             </TabsContent>
           )}
