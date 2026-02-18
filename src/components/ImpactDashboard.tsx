@@ -206,10 +206,9 @@ export function ImpactDashboard() {
               value={stats.completedDonations}
             />
             <StatCard
-              icon={<Utensils className="h-5 w-5 text-amber-500" />}
-              label="Total Quantity"
-              value={`${stats.totalQuantity}`}
-              suffix="units"
+              icon={<TrendingUp className="h-5 w-5 text-green-500" />}
+              label="People Helped"
+              value={stats.peopleHelped}
             />
           </>
         )}
@@ -229,9 +228,8 @@ export function ImpactDashboard() {
         {isDonor && stats.avgRating > 0 && (
           <StatCard
             icon={<Award className="h-5 w-5 text-yellow-500" />}
-            label="Avg Rating"
-            value={stats.avgRating.toFixed(1)}
-            suffix={`/ 5 (${stats.ratingCount})`}
+            label={`Avg Rating (${stats.ratingCount})`}
+            value={`${stats.avgRating.toFixed(1)} / 5`}
           />
         )}
       </div>
