@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import RequestCard from '@/components/RequestCard';
 import ChatDialog from '@/components/ChatDialog';
+import { ImpactDashboard } from '@/components/ImpactDashboard';
 import HelpChatbot from '@/components/HelpChatbot';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -976,6 +977,7 @@ export default function Dashboard() {
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
               <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
+              <TabsTrigger value="impact">Impact</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -1100,6 +1102,10 @@ export default function Dashboard() {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="impact">
+              <ImpactDashboard />
+            </TabsContent>
           </Tabs>
         )}
 
@@ -1108,6 +1114,7 @@ export default function Dashboard() {
             <TabsList>
               <TabsTrigger value="list">Available Food</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+              {userProfile?.user_type === 'receiver' && <TabsTrigger value="impact">Impact</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="my-requests" className="space-y-4">
@@ -1424,6 +1431,12 @@ export default function Dashboard() {
                   );
                 })()}
             </TabsContent>
+
+            {userProfile?.user_type === 'receiver' && (
+              <TabsContent value="impact">
+                <ImpactDashboard />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>
