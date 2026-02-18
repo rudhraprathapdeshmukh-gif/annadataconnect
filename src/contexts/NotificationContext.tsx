@@ -62,9 +62,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => { notificationsRef.current = notifications; }, [notifications]);
 
   const showNotificationToast = (n: Notification) => {
-    if (toastedIdsRef.current.has(n.id)) return;
+  if (toastedIdsRef.current.has(n.id)) return;
     if (moderationTypes.includes(n.type)) return;
-    if (!isPushEnabled(preferencesRef.current)) return;
 
     toast.info(n.title, { description: n.message });
 
