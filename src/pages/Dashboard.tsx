@@ -977,7 +977,7 @@ export default function Dashboard() {
             <TabsList>
               <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
               <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
-              <TabsTrigger value="impact">Impact</TabsTrigger>
+              <TabsTrigger value="impact">Impact Tracker</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -1114,7 +1114,7 @@ export default function Dashboard() {
             <TabsList>
               <TabsTrigger value="list">Available Food</TabsTrigger>
               <TabsTrigger value="my-requests">My Requests</TabsTrigger>
-              {userProfile?.user_type === 'receiver' && <TabsTrigger value="impact">Impact</TabsTrigger>}
+              {userProfile?.user_type === 'receiver' && <TabsTrigger value="impact">Impact Tracker</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="my-requests" className="space-y-4">
