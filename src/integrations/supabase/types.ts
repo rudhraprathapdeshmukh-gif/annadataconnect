@@ -411,6 +411,10 @@ export type Database = {
     }
     Functions: {
       auto_expire_donations: { Args: never; Returns: undefined }
+      check_signup_availability: {
+        Args: { p_email: string; p_phone: string }
+        Returns: Json
+      }
       get_district_donations: {
         Args: { p_district: string }
         Returns: {

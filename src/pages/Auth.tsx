@@ -343,6 +343,24 @@ export default function Auth() {
           avatarUrl = publicUrl;
         }
 
+        // Pre-validate: check if email or phone already exists
+        const { data: availability, error: checkError } = await supabase
+          .rpc('check_signup_availability', { p_email: email, p_phone: phoneNumber });
+
+        if (!checkError && availability) {
+          const avail = typeof availability === 'string' ? JSON.parse(availability) : availability;
+          if (avail.email_taken) {
+            toast.error('This email is already registered. Please sign in instead, or use a different email.');
+            setLoading(false);
+            return;
+          }
+          if (avail.phone_taken) {
+            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            setLoading(false);
+            return;
+          }
+        }
+
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
           const msg = error.message || '';
