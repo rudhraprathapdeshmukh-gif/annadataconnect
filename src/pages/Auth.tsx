@@ -345,17 +345,19 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
-          // Handle specific error cases for duplicate entries
-          if (error.message?.includes('duplicate key value violates unique constraint') || error.message?.includes('unique constraint')) {
-            if (error.message.includes('profiles_email_key') || error.message.includes('email')) {
-              toast.error('This email is already registered. Please use a different email or sign in.');
-            } else if (error.message.includes('idx_profiles_phone_number_unique') || error.message.includes('phone_number')) {
-              toast.error('This phone number is already linked to another account. Each phone number can only be used with one email.');
-            } else {
-              toast.error('This account information is already registered. Please sign in or use different details.');
-            }
+          const msg = error.message || '';
+          if (msg.includes('phone_number') || msg.includes('idx_profiles_phone_number_unique')) {
+            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+          } else if (msg.includes('profiles_email_key') || (msg.includes('email') && msg.includes('unique'))) {
+            toast.error('This email is already registered. Please use a different email or sign in.');
+          } else if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('already been registered') || msg.includes('already registered')) {
+            toast.error('An account with these details already exists. Please sign in instead, or use a different email/phone number.');
+          } else if (msg.includes('Database error saving new user') || msg.includes('unexpected_failure')) {
+            toast.error('This phone number or email is already in use. Please try signing in, or use different details.');
+          } else if (msg.includes('User already registered')) {
+            toast.error('This email is already registered. Please sign in instead.');
           } else {
-            toast.error(error.message);
+            toast.error(msg);
           }
         } else {
           // Automatically sign in after successful signup
@@ -373,7 +375,14 @@ export default function Auth() {
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          toast.error(error.message);
+          const msg = error.message || '';
+          if (msg.includes('Email not confirmed')) {
+            toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
+          } else if (msg.includes('Invalid login credentials')) {
+            toast.error('Incorrect email or password. Please check your credentials and try again.');
+          } else {
+            toast.error(msg);
+          }
         } else {
           toast.success('Signed in successfully!');
           // Explicitly navigate to dashboard after successful login
