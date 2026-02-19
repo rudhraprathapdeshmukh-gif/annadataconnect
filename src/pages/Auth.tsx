@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Eye, EyeOff, Upload, X, Heart } from 'lucide-react';
-import { WelcomeVideoDialog } from '@/components/WelcomeVideoDialog';
+
 
 const passwordSchema = z.string()
   .min(8, { message: "Password must be at least 8 characters" })
@@ -56,8 +56,6 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(searchParams.get('mode') === 'reset');
   const [newPassword, setNewPassword] = useState('');
-  const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
-  const justSignedUp = useRef(false);
 
   // Password strength indicators
   const passwordRequirements = [
@@ -122,8 +120,7 @@ export default function Auth() {
     }
 
     // Check if user signed in with Google and validate they have an account
-    // Don't auto-navigate if welcome video should be shown or user just signed up
-    if (user && !isRecoveryMode && !showWelcomeVideo && !justSignedUp.current) {
+    if (user && !isRecoveryMode) {
       (async () => {
         // Check if user has a profile in our system
         const { data: profile, error } = await supabase
@@ -146,7 +143,7 @@ export default function Auth() {
         navigate('/dashboard');
       })();
     }
-  }, [user, navigate, searchParams, showWelcomeVideo]);
+  }, [user, navigate, searchParams]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -285,11 +282,6 @@ export default function Auth() {
     }
   };
 
-  const handleWelcomeVideoContinue = () => {
-    setShowWelcomeVideo(false);
-    justSignedUp.current = false;
-    navigate('/dashboard');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,8 +378,7 @@ export default function Auth() {
             setIsSignUp(false);
           } else {
             toast.success('Welcome to Annadataconnect! 🎉');
-            justSignedUp.current = true;
-            setShowWelcomeVideo(true);
+            navigate('/dashboard');
           }
         }
       } else {
@@ -771,11 +762,6 @@ export default function Auth() {
         </CardContent>
       </Card>
 
-      <WelcomeVideoDialog 
-        open={showWelcomeVideo}
-        onContinue={handleWelcomeVideoContinue}
-        videoId="GqvRbx8_XoY"
-      />
     </div>
   );
 }
