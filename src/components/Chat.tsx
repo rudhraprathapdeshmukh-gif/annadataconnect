@@ -153,7 +153,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const presenceChannelRef = useRef<any>(null);
   // Fetch existing messages
@@ -305,11 +305,14 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
     };
   }, [user, donationId, otherUserId]);
 
+  const getViewport = () => scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+
   // Detect manual scrolling
   const handleScroll = () => {
-    if (!scrollViewportRef.current) return;
+    const viewport = getViewport();
+    if (!viewport) return;
     
-    const { scrollTop, scrollHeight, clientHeight } = scrollViewportRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = viewport;
     const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
     
     setAutoScroll(isAtBottom);
@@ -317,8 +320,11 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
   // Auto-scroll to bottom only when enabled
   useEffect(() => {
-    if (autoScroll && scrollViewportRef.current) {
-      scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
+    if (autoScroll) {
+      const viewport = getViewport();
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
     }
   }, [messages, autoScroll]);
 
@@ -529,10 +535,8 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         <p className="text-sm text-muted-foreground">with {otherUserName}</p>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 min-h-0 relative">
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
           <div 
-            ref={scrollViewportRef}
-            onScroll={handleScroll}
             className="space-y-4"
           >
             {messages.length === 0 ? (
@@ -589,11 +593,13 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         {/* Scroll to bottom button */}
         {!autoScroll && (
           <Button
-            size="sm"
-            className="absolute bottom-20 right-4 rounded-full shadow-lg z-10"
+            size="icon"
+            variant="secondary"
+            className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full shadow-lg z-10 h-9 w-9"
             onClick={() => {
-              if (scrollViewportRef.current) {
-                scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
+              const viewport = getViewport();
+              if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
                 setAutoScroll(true);
               }
             }}
