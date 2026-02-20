@@ -92,37 +92,53 @@ export default function Profile() {
   const fetchAverageRating = async () => {
     if (!profileUserId) return;
     try {
-      const { data: userDonations } = await supabase
-        .from('food_donations')
-        .select('id')
-        .eq('donor_id', profileUserId);
-      
-      const donationIds = userDonations?.map(d => d.id) || [];
-      
-      const { data: ratingsAsDonor } = await supabase
-        .from('food_requests')
-        .select('receiver_rating')
-        .in('donation_id', donationIds)
-        .not('receiver_rating', 'is', null);
-      
+      // For donor: get receiver_rating (ratings they gave to receivers)
+      // For receiver: get donor_rating (ratings donors gave to them)
+      // Since user_type can be 'both', we combine both as appropriate
+      // Receiver's average = donor_rating on their requests (how donors rated them)
       const { data: ratingsAsReceiver } = await supabase
         .from('food_requests')
         .select('donor_rating')
         .eq('requester_id', profileUserId)
-        .not('donor_rating', 'is', null);
+        .not('donor_rating', 'is', null)
+        .eq('status', 'completed');
       
-      const allRatings: number[] = [
-        ...(ratingsAsDonor?.map(r => r.receiver_rating).filter(Boolean) || []),
-        ...(ratingsAsReceiver?.map(r => r.donor_rating).filter(Boolean) || [])
-      ] as number[];
+      const receiverRatings = (ratingsAsReceiver?.map(r => r.donor_rating).filter(Boolean) || []) as number[];
       
-      if (allRatings.length > 0) {
-        const avg = allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length;
+      if (receiverRatings.length > 0) {
+        const avg = receiverRatings.reduce((sum, r) => sum + r, 0) / receiverRatings.length;
         setAverageRating(Math.round(avg * 10) / 10);
-        setTotalRatings(allRatings.length);
+        setTotalRatings(receiverRatings.length);
       } else {
-        setAverageRating(null);
-        setTotalRatings(0);
+        // Fallback: check if they are also a donor and show donor reliability score
+        const { data: userDonations } = await supabase
+          .from('food_donations')
+          .select('id')
+          .eq('donor_id', profileUserId);
+        
+        const donationIds = userDonations?.map(d => d.id) || [];
+        
+        if (donationIds.length > 0) {
+          const { data: ratingsAsDonor } = await supabase
+            .from('food_requests')
+            .select('receiver_rating')
+            .in('donation_id', donationIds)
+            .not('receiver_rating', 'is', null)
+            .eq('status', 'completed');
+          
+          const donorRatings = (ratingsAsDonor?.map(r => r.receiver_rating).filter(Boolean) || []) as number[];
+          if (donorRatings.length > 0) {
+            const avg = donorRatings.reduce((sum, r) => sum + r, 0) / donorRatings.length;
+            setAverageRating(Math.round(avg * 10) / 10);
+            setTotalRatings(donorRatings.length);
+          } else {
+            setAverageRating(null);
+            setTotalRatings(0);
+          }
+        } else {
+          setAverageRating(null);
+          setTotalRatings(0);
+        }
       }
     } catch (error) {
       console.error('Failed to load ratings:', error);

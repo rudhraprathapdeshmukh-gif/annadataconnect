@@ -1144,6 +1144,14 @@ export default function Dashboard() {
                       onGrantExtension={() => handleGrantExtension(request.id)}
                       onRejectExtension={() => handleRejectExtension(request.id)}
                       isAcceptDisabled={requests.some(r => r.donation_id === request.donation_id && r.status === 'approved' && r.id !== request.id)}
+                      onRequestCompleted={(requestId, receiverName, donationTitle) => {
+                        setPendingRating({
+                          requestId,
+                          type: 'donor',
+                          otherUserName: receiverName,
+                          donationTitle,
+                        });
+                      }}
                     />
                     );
                   })}
@@ -1649,9 +1657,10 @@ interface DonorRequestCardProps {
   onGrantExtension: () => void;
   onRejectExtension: () => void;
   isAcceptDisabled?: boolean;
+  onRequestCompleted?: (requestId: string, receiverName: string, donationTitle: string) => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
@@ -1705,7 +1714,13 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         // Don't show error to user - email is not critical
       }
       
-      // Refresh to trigger global rating dialog
+      // Directly trigger rating popup for the donor — don't rely on the useEffect chain
+      if (onRequestCompleted && request.profiles) {
+        const receiverName = `${request.profiles.first_name} ${request.profiles.last_name}`;
+        onRequestCompleted(request.id, receiverName, request.food_donations.title);
+      }
+      
+      // Also refresh data
       onRefresh();
     } catch (error) {
       console.error('Error verifying OTP:', error);
