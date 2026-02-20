@@ -23,7 +23,7 @@ const donationSchema = z.object({
   description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
   quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
   quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings'], { message: "Please select a unit" }),
-  food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Other'], { message: "Please select a food type" }),
+  food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Bakery Products'], { message: "Please select a food type" }),
   diet_type: z.enum(['veg', 'non-veg'], { message: "Please select diet type" }),
   phone_number: phoneSchema,
   city: z.string().optional(),
