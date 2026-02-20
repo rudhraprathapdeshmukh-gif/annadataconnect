@@ -385,7 +385,7 @@ export default function Donate() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DonateStepIndicator currentStep={currentStep} />
+            <DonateStepIndicator currentStep={currentStep} onStepClick={(step) => setCurrentStep(step)} />
             
             {currentStep === 1 ? (
               <DonateFormStep1
