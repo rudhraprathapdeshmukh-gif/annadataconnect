@@ -649,6 +649,26 @@ export default function Dashboard() {
         return;
       }
 
+      // Check for recently rejected request (10-minute cooldown)
+      const { data: recentRejected } = await supabase
+        .from('food_requests')
+        .select('updated_at')
+        .eq('donation_id', donationId)
+        .eq('requester_id', user.id)
+        .eq('status', 'rejected')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (recentRejected && recentRejected.length > 0) {
+        const rejectedAt = new Date(recentRejected[0].updated_at);
+        const cooldownEnd = new Date(rejectedAt.getTime() + 10 * 60 * 1000);
+        if (new Date() < cooldownEnd) {
+          const remainingMinutes = Math.ceil((cooldownEnd.getTime() - new Date().getTime()) / (60 * 1000));
+          toast.error(`Your request was rejected. Please wait ${remainingMinutes} minute(s) before requesting again.`);
+          return;
+        }
+      }
+
       // Check for active approved requests (within timer)
       const { data: activeApproved } = await supabase
         .from('food_requests')
