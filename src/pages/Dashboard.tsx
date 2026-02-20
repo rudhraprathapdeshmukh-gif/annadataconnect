@@ -636,6 +636,18 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
+      // Check if receiver already has 2 active requests (pending or approved)
+      const { data: activeRequests } = await supabase
+        .from('food_requests')
+        .select('id')
+        .eq('requester_id', user.id)
+        .in('status', ['pending', 'approved']);
+
+      if (activeRequests && activeRequests.length >= 2) {
+        toast.error('You can only have 2 active food requests at a time. Complete or wait for your current requests first.');
+        return;
+      }
+
       // Check for existing pending request
       const { data: existingPending } = await supabase
         .from('food_requests')
