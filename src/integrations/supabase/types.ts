@@ -278,6 +278,8 @@ export type Database = {
           on_time_count: number | null
           permanently_blocked: boolean | null
           phone_number: string | null
+          profile_edit_count: number
+          profile_edit_reset_at: string
           reliability_score: number | null
           suspended_until: string | null
           total_pickups: number | null
@@ -303,6 +305,8 @@ export type Database = {
           on_time_count?: number | null
           permanently_blocked?: boolean | null
           phone_number?: string | null
+          profile_edit_count?: number
+          profile_edit_reset_at?: string
           reliability_score?: number | null
           suspended_until?: string | null
           total_pickups?: number | null
@@ -328,6 +332,8 @@ export type Database = {
           on_time_count?: number | null
           permanently_blocked?: boolean | null
           phone_number?: string | null
+          profile_edit_count?: number
+          profile_edit_reset_at?: string
           reliability_score?: number | null
           suspended_until?: string | null
           total_pickups?: number | null
