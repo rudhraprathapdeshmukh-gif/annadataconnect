@@ -860,11 +860,14 @@ export default function Dashboard() {
       const request = requests.find(r => r.id === requestId);
       if (!request) return;
 
-      // Clear the extension request
+      const currentExtensionCount = request.extension_count || 0;
+
+      // Clear the extension request and increment extension_count to consume one attempt
       const { error: updateError } = await supabase
         .from('food_requests')
         .update({ 
-          extension_requested_at: null 
+          extension_requested_at: null,
+          extension_count: currentExtensionCount + 1
         })
         .eq('id', requestId);
 
@@ -879,7 +882,7 @@ export default function Dashboard() {
           user_id: request.requester_id,
           type: 'extension_rejected',
           title: 'Extension Request Rejected',
-          message: 'The donor has declined your time extension request.',
+          message: `The donor has declined your time extension request. ${3 - (currentExtensionCount + 1)} extension${3 - (currentExtensionCount + 1) !== 1 ? 's' : ''} remaining.`,
           related_id: requestId,
         });
       
