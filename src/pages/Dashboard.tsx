@@ -248,7 +248,7 @@ export default function Dashboard() {
     // Check if user is a donor with completed unrated requests
     const donorUnrated = donorRequestsAll.find(
       req => req.status === 'completed' && 
-             !req.donor_rating && 
+             (req.donor_rating === null || req.donor_rating === undefined) && 
              !checkedRatingRequests.current.has(req.id)
     );
     
@@ -268,7 +268,7 @@ export default function Dashboard() {
     // Check if user is a receiver with completed unrated requests
     const receiverUnrated = myRequestsAll.find(
       req => req.status === 'completed' && 
-             !req.receiver_rating && 
+             (req.receiver_rating === null || req.receiver_rating === undefined) && 
              !checkedRatingRequests.current.has(req.id)
     );
     
@@ -1723,8 +1723,8 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         onRequestCompleted(request.id, receiverName, request.food_donations.title);
       }
       
-      // Also refresh data
-      onRefresh();
+      // Delay refresh to avoid race condition that could clear the rating dialog
+      setTimeout(() => onRefresh(), 2000);
     } catch (error) {
       console.error('Error verifying OTP:', error);
       toast.error('Failed to verify OTP. Please try again.');
