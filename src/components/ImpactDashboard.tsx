@@ -299,17 +299,17 @@ export function ImpactDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={foodTypeData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    innerRadius={45}
+                    outerRadius={75}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={false}
                   >
                     {foodTypeData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -325,6 +325,14 @@ export function ImpactDashboard() {
                   />
                 </PieChart>
               </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                {foodTypeData.map((item, index) => (
+                  <div key={item.name} className="flex items-center gap-1.5 text-xs">
+                    <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
+                    <span className="text-muted-foreground truncate max-w-[120px]">{item.name} ({item.value})</span>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
