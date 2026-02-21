@@ -7,9 +7,10 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, Star, User, Calendar, ArrowLeft } from 'lucide-react';
+import { Upload, Star, User, Calendar, ArrowLeft, Edit, Save, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
 
@@ -30,6 +31,8 @@ export default function Profile() {
     total_pickups?: number;
     on_time_count?: number;
     created_at?: string;
+    profile_edit_count?: number;
+    profile_edit_reset_at?: string;
   } | null>(null);
   
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -39,8 +42,26 @@ export default function Profile() {
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [donorDonationCount, setDonorDonationCount] = useState<number>(0);
 
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
+
+  const MAX_EDITS_PER_MONTH = 3;
+
+  const getEditsRemaining = (): number => {
+    if (!userProfile) return 0;
+    const resetAt = userProfile.profile_edit_reset_at ? new Date(userProfile.profile_edit_reset_at) : new Date();
+    const now = new Date();
+    const monthsSinceReset = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
+    if (monthsSinceReset >= 1) return MAX_EDITS_PER_MONTH;
+    return Math.max(0, MAX_EDITS_PER_MONTH - (userProfile.profile_edit_count || 0));
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,7 +95,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at')
+        .select('first_name, last_name, email, phone_number, user_type, avatar_url, reliability_score, total_pickups, on_time_count, created_at, profile_edit_count, profile_edit_reset_at')
         .eq('id', profileUserId)
         .maybeSingle();
       
@@ -92,10 +113,6 @@ export default function Profile() {
   const fetchAverageRating = async () => {
     if (!profileUserId) return;
     try {
-      // For donor: get receiver_rating (ratings they gave to receivers)
-      // For receiver: get donor_rating (ratings donors gave to them)
-      // Since user_type can be 'both', we combine both as appropriate
-      // Receiver's average = donor_rating on their requests (how donors rated them)
       const { data: ratingsAsReceiver } = await supabase
         .from('food_requests')
         .select('donor_rating')
@@ -110,7 +127,6 @@ export default function Profile() {
         setAverageRating(Math.round(avg * 10) / 10);
         setTotalRatings(receiverRatings.length);
       } else {
-        // Fallback: check if they are also a donor and show donor reliability score
         const { data: userDonations } = await supabase
           .from('food_donations')
           .select('id')
@@ -207,6 +223,88 @@ export default function Profile() {
     }
   };
 
+  const startEditing = () => {
+    if (!userProfile) return;
+    setEditFirstName(userProfile.first_name || '');
+    setEditLastName(userProfile.last_name || '');
+    setEditPhone(userProfile.phone_number || '');
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditFirstName('');
+    setEditLastName('');
+    setEditPhone('');
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user || !userProfile) return;
+
+    // Check if anything actually changed
+    const hasChanges = 
+      editFirstName.trim() !== (userProfile.first_name || '') ||
+      editLastName.trim() !== (userProfile.last_name || '') ||
+      editPhone.trim() !== (userProfile.phone_number || '');
+
+    if (!hasChanges) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Check edit limit
+    const remaining = getEditsRemaining();
+    if (remaining <= 0) {
+      toast.error('You have reached the maximum of 3 profile edits this month. Try again next month.');
+      return;
+    }
+
+    if (!editFirstName.trim()) {
+      toast.error('First name is required');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      // Determine if we need to reset the counter (new month)
+      const resetAt = userProfile.profile_edit_reset_at ? new Date(userProfile.profile_edit_reset_at) : new Date(0);
+      const now = new Date();
+      const monthsSinceReset = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
+      
+      const newEditCount = monthsSinceReset >= 1 ? 1 : (userProfile.profile_edit_count || 0) + 1;
+      const newResetAt = monthsSinceReset >= 1 ? now.toISOString() : userProfile.profile_edit_reset_at;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editFirstName.trim(),
+          last_name: editLastName.trim(),
+          phone_number: editPhone.trim() || null,
+          profile_edit_count: newEditCount,
+          profile_edit_reset_at: newResetAt,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUserProfile({
+        ...userProfile,
+        first_name: editFirstName.trim(),
+        last_name: editLastName.trim(),
+        phone_number: editPhone.trim() || undefined,
+        profile_edit_count: newEditCount,
+        profile_edit_reset_at: newResetAt || userProfile.profile_edit_reset_at,
+      });
+      setIsEditing(false);
+      toast.success(`Profile updated! ${MAX_EDITS_PER_MONTH - newEditCount} edit${MAX_EDITS_PER_MONTH - newEditCount !== 1 ? 's' : ''} remaining this month.`);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const capitalizeName = (name: string | null | undefined): string => {
     if (!name) return '';
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
@@ -222,6 +320,8 @@ export default function Profile() {
       </div>
     );
   }
+
+  const editsRemaining = getEditsRemaining();
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,11 +400,29 @@ export default function Profile() {
             {/* Personal Information Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>Your profile and contact details</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Information
+                    </CardTitle>
+                    <CardDescription>Your profile and contact details</CardDescription>
+                  </div>
+                  {!isEditing && (
+                    <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
+                      <Edit className="h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                {isOwnProfile && (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <AlertTriangle className={`h-3.5 w-3.5 ${editsRemaining <= 1 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                    <span className={`text-xs ${editsRemaining <= 1 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                      {editsRemaining} profile edit{editsRemaining !== 1 ? 's' : ''} remaining this month
+                    </span>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Profile Picture */}
@@ -330,20 +448,68 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Name, Email, Phone - View Only */}
+                {/* Name, Email, Phone */}
                 <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Name</Label>
-                    <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Email</Label>
-                    <p className="font-medium">{userProfile?.email}</p>
-                  </div>
-                <div>
-                    <Label className="text-sm text-muted-foreground">Phone</Label>
-                    <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
-                  </div>
+                  {isEditing ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm text-muted-foreground">First Name</Label>
+                          <Input 
+                            value={editFirstName} 
+                            onChange={(e) => setEditFirstName(e.target.value)} 
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-muted-foreground">Last Name</Label>
+                          <Input 
+                            value={editLastName} 
+                            onChange={(e) => setEditLastName(e.target.value)} 
+                            placeholder="Last name"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Email</Label>
+                        <p className="font-medium text-muted-foreground">{userProfile?.email}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Email cannot be changed</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Phone</Label>
+                        <Input 
+                          value={editPhone} 
+                          onChange={(e) => setEditPhone(e.target.value)} 
+                          placeholder="Phone number"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={handleSaveProfile} disabled={savingProfile} size="sm" className="gap-1.5">
+                          <Save className="h-3.5 w-3.5" />
+                          {savingProfile ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                        <Button variant="outline" onClick={cancelEditing} size="sm" className="gap-1.5">
+                          <X className="h-3.5 w-3.5" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Name</Label>
+                        <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Email</Label>
+                        <p className="font-medium">{userProfile?.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Phone</Label>
+                        <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('profile.userType')}</Label>
                     <div className="mt-1">
@@ -355,7 +521,7 @@ export default function Profile() {
                             : t('profile.receiver')}
                       </Badge>
                     </div>
-                </div>
+                  </div>
                   {averageRating && (
                     <div className="pt-3">
                       <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
