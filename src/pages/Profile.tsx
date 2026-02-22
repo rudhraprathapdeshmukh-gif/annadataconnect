@@ -7,10 +7,9 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, Star, User, Calendar, ArrowLeft, Edit, Save, X, AlertTriangle } from 'lucide-react';
+import { Upload, Star, User, Calendar, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ReliabilityBadge } from '@/components/ReliabilityBadge';
 
@@ -42,25 +41,18 @@ export default function Profile() {
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [donorDonationCount, setDonorDonationCount] = useState<number>(0);
 
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [savingProfile, setSavingProfile] = useState(false);
+  const MAX_PHOTO_EDITS_PER_MONTH = 3;
 
   const isOwnProfile = !userId || userId === user?.id;
   const profileUserId = userId || user?.id;
 
-  const MAX_EDITS_PER_MONTH = 3;
-
-  const getEditsRemaining = (): number => {
+  const getPhotoEditsRemaining = (): number => {
     if (!userProfile) return 0;
     const resetAt = userProfile.profile_edit_reset_at ? new Date(userProfile.profile_edit_reset_at) : new Date();
     const now = new Date();
     const monthsSinceReset = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
-    if (monthsSinceReset >= 1) return MAX_EDITS_PER_MONTH;
-    return Math.max(0, MAX_EDITS_PER_MONTH - (userProfile.profile_edit_count || 0));
+    if (monthsSinceReset >= 1) return MAX_PHOTO_EDITS_PER_MONTH;
+    return Math.max(0, MAX_PHOTO_EDITS_PER_MONTH - (userProfile.profile_edit_count || 0));
   };
 
   useEffect(() => {
@@ -172,6 +164,14 @@ export default function Profile() {
         toast.error('Please upload an image file');
         return;
       }
+
+      // Check photo edit limit before allowing selection
+      const remaining = getPhotoEditsRemaining();
+      if (remaining <= 0) {
+        toast.error('You have reached the maximum of 3 photo changes this month. Try again next month.');
+        return;
+      }
+
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -182,7 +182,14 @@ export default function Profile() {
   };
 
   const handleAvatarUpload = async () => {
-    if (!avatarFile || !user) return;
+    if (!avatarFile || !user || !userProfile) return;
+
+    const remaining = getPhotoEditsRemaining();
+    if (remaining <= 0) {
+      toast.error('You have reached the maximum of 3 photo changes this month. Try again next month.');
+      return;
+    }
+
     setUploadingAvatar(true);
     try {
       const fileExt = avatarFile.name.split('.').pop();
@@ -204,104 +211,32 @@ export default function Profile() {
         .from('food-images')
         .getPublicUrl(filePath);
 
+      const resetAt = userProfile.profile_edit_reset_at ? new Date(userProfile.profile_edit_reset_at) : new Date(0);
+      const now = new Date();
+      const monthsSinceReset = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
+      const newEditCount = monthsSinceReset >= 1 ? 1 : (userProfile.profile_edit_count || 0) + 1;
+      const newResetAt = monthsSinceReset >= 1 ? now.toISOString() : userProfile.profile_edit_reset_at;
+
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ 
+          avatar_url: publicUrl,
+          profile_edit_count: newEditCount,
+          profile_edit_reset_at: newResetAt,
+        })
         .eq('id', user.id);
       
       if (updateError) throw updateError;
       
-      setUserProfile({ ...userProfile!, avatar_url: publicUrl });
+      setUserProfile({ ...userProfile, avatar_url: publicUrl, profile_edit_count: newEditCount, profile_edit_reset_at: newResetAt || userProfile.profile_edit_reset_at });
       setAvatarFile(null);
       setAvatarPreview(null);
-      toast.success('Profile picture updated successfully!');
+      toast.success(`Photo updated! ${MAX_PHOTO_EDITS_PER_MONTH - newEditCount} photo change${MAX_PHOTO_EDITS_PER_MONTH - newEditCount !== 1 ? 's' : ''} remaining this month.`);
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to update profile picture');
     } finally {
       setUploadingAvatar(false);
-    }
-  };
-
-  const startEditing = () => {
-    if (!userProfile) return;
-    setEditFirstName(userProfile.first_name || '');
-    setEditLastName(userProfile.last_name || '');
-    setEditPhone(userProfile.phone_number || '');
-    setIsEditing(true);
-  };
-
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setEditFirstName('');
-    setEditLastName('');
-    setEditPhone('');
-  };
-
-  const handleSaveProfile = async () => {
-    if (!user || !userProfile) return;
-
-    // Check if anything actually changed
-    const hasChanges = 
-      editFirstName.trim() !== (userProfile.first_name || '') ||
-      editLastName.trim() !== (userProfile.last_name || '') ||
-      editPhone.trim() !== (userProfile.phone_number || '');
-
-    if (!hasChanges) {
-      setIsEditing(false);
-      return;
-    }
-
-    // Check edit limit
-    const remaining = getEditsRemaining();
-    if (remaining <= 0) {
-      toast.error('You have reached the maximum of 3 profile edits this month. Try again next month.');
-      return;
-    }
-
-    if (!editFirstName.trim()) {
-      toast.error('First name is required');
-      return;
-    }
-
-    setSavingProfile(true);
-    try {
-      // Determine if we need to reset the counter (new month)
-      const resetAt = userProfile.profile_edit_reset_at ? new Date(userProfile.profile_edit_reset_at) : new Date(0);
-      const now = new Date();
-      const monthsSinceReset = (now.getFullYear() - resetAt.getFullYear()) * 12 + (now.getMonth() - resetAt.getMonth());
-      
-      const newEditCount = monthsSinceReset >= 1 ? 1 : (userProfile.profile_edit_count || 0) + 1;
-      const newResetAt = monthsSinceReset >= 1 ? now.toISOString() : userProfile.profile_edit_reset_at;
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: editFirstName.trim(),
-          last_name: editLastName.trim(),
-          phone_number: editPhone.trim() || null,
-          profile_edit_count: newEditCount,
-          profile_edit_reset_at: newResetAt,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setUserProfile({
-        ...userProfile,
-        first_name: editFirstName.trim(),
-        last_name: editLastName.trim(),
-        phone_number: editPhone.trim() || undefined,
-        profile_edit_count: newEditCount,
-        profile_edit_reset_at: newResetAt || userProfile.profile_edit_reset_at,
-      });
-      setIsEditing(false);
-      toast.success(`Profile updated! ${MAX_EDITS_PER_MONTH - newEditCount} edit${MAX_EDITS_PER_MONTH - newEditCount !== 1 ? 's' : ''} remaining this month.`);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      toast.error('Failed to update profile');
-    } finally {
-      setSavingProfile(false);
     }
   };
 
@@ -321,7 +256,7 @@ export default function Profile() {
     );
   }
 
-  const editsRemaining = getEditsRemaining();
+  const photoEditsRemaining = getPhotoEditsRemaining();
 
   return (
     <div className="min-h-screen bg-background">
@@ -397,32 +332,13 @@ export default function Profile() {
         {/* Own Profile View */}
         {isOwnProfile && (
           <div className="space-y-6">
-            {/* Personal Information Card */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Personal Information
-                    </CardTitle>
-                    <CardDescription>Your profile and contact details</CardDescription>
-                  </div>
-                  {!isEditing && (
-                    <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
-                      <Edit className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
-                {isOwnProfile && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <AlertTriangle className={`h-3.5 w-3.5 ${editsRemaining <= 1 ? 'text-destructive' : 'text-muted-foreground'}`} />
-                    <span className={`text-xs ${editsRemaining <= 1 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                      {editsRemaining} profile edit{editsRemaining !== 1 ? 's' : ''} remaining this month
-                    </span>
-                  </div>
-                )}
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>Your profile and contact details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Profile Picture */}
@@ -434,12 +350,21 @@ export default function Profile() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-center sm:items-start gap-2">
-                    <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
-                      <Upload className="h-4 w-4" />
-                      Change Photo
-                      <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Max size: 5MB</p>
+                    {photoEditsRemaining > 0 ? (
+                      <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
+                        <Upload className="h-4 w-4" />
+                        Change Photo
+                        <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                      </Label>
+                    ) : (
+                      <p className="text-sm text-destructive font-medium">Photo change limit reached</p>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className={`h-3.5 w-3.5 ${photoEditsRemaining <= 1 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                      <span className={`text-xs ${photoEditsRemaining <= 1 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                        {photoEditsRemaining} photo change{photoEditsRemaining !== 1 ? 's' : ''} remaining this month
+                      </span>
+                    </div>
                     {avatarFile && (
                       <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
                         {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
@@ -448,68 +373,22 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Name, Email, Phone */}
+                {/* Name, Email, Phone - All view-only */}
                 <div className="space-y-3">
-                  {isEditing ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-sm text-muted-foreground">First Name</Label>
-                          <Input 
-                            value={editFirstName} 
-                            onChange={(e) => setEditFirstName(e.target.value)} 
-                            placeholder="First name"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-sm text-muted-foreground">Last Name</Label>
-                          <Input 
-                            value={editLastName} 
-                            onChange={(e) => setEditLastName(e.target.value)} 
-                            placeholder="Last name"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Email</Label>
-                        <p className="font-medium text-muted-foreground">{userProfile?.email}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Email cannot be changed</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Phone</Label>
-                        <Input 
-                          value={editPhone} 
-                          onChange={(e) => setEditPhone(e.target.value)} 
-                          placeholder="Phone number"
-                        />
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button onClick={handleSaveProfile} disabled={savingProfile} size="sm" className="gap-1.5">
-                          <Save className="h-3.5 w-3.5" />
-                          {savingProfile ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                        <Button variant="outline" onClick={cancelEditing} size="sm" className="gap-1.5">
-                          <X className="h-3.5 w-3.5" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Name</Label>
-                        <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Email</Label>
-                        <p className="font-medium">{userProfile?.email}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Phone</Label>
-                        <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
-                      </div>
-                    </>
-                  )}
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Name</Label>
+                    <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Name cannot be changed after signup</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Email</Label>
+                    <p className="font-medium">{userProfile?.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Phone</Label>
+                    <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Phone number cannot be changed after signup</p>
+                  </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('profile.userType')}</Label>
                     <div className="mt-1">
