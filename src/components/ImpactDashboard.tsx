@@ -132,6 +132,7 @@ export function ImpactDashboard() {
       const monthlyMap: Record<string, number> = {};
       for (let i = 0; i < 6; i++) {
         const d = new Date();
+        d.setDate(1); // Prevent month overflow
         d.setMonth(d.getMonth() - (5 - i));
         const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         monthlyMap[key] = 0;
