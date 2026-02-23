@@ -174,25 +174,26 @@ export default function History() {
     try {
       const { data: completedData, error: completedError } = await supabase
         .from('food_donations')
-        .select('id')
+        .select('id, quantity, quantity_unit')
         .eq('donor_id', user.id)
         .eq('status', 'completed')
         .is('deleted_at', null);
       
       if (completedError) throw completedError;
       
-      const { data: helpedData, error: helpedError } = await supabase
-        .from('food_requests')
-        .select('requester_id, donation_id')
-        .eq('status', 'completed');
-      
-      if (helpedError) throw helpedError;
-      
-      const userDonationIds = completedData?.map(d => d.id) || [];
-      const uniqueReceivers = new Set(
-        helpedData?.filter(r => userDonationIds.includes(r.donation_id))
-          .map(r => r.requester_id)
-      );
+      // Calculate people helped using weighted logic (same as Impact Tracker)
+      const calcPeopleHelped = (completedData || []).reduce((sum, d) => {
+        const num = parseFloat(d.quantity);
+        if (isNaN(num) || num <= 0) return sum;
+        const unit = (d.quantity_unit || 'kg').toLowerCase();
+        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
+          return sum + Math.ceil(num * 2);
+        }
+        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
+          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
+        }
+        return sum + Math.ceil(num);
+      }, 0);
       
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -204,7 +205,7 @@ export default function History() {
       
       setDonationStats({
         completedDonations: completedData?.length || 0,
-        peopleHelped: uniqueReceivers.size
+        peopleHelped: calcPeopleHelped
       });
       setReliabilityScore(profileData?.reliability_score || 100);
     } catch (error) {
@@ -482,27 +483,6 @@ export default function History() {
                               </p>
                             )}
                           </div>
-                          {donation.completed_request && !donation.completed_request.receiver_rating && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="mt-2 h-7 text-xs"
-                              onClick={() => handleRateUser(
-                                donation.completed_request!.id, 
-                                'donor', 
-                                `${donation.completed_request?.requester_profile?.first_name || 'Receiver'}`
-                              )}
-                            >
-                              <Star className="h-3 w-3 mr-1" />
-                              Rate Receiver
-                            </Button>
-                          )}
-                          {donation.completed_request?.receiver_rating && (
-                            <div className="flex items-center gap-1 mt-2 text-xs">
-                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span>Rated: {donation.completed_request.receiver_rating}/5</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </Card>
