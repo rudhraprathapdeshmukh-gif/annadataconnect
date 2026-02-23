@@ -378,7 +378,6 @@ export default function Profile() {
                   <div>
                     <Label className="text-sm text-muted-foreground">Name</Label>
                     <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Name cannot be changed after signup</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Email</Label>
@@ -387,7 +386,6 @@ export default function Profile() {
                   <div>
                     <Label className="text-sm text-muted-foreground">Phone</Label>
                     <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Phone number cannot be changed after signup</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('profile.userType')}</Label>
