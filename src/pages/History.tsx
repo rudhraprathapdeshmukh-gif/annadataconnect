@@ -469,6 +469,12 @@ export default function History() {
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
                             </p>
+                            {donation.pickup_location && (
+                              <p className="flex items-start gap-1">
+                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span className="line-clamp-2">{donation.pickup_location}</span>
+                              </p>
+                            )}
                             {donation.completed_request?.requester_profile && (
                               <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />

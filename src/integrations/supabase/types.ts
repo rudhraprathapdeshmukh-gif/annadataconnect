@@ -441,6 +441,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_donor_receiver_ids: {
+        Args: { donor_id: string }
+        Returns: {
+          receiver_id: string
+        }[]
+      }
       get_nearby_donations: {
         Args: { p_lat: number; p_lng: number; p_radius_km?: number }
         Returns: {
