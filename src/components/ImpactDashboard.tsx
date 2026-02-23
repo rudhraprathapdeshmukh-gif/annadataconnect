@@ -268,7 +268,7 @@ export function ImpactDashboard() {
               {monthlyData.some(d => d.donations > 0) ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={monthlyData}>
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={45} interval={0} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={30} />
                     <Tooltip
                       contentStyle={{
