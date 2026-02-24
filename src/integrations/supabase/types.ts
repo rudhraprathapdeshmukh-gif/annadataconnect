@@ -441,6 +441,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_donor_active_requester_ids: {
+        Args: { p_donor_id: string }
+        Returns: {
+          requester_id: string
+        }[]
+      }
       get_donor_receiver_ids: {
         Args: { donor_id: string }
         Returns: {
