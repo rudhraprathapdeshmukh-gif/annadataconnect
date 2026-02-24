@@ -40,6 +40,7 @@ export default function Profile() {
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [donorDonationCount, setDonorDonationCount] = useState<number>(0);
+  const [receivedDonationCount, setReceivedDonationCount] = useState<number>(0);
 
   const MAX_PHOTO_EDITS_PER_MONTH = 3;
 
@@ -61,16 +62,17 @@ export default function Profile() {
     }
   }, [user, loading, navigate]);
 
-  const fetchDonorDonationCount = async () => {
+  const fetchDonationStats = async () => {
     if (!profileUserId) return;
     try {
-      const { count } = await supabase
-        .from('food_donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('donor_id', profileUserId);
-      setDonorDonationCount(count || 0);
+      const { data, error } = await supabase.rpc('get_user_donation_stats', { p_user_id: profileUserId });
+      if (error) throw error;
+      if (data) {
+        setDonorDonationCount((data as any).donated_count || 0);
+        setReceivedDonationCount((data as any).received_count || 0);
+      }
     } catch (error) {
-      console.error('Failed to fetch donor donation count:', error);
+      console.error('Failed to fetch donation stats:', error);
     }
   };
 
@@ -78,7 +80,7 @@ export default function Profile() {
     if (profileUserId) {
       fetchUserProfile();
       fetchAverageRating();
-      fetchDonorDonationCount();
+      fetchDonationStats();
     }
   }, [profileUserId, isOwnProfile]);
 
@@ -318,7 +320,7 @@ export default function Profile() {
                       </p>
                       <p className="font-medium">
                         {userProfile.user_type === 'receiver'
-                          ? (userProfile.total_pickups || 0)
+                          ? receivedDonationCount
                           : donorDonationCount}
                       </p>
                     </div>

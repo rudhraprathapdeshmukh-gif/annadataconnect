@@ -503,6 +503,7 @@ export type Database = {
         }[]
       }
       get_user_display_name: { Args: { user_id: string }; Returns: string }
+      get_user_donation_stats: { Args: { p_user_id: string }; Returns: Json }
       has_active_approved_request: {
         Args: { _donation_id: string }
         Returns: boolean
