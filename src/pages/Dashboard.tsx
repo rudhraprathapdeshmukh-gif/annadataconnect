@@ -25,7 +25,7 @@ import DonationMap from '@/components/DonationMap';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+
 import { toast } from 'sonner';
 import { useCountdown } from '@/hooks/useCountdown';
 import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
@@ -1400,15 +1400,15 @@ export default function Dashboard() {
                         
                         {/* Rating Badge with Info - Top Right */}
                         {donation.rating && (
-                          <HoverCard openDelay={200} closeDelay={100}>
-                            <HoverCardTrigger asChild>
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <span className="absolute top-2 right-2 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 cursor-help">
                                 <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                                 <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
                                 <Info className="h-3 w-3 text-muted-foreground ml-0.5" />
                               </span>
-                            </HoverCardTrigger>
-                            <HoverCardContent side="bottom" align="end" className="w-48 p-3">
+                            </PopoverTrigger>
+                            <PopoverContent side="bottom" align="end" className="w-48 p-3">
                               <div className="space-y-2">
                                 <p className="text-xs font-semibold">Food Freshness Rating</p>
                                 <div className="space-y-1 text-xs text-muted-foreground">
@@ -1419,8 +1419,8 @@ export default function Dashboard() {
                                   <div className="flex justify-between"><span>★☆☆☆☆</span><span>Aged</span></div>
                                 </div>
                               </div>
-                            </HoverCardContent>
-                          </HoverCard>
+                            </PopoverContent>
+                          </Popover>
                         )}
                       </div>
                       
