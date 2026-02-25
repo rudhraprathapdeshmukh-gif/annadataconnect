@@ -1669,12 +1669,41 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
   const [otpValue, setOtpValue] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [receiverRating, setReceiverRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
+  const [extensionReason, setExtensionReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (request.requester_id) {
       loadReceiverRating();
     }
   }, [request.requester_id]);
+
+  // Fetch extension reason from notifications when extension is requested
+  useEffect(() => {
+    if (request.extension_requested_at && !request.extension_granted) {
+      fetchExtensionReason();
+    }
+  }, [request.extension_requested_at, request.extension_granted]);
+
+  const fetchExtensionReason = async () => {
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('message')
+        .eq('related_id', request.id)
+        .eq('type', 'extension_request')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data?.message) {
+        // Extract reason from "Reason: <reason>. (Extension X/3)"
+        const match = data.message.match(/^Reason:\s*(.+?)\.?\s*\(Extension/);
+        setExtensionReason(match ? match[1] : data.message);
+      }
+    } catch (err) {
+      // Non-critical, just don't show reason
+    }
+  };
 
   const loadReceiverRating = async () => {
     const { fetchUserRating } = await import('@/lib/userRatings');
@@ -1822,7 +1851,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               <span className="font-semibold">Extension Requested (+10 minutes)</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              The receiver needs more time to reach the pickup location
+              {extensionReason ? (
+                <span className="block"><span className="font-medium text-foreground">Reason:</span> {extensionReason}</span>
+              ) : (
+                'The receiver needs more time to reach the pickup location'
+              )}
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="block mt-1 font-medium">
                   {3 - (request.extension_count || 0)} extension{3 - (request.extension_count || 0) !== 1 ? 's' : ''} remaining
