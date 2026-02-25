@@ -473,7 +473,7 @@ export default function History() {
                             {donation.pickup_location && (
                               <p className="flex items-start gap-1">
                                 <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span className="line-clamp-2">{donation.pickup_location}</span>
+                                <span>{donation.pickup_location}</span>
                               </p>
                             )}
                             {donation.completed_request?.requester_profile && (
@@ -613,7 +613,7 @@ export default function History() {
                             {request.food_donations?.pickup_location && (
                               <p className="flex items-start gap-1">
                                 <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span className="line-clamp-2">{request.food_donations.pickup_location}</span>
+                                <span>{request.food_donations.pickup_location}</span>
                               </p>
                             )}
                             {request.food_donations?.profiles && (
