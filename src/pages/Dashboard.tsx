@@ -1775,18 +1775,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
                   <span>{receiverRating.average} ({receiverRating.count} ratings)</span>
                 </div>
               )}
-              {request.profiles.email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-3.5 w-3.5" />
-                  <span>{request.profiles.email}</span>
-                </div>
-              )}
-              {request.profiles.phone_number && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-3.5 w-3.5" />
-                  <span>{request.profiles.phone_number}</span>
-                </div>
-              )}
               <a 
                 href={`/profile/${request.requester_id}`}
                 className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
