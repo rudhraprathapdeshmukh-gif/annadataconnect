@@ -58,6 +58,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const lastCheckedAtRef = useRef<string>(new Date(Date.now() - 2 * 60 * 1000).toISOString());
   const notificationsRef = useRef<Notification[]>([]);
+  const initialToastDoneRef = useRef(false);
 
   useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
   useEffect(() => { permissionRef.current = permission; }, [permission]);
@@ -139,9 +140,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       setNotifications(all);
       setUnreadCount(all.filter(n => !n.read).length);
 
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-      for (const n of all.filter(n => !n.read && n.created_at && n.created_at > twoMinutesAgo)) {
-        showNotificationToast(n);
+      // Only show toasts on the very first load, not on re-renders from token refresh
+      if (!initialToastDoneRef.current) {
+        initialToastDoneRef.current = true;
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        for (const n of all.filter(n => !n.read && n.created_at && n.created_at > twoMinutesAgo)) {
+          showNotificationToast(n);
+        }
       }
 
       lastCheckedAtRef.current = all.length > 0 && all[0].created_at ? all[0].created_at : new Date().toISOString();
