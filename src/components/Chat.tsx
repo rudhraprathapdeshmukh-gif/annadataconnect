@@ -534,8 +534,8 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
         </CardTitle>
         <p className="text-sm text-muted-foreground">with {otherUserName}</p>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0 min-h-0 relative">
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden relative">
+        <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
           <div 
             className="space-y-4"
           >
