@@ -56,7 +56,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const preferencesRef = useRef<NotificationPreferences | null>(null);
   const permissionRef = useRef<NotificationPermission>('default');
   const toastedIdsRef = useRef<Set<string>>(new Set());
-  const lastCheckedAtRef = useRef<string>(new Date(Date.now() - 2 * 60 * 1000).toISOString());
+  const lastCheckedAtRef = useRef<string>(new Date().toISOString());
   const notificationsRef = useRef<Notification[]>([]);
   const initialToastDoneRef = useRef(false);
 
@@ -140,12 +140,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       setNotifications(all);
       setUnreadCount(all.filter(n => !n.read).length);
 
-      // Only show toasts on the very first load, not on re-renders from token refresh
+      // Don't show toasts for existing notifications on load/refresh
+      // Just seed the toastedIds set so they won't re-fire from realtime/polling
       if (!initialToastDoneRef.current) {
         initialToastDoneRef.current = true;
-        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        for (const n of all.filter(n => !n.read && n.created_at && n.created_at > twoMinutesAgo)) {
-          showNotificationToast(n);
+        for (const n of all) {
+          toastedIdsRef.current.add(n.id);
         }
       }
 
