@@ -30,7 +30,7 @@ export default function ChatDialog({
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 animate-scale-in">
+      <DialogContent className="max-w-2xl max-h-[90dvh] h-[90dvh] sm:h-auto sm:max-h-[90dvh] p-0 animate-scale-in">
         <Chat
           donationId={donationId}
           otherUserId={otherUserId}

@@ -520,14 +520,14 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
   if (loading) {
     return (
-      <Card className="w-full h-[500px] flex items-center justify-center">
+      <Card className="w-full h-[500px] sm:h-[500px] max-h-[85dvh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </Card>
     );
   }
 
   return (
-    <Card className="w-full h-[500px] flex flex-col overflow-hidden">
+    <Card className="w-full h-full sm:h-[500px] max-h-[85dvh] flex flex-col overflow-hidden">
       <CardHeader className="border-b">
         <CardTitle className="text-lg">
           Chat about: {donationTitle}
@@ -608,7 +608,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
           </Button>
         )}
         
-        <div className="border-t p-4">
+        <div className="border-t p-3 sm:p-4 flex-shrink-0">
           {otherUserTyping && <TypingIndicator userName={otherUserName} />}
           {sending && (
             <p className="text-xs text-muted-foreground mb-2">
@@ -622,6 +622,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
               onClick={getLocation}
               disabled={isGettingLocation}
               title="Share location"
+              className="flex-shrink-0"
             >
               {isGettingLocation ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -637,10 +638,17 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                 handleTyping();
               }}
               onKeyPress={handleKeyPress}
+              onBlur={() => {
+                // Force scroll reset when keyboard closes on mobile
+                setTimeout(() => {
+                  window.scrollTo(0, 0);
+                  document.body.scrollTop = 0;
+                }, 100);
+              }}
               disabled={sending}
               className="flex-1"
             />
-            <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
+            <Button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="flex-shrink-0">
               {sending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
