@@ -527,7 +527,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   }
 
   return (
-    <Card className="w-full h-full sm:h-[500px] max-h-[85dvh] flex flex-col overflow-hidden">
+    <Card className="w-full h-full sm:h-[500px] max-h-[85dvh] flex flex-col overflow-hidden" style={{ touchAction: 'pan-y' }}>
       <CardHeader className="border-b">
         <CardTitle className="text-lg">
           Chat about: {donationTitle}
