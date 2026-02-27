@@ -84,7 +84,7 @@ export default function ChatDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90dvh] h-[600px] p-0 animate-scale-in">
+      <DialogContent className="max-w-2xl max-h-[90dvh] h-[600px] p-0 overflow-hidden animate-scale-in">
         <Chat
           donationId={donationId}
           otherUserId={otherUserId}
