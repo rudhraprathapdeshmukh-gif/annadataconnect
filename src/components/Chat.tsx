@@ -112,6 +112,8 @@ interface ChatProps {
   otherUserId: string;
   otherUserName: string;
   donationTitle: string;
+  /** When true, hides the Card wrapper header (used inside Drawer/Dialog that already has a header) */
+  embedded?: boolean;
 }
 
 // Typing Indicator Component
@@ -143,7 +145,7 @@ const SeenIndicator = React.memo(({ read }: { read: boolean }) => (
   </div>
 ));
 
-export default function Chat({ donationId, otherUserId, otherUserName, donationTitle }: ChatProps) {
+export default function Chat({ donationId, otherUserId, otherUserName, donationTitle, embedded = false }: ChatProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -519,144 +521,162 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
 
 
   if (loading) {
+    if (embedded) {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
     return (
-      <Card className="w-full h-[500px] sm:h-[500px] max-h-[85dvh] flex items-center justify-center">
+      <Card className="w-full h-[500px] max-h-[85dvh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </Card>
     );
   }
 
+  const chatContent = (
+    <>
+      <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
+        <div className="space-y-4">
+          {messages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No messages yet. Start the conversation!
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-lg px-4 py-2 overflow-hidden ${
+                    msg.sender_id === user?.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
+                    <LocationMessage 
+                      lat={msg.latitude} 
+                      lon={msg.longitude} 
+                      locationName={msg.location_name}
+                      isOwnMessage={msg.sender_id === user?.id}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                  )}
+                  <p
+                    className={`text-xs mt-1 ${
+                      msg.sender_id === user?.id
+                        ? 'text-primary-foreground/70'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    {new Date(msg.created_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                  {msg.sender_id === user?.id && (
+                    <SeenIndicator read={msg.read} />
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+      
+      {/* Scroll to bottom button */}
+      {!autoScroll && (
+        <Button
+          size="icon"
+          variant="secondary"
+          className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full shadow-lg z-10 h-9 w-9"
+          onClick={() => {
+            const viewport = getViewport();
+            if (viewport) {
+              viewport.scrollTop = viewport.scrollHeight;
+              setAutoScroll(true);
+            }
+          }}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      )}
+      
+      <div className="border-t p-3 flex-shrink-0 bg-background">
+        {otherUserTyping && <TypingIndicator userName={otherUserName} />}
+        {sending && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Sending message...
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={getLocation}
+            disabled={isGettingLocation}
+            title="Share location"
+            className="flex-shrink-0"
+          >
+            {isGettingLocation ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MapPin className="h-4 w-4" />
+            )}
+          </Button>
+          <Input
+            placeholder="Type your message..."
+            value={newMessage}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              handleTyping();
+            }}
+            onKeyPress={handleKeyPress}
+            onBlur={() => {
+              setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+              }, 100);
+            }}
+            disabled={sending}
+            className="flex-1"
+          />
+          <Button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="flex-shrink-0">
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+        {chatContent}
+      </div>
+    );
+  }
+
   return (
     <Card className="w-full h-full sm:h-[500px] max-h-[85dvh] flex flex-col overflow-hidden" style={{ touchAction: 'pan-y' }}>
-      <CardHeader className="border-b">
+      <CardHeader className="border-b flex-shrink-0">
         <CardTitle className="text-lg">
           Chat about: {donationTitle}
         </CardTitle>
         <p className="text-sm text-muted-foreground">with {otherUserName}</p>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden relative">
-        <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
-          <div 
-            className="space-y-4"
-          >
-            {messages.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No messages yet. Start the conversation!
-              </div>
-            ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 overflow-hidden ${
-                      msg.sender_id === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
-                    {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
-                      <LocationMessage 
-                        lat={msg.latitude} 
-                        lon={msg.longitude} 
-                        locationName={msg.location_name}
-                        isOwnMessage={msg.sender_id === user?.id}
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    )}
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.sender_id === user?.id
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      }`}
-                    >
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                    {msg.sender_id === user?.id && (
-                      <SeenIndicator read={msg.read} />
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-        
-        {/* Scroll to bottom button */}
-        {!autoScroll && (
-          <Button
-            size="icon"
-            variant="secondary"
-            className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full shadow-lg z-10 h-9 w-9"
-            onClick={() => {
-              const viewport = getViewport();
-              if (viewport) {
-                viewport.scrollTop = viewport.scrollHeight;
-                setAutoScroll(true);
-              }
-            }}
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        )}
-        
-        <div className="border-t p-3 sm:p-4 flex-shrink-0">
-          {otherUserTyping && <TypingIndicator userName={otherUserName} />}
-          {sending && (
-            <p className="text-xs text-muted-foreground mb-2">
-              Sending message...
-            </p>
-          )}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={getLocation}
-              disabled={isGettingLocation}
-              title="Share location"
-              className="flex-shrink-0"
-            >
-              {isGettingLocation ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4" />
-              )}
-            </Button>
-            <Input
-              placeholder="Type your message..."
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                handleTyping();
-              }}
-              onKeyPress={handleKeyPress}
-              onBlur={() => {
-                // Force scroll reset when keyboard closes on mobile
-                setTimeout(() => {
-                  window.scrollTo(0, 0);
-                  document.body.scrollTop = 0;
-                }, 100);
-              }}
-              disabled={sending}
-              className="flex-1"
-            />
-            <Button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="flex-shrink-0">
-              {sending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
+        {chatContent}
       </CardContent>
     </Card>
   );
