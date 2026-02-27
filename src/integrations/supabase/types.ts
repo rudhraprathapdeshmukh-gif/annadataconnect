@@ -417,6 +417,7 @@ export type Database = {
     }
     Functions: {
       auto_expire_donations: { Args: never; Returns: undefined }
+      auto_reject_stale_requests: { Args: never; Returns: undefined }
       check_signup_availability: {
         Args: { p_email: string; p_phone: string }
         Returns: Json
