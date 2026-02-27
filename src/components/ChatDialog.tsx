@@ -1,7 +1,16 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import Chat from './Chat';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from './ui/drawer';
 
 interface ChatDialogProps {
   donationId: string;
@@ -22,15 +31,60 @@ export default function ChatDialog({
   buttonSize = 'default',
   buttonText = 'Message',
 }: ChatDialogProps) {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant={buttonVariant} size={buttonSize} className="transition-all hover:scale-105 active:scale-95">
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const trigger = (
+    <Button variant={buttonVariant} size={buttonSize} className="transition-all hover:scale-105 active:scale-95">
+      <MessageCircle className="h-4 w-4 mr-2" />
+      {buttonText}
+    </Button>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <Button
+          variant={buttonVariant}
+          size={buttonSize}
+          className="transition-all hover:scale-105 active:scale-95"
+          onClick={() => setOpen(true)}
+        >
           <MessageCircle className="h-4 w-4 mr-2" />
           {buttonText}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90dvh] h-[90dvh] sm:h-auto sm:max-h-[90dvh] p-0 animate-scale-in">
+        <DrawerContent className="h-[95dvh] flex flex-col">
+          <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3 flex-shrink-0">
+            <DrawerTitle className="text-base font-semibold flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 text-primary" />
+              </div>
+              <span className="truncate">{donationTitle}</span>
+            </DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full flex-shrink-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Chat
+              donationId={donationId}
+              otherUserId={otherUserId}
+              otherUserName={otherUserName}
+              donationTitle={donationTitle}
+              embedded
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90dvh] h-[600px] p-0 animate-scale-in">
         <Chat
           donationId={donationId}
           otherUserId={otherUserId}
