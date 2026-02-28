@@ -206,12 +206,17 @@ export default function Dashboard() {
   }, [user, userProfile?.user_type]);
 
   useEffect(() => {
-    fetchDonations();
     if (user) {
-      fetchUserProfile();
-      fetchMyDonations();
-      fetchRequests();
-      fetchMyRequests();
+      // Run all fetches in parallel for faster load
+      Promise.all([
+        fetchDonations(),
+        fetchUserProfile(),
+        fetchMyDonations(),
+        fetchRequests(),
+        fetchMyRequests(),
+      ]);
+    } else {
+      fetchDonations();
     }
   }, [user]);
 
