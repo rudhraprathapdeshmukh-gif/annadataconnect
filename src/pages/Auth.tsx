@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Eye, EyeOff, Upload, X, Heart } from 'lucide-react';
@@ -245,40 +246,25 @@ export default function Auth() {
 
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
       
-      if (error) {
-        let errorMessage = error.message;
-        
-        if (error.message.includes('existing accounts') || 
-            error.message.includes('sign up first') ||
-            error.message.includes('access_denied')) {
-          errorMessage = 'Google sign-in is only available for existing accounts. Please sign up with email and password first.';
-        } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
-          errorMessage = 'Google sign-in is not configured. Please contact the administrator.';
+      if (result?.error) {
+        const msg = result.error.message || String(result.error);
+        if (msg.includes('existing accounts') || msg.includes('access_denied') || msg.includes('Database error')) {
+          toast.error('Google sign-in is only available for existing accounts. Please sign up with email and password first.', { duration: 6000 });
+        } else {
+          toast.error(msg, { duration: 6000 });
         }
-        
-        toast.error(errorMessage, { duration: 6000 });
+        setLoading(false);
       }
+      // If redirected, page will navigate away — loading stays true (intended)
     } catch (error: any) {
-      const errorMessage = 
-        error?.message?.includes('existing accounts') || 
-        error?.message?.includes('sign up first') ||
-        error?.message?.includes('access_denied')
-          ? 'Google sign-in is only available for existing accounts. Please sign up with email and password first.'
-          : 'An error occurred during Google sign-in';
-      
-      toast.error(errorMessage, { duration: 6000 });
+      toast.error('An error occurred during Google sign-in', { duration: 6000 });
+      setLoading(false);
     }
   };
 
@@ -287,6 +273,8 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
+    // Safety: clear loading after 15s max to prevent stuck state
+    const safetyTimer = setTimeout(() => setLoading(false), 15000);
     try {
       // Validate input based on mode
       if (isSignUp) {
@@ -401,6 +389,7 @@ export default function Auth() {
     } catch (error) {
       toast.error('An error occurred');
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };
