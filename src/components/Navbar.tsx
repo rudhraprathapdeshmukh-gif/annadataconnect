@@ -68,8 +68,9 @@ export default function Navbar() {
           if (data.language && data.language !== i18n.language) {
             i18n.changeLanguage(data.language);
           }
-        } else if (attempt < 5) {
-          setTimeout(() => fetchProfile(attempt + 1), 400);
+        } else if (attempt < 2) {
+          // Only 1 retry with shorter delay
+          setTimeout(() => fetchProfile(attempt + 1), 300);
         }
       }
     };

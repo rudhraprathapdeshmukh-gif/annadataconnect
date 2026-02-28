@@ -42,54 +42,39 @@ const Index = () => {
   const [loadingDonations, setLoadingDonations] = useState(false);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user) {
-        const { data } = await supabase.from('profiles').select('user_type, first_name, last_name, avatar_url').eq('id', user.id).maybeSingle();
-        if (data) {
-          setUserType(data.user_type);
-          setUserProfile({
-            first_name: data.first_name,
-            last_name: data.last_name,
-            avatar_url: data.avatar_url
-          });
-        }
-      }
-    };
-    fetchUserProfile();
-  }, [user]);
+    const fetchData = async () => {
+      if (!user) return;
+      
+      // Fetch profile first
+      const { data } = await supabase.from('profiles').select('user_type, first_name, last_name, avatar_url').eq('id', user.id).maybeSingle();
+      if (!data) return;
+      
+      setUserType(data.user_type);
+      setUserProfile({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        avatar_url: data.avatar_url
+      });
 
-  useEffect(() => {
-    const fetchActiveDonations = async () => {
-      if (user && userType && userType !== 'receiver') {
+      // Fetch donations in same effect if donor
+      if (data.user_type && data.user_type !== 'receiver') {
         setLoadingDonations(true);
         try {
           const { data: donations, error } = await supabase.from('food_donations').select(`
-              id,
-              title,
-              quantity,
-              quantity_unit,
-              status,
-              pickup_location,
-              expiry_date,
-              image_url
+              id, title, quantity, quantity_unit, status, pickup_location, expiry_date, image_url
             `).eq('donor_id', user.id).eq('status', 'available').is('deleted_at', null).order('created_at', {
             ascending: false
           }).limit(6);
           if (error) throw error;
-            if (donations) {
-            // Filter out expired donations client-side
+          if (donations) {
             const now = new Date().toISOString();
             const activeDonationsList = donations.filter(d => !d.expiry_date || d.expiry_date > now);
-            // Fetch pending requests count for each donation
             const donationsWithCounts = await Promise.all(activeDonationsList.map(async donation => {
               const { count } = await supabase.from('food_requests').select('*', {
                 count: 'exact',
                 head: true
               }).eq('donation_id', donation.id).eq('status', 'pending');
-              return {
-                ...donation,
-                pending_requests: count || 0
-              };
+              return { ...donation, pending_requests: count || 0 };
             }));
             setActiveDonations(donationsWithCounts);
           }
@@ -100,8 +85,8 @@ const Index = () => {
         }
       }
     };
-    fetchActiveDonations();
-  }, [user, userType]);
+    fetchData();
+  }, [user]);
 
   if (loading) {
     return (

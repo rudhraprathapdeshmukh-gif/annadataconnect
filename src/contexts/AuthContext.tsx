@@ -21,22 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Safety timeout: if auth never resolves (slow network), stop loading
+    // Safety timeout: reduced to 1.5s for snappier UX
     const timeout = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 1500);
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        clearTimeout(timeout);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
+    // Get session first (fastest path)
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(timeout);
       setSession(session);
@@ -46,6 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       setLoading(false);
     });
+
+    // Then set up listener for future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
 
     return () => {
       clearTimeout(timeout);
