@@ -370,28 +370,10 @@ export default function Auth() {
           }
         }
       } else {
-        let signInResult;
-        try {
-          signInResult = await signIn(email, password);
-        } catch (fetchErr: any) {
-          // Network-level failure (e.g. DNS, CORS, offline)
-          const fetchMsg = fetchErr?.message || '';
-          if (fetchMsg.toLowerCase().includes('fetch') || fetchMsg.toLowerCase().includes('network')) {
-            toast.error('Network error — please check your internet connection and try again.');
-          } else {
-            toast.error('Unable to reach the server. Please try again in a moment.');
-          }
-          clearTimeout(safetyTimer);
-          setLoading(false);
-          return;
-        }
-
-        const { error } = signInResult;
+        const { error } = await signIn(email, password);
         if (error) {
           const msg = error.message || '';
-          if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('networkerror')) {
-            toast.error('Network error — please check your internet connection and try again.');
-          } else if (msg.includes('Email not confirmed')) {
+          if (msg.includes('Email not confirmed')) {
             toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
           } else if (msg.includes('Invalid login credentials')) {
             toast.error('Incorrect email or password. Please check your credentials and try again.');
@@ -400,16 +382,12 @@ export default function Auth() {
           }
         } else {
           toast.success('Signed in successfully!');
+          // Explicitly navigate to dashboard after successful login
           navigate('/dashboard');
         }
       }
-    } catch (error: any) {
-      const errMsg = error?.message || '';
-      if (errMsg.toLowerCase().includes('fetch') || errMsg.toLowerCase().includes('network')) {
-        toast.error('Network error — please check your internet connection and try again.');
-      } else {
-        toast.error('An error occurred. Please try again.');
-      }
+    } catch (error) {
+      toast.error('An error occurred');
     } finally {
       clearTimeout(safetyTimer);
       setLoading(false);
