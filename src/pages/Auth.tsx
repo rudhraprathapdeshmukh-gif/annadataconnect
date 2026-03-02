@@ -50,6 +50,8 @@ export default function Auth() {
   const [phoneNumber, setPhoneNumber] = useState('+91');
   const [userType, setUserType] = useState<'donor' | 'receiver'>('donor');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -277,6 +279,8 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setFormError(null);
+    setFormSuccess(null);
 
     try {
       // Validate input based on mode
@@ -347,56 +351,58 @@ export default function Auth() {
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
           const msg = error.message || '';
+          let errorMsg = msg;
           if (msg.includes('phone_number') || msg.includes('idx_profiles_phone_number_unique')) {
-            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            errorMsg = 'This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.';
           } else if (msg.includes('profiles_email_key') || (msg.includes('email') && msg.includes('unique'))) {
-            toast.error('This email is already registered. Please use a different email or sign in.');
+            errorMsg = 'This email is already registered. Please use a different email or sign in.';
           } else if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('already been registered') || msg.includes('already registered')) {
-            toast.error('An account with these details already exists. Please sign in instead, or use a different email/phone number.');
+            errorMsg = 'An account with these details already exists. Please sign in instead, or use a different email/phone number.';
           } else if (msg.includes('Database error saving new user') || msg.includes('unexpected_failure')) {
-            toast.error('This phone number or email is already in use. Please try signing in, or use different details.');
+            errorMsg = 'This phone number or email is already in use. Please try signing in, or use different details.';
           } else if (msg.includes('User already registered')) {
-            toast.error('This email is already registered. Please sign in instead.');
-          } else {
-            toast.error(msg);
+            errorMsg = 'This email is already registered. Please sign in instead.';
           }
+          setFormError(errorMsg);
+          toast.error(errorMsg);
         } else {
-          // Automatically sign in after successful signup
-          toast.success('Account created successfully! Signing you in...');
-          const { error: signInError } = await signIn(email, password);
-          if (signInError) {
-            toast.error('Account created but sign in failed. Please sign in manually.');
-            setIsSignUp(false);
-          } else {
-            toast.success('Welcome to Annadataconnect! 🎉');
-            navigate('/dashboard');
-          }
+          const successMsg = 'Account created successfully! Please check your email (including spam folder) to confirm your account before signing in.';
+          setFormSuccess(successMsg);
+          toast.success(successMsg, { duration: 8000 });
+          setIsSignUp(false);
+          setPassword('');
+          setFirstName('');
+          setLastName('');
+          setPhoneNumber('+91');
+          setAvatarFile(null);
+          setAvatarPreview(null);
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) {
           const msg = error.message || '';
+          let errorMsg = msg;
           if (msg.includes('Email not confirmed')) {
-            toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
+            errorMsg = 'Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.';
           } else if (msg.includes('Invalid login credentials')) {
-            toast.error('Incorrect email or password. Please check your credentials and try again.');
-          } else {
-            toast.error(msg);
+            errorMsg = 'Incorrect email or password. Please check your credentials and try again.';
           }
+          setFormError(errorMsg);
+          toast.error(errorMsg);
         } else {
           toast.success('Signed in successfully!');
-          // Explicitly navigate to dashboard after successful login
           navigate('/dashboard');
         }
       }
     } catch (error: any) {
+      let errorMsg = 'An unexpected error occurred. Please try again.';
       if (error?.message?.includes('Failed to fetch') || error instanceof TypeError) {
-        toast.error('Network error. Please check your internet connection and try again.');
+        errorMsg = 'Network error. Please check your internet connection and try again.';
       } else if (error?.message?.includes('timed out') || error?.message?.includes('timeout')) {
-        toast.error('Request timed out. Please try again.');
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
+        errorMsg = 'Request timed out. Please try again.';
       }
+      setFormError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -511,6 +517,16 @@ export default function Auth() {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+            {formError && (
+              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                {formError}
+              </div>
+            )}
+            {formSuccess && (
+              <div className="p-3 rounded-md bg-accent/20 border border-accent/30 text-accent-foreground text-sm">
+                {formSuccess}
+              </div>
+            )}
             {isSignUp && (
               <>
                 <div className="space-y-2">
