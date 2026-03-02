@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable/index';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Eye, EyeOff, Upload, X, Heart } from 'lucide-react';
@@ -50,8 +49,6 @@ export default function Auth() {
   const [phoneNumber, setPhoneNumber] = useState('+91');
   const [userType, setUserType] = useState<'donor' | 'receiver'>('donor');
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -122,34 +119,29 @@ export default function Auth() {
       }
     }
 
-    // Check if user signed in and navigate to dashboard
+    // Check if user signed in with Google and validate they have an account
     if (user && !isRecoveryMode) {
-      const provider = user.app_metadata?.provider;
-      
-      // Only do the profile existence check for OAuth providers (e.g., Google)
-      // Email/password users always have a profile created by the trigger
-      if (provider && provider !== 'email') {
-        (async () => {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', user.id)
-            .single();
+      (async () => {
+        // Check if user has a profile in our system
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single();
 
-          if (error || !profile) {
-            await supabase.auth.signOut();
-            toast.error(
-              'No account found. Please sign up with email and password first before using Google sign-in.',
-              { duration: 6000 }
-            );
-            return;
-          }
+        if (error || !profile) {
+          // User doesn't have a profile, they're trying to sign in without signing up
+          await supabase.auth.signOut();
+          toast.error(
+            'No account found. Please sign up with email and password first before using Google sign-in.',
+            { duration: 6000 }
+          );
+          return;
+        }
 
-          navigate('/dashboard');
-        })();
-      } else {
+        // Profile exists, proceed to dashboard
         navigate('/dashboard');
-      }
+      })();
     }
   }, [user, navigate, searchParams]);
 
@@ -254,24 +246,39 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
       });
       
       if (error) {
-        const msg = error.message || String(error);
-        if (msg.includes('existing accounts') || msg.includes('sign up first') || msg.includes('access_denied')) {
-          toast.error('Google sign-in is only available for existing accounts. Please sign up with email and password first.', { duration: 6000 });
-        } else {
-          toast.error(msg, { duration: 6000 });
+        let errorMessage = error.message;
+        
+        if (error.message.includes('existing accounts') || 
+            error.message.includes('sign up first') ||
+            error.message.includes('access_denied')) {
+          errorMessage = 'Google sign-in is only available for existing accounts. Please sign up with email and password first.';
+        } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
+          errorMessage = 'Google sign-in is not configured. Please contact the administrator.';
         }
+        
+        toast.error(errorMessage, { duration: 6000 });
       }
     } catch (error: any) {
-      if (error?.message?.includes('Failed to fetch') || error instanceof TypeError) {
-        toast.error('Network error. Please check your internet connection and try again.', { duration: 6000 });
-      } else {
-        toast.error('An error occurred during Google sign-in', { duration: 6000 });
-      }
+      const errorMessage = 
+        error?.message?.includes('existing accounts') || 
+        error?.message?.includes('sign up first') ||
+        error?.message?.includes('access_denied')
+          ? 'Google sign-in is only available for existing accounts. Please sign up with email and password first.'
+          : 'An error occurred during Google sign-in';
+      
+      toast.error(errorMessage, { duration: 6000 });
     }
   };
 
@@ -279,8 +286,6 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setFormError(null);
-    setFormSuccess(null);
 
     try {
       // Validate input based on mode
@@ -351,58 +356,50 @@ export default function Auth() {
         const { error } = await signUp(email, password, firstName, lastName, phoneNumber, userType, avatarUrl);
         if (error) {
           const msg = error.message || '';
-          let errorMsg = msg;
           if (msg.includes('phone_number') || msg.includes('idx_profiles_phone_number_unique')) {
-            errorMsg = 'This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.';
+            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
           } else if (msg.includes('profiles_email_key') || (msg.includes('email') && msg.includes('unique'))) {
-            errorMsg = 'This email is already registered. Please use a different email or sign in.';
+            toast.error('This email is already registered. Please use a different email or sign in.');
           } else if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('already been registered') || msg.includes('already registered')) {
-            errorMsg = 'An account with these details already exists. Please sign in instead, or use a different email/phone number.';
+            toast.error('An account with these details already exists. Please sign in instead, or use a different email/phone number.');
           } else if (msg.includes('Database error saving new user') || msg.includes('unexpected_failure')) {
-            errorMsg = 'This phone number or email is already in use. Please try signing in, or use different details.';
+            toast.error('This phone number or email is already in use. Please try signing in, or use different details.');
           } else if (msg.includes('User already registered')) {
-            errorMsg = 'This email is already registered. Please sign in instead.';
+            toast.error('This email is already registered. Please sign in instead.');
+          } else {
+            toast.error(msg);
           }
-          setFormError(errorMsg);
-          toast.error(errorMsg);
         } else {
-          const successMsg = 'Account created successfully! Please check your email (including spam folder) to confirm your account before signing in.';
-          setFormSuccess(successMsg);
-          toast.success(successMsg, { duration: 8000 });
-          setIsSignUp(false);
-          setPassword('');
-          setFirstName('');
-          setLastName('');
-          setPhoneNumber('+91');
-          setAvatarFile(null);
-          setAvatarPreview(null);
+          // Automatically sign in after successful signup
+          toast.success('Account created successfully! Signing you in...');
+          const { error: signInError } = await signIn(email, password);
+          if (signInError) {
+            toast.error('Account created but sign in failed. Please sign in manually.');
+            setIsSignUp(false);
+          } else {
+            toast.success('Welcome to Annadataconnect! 🎉');
+            navigate('/dashboard');
+          }
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) {
           const msg = error.message || '';
-          let errorMsg = msg;
           if (msg.includes('Email not confirmed')) {
-            errorMsg = 'Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.';
+            toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
           } else if (msg.includes('Invalid login credentials')) {
-            errorMsg = 'Incorrect email or password. Please check your credentials and try again.';
+            toast.error('Incorrect email or password. Please check your credentials and try again.');
+          } else {
+            toast.error(msg);
           }
-          setFormError(errorMsg);
-          toast.error(errorMsg);
         } else {
           toast.success('Signed in successfully!');
+          // Explicitly navigate to dashboard after successful login
           navigate('/dashboard');
         }
       }
-    } catch (error: any) {
-      let errorMsg = 'An unexpected error occurred. Please try again.';
-      if (error?.message?.includes('Failed to fetch') || error instanceof TypeError) {
-        errorMsg = 'Network error. Please check your internet connection and try again.';
-      } else if (error?.message?.includes('timed out') || error?.message?.includes('timeout')) {
-        errorMsg = 'Request timed out. Please try again.';
-      }
-      setFormError(errorMsg);
-      toast.error(errorMsg);
+    } catch (error) {
+      toast.error('An error occurred');
     } finally {
       setLoading(false);
     }
@@ -517,16 +514,6 @@ export default function Auth() {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-            {formError && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-                {formError}
-              </div>
-            )}
-            {formSuccess && (
-              <div className="p-3 rounded-md bg-accent/20 border border-accent/30 text-accent-foreground text-sm">
-                {formSuccess}
-              </div>
-            )}
             {isSignUp && (
               <>
                 <div className="space-y-2">

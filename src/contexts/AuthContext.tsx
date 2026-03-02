@@ -72,23 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Sign-in timed out. Please check your internet connection and try again.')), 15000)
-      );
-      const signInPromise = supabase.auth.signInWithPassword({ email, password });
-      const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
-      if (!error && data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-      }
-      return { error };
-    } catch (err: any) {
-      if (err?.message?.includes('Failed to fetch') || err instanceof TypeError) {
-        return { error: { message: 'Network error. Please check your internet connection and try again.' } };
-      }
-      return { error: { message: err?.message || 'An unexpected error occurred. Please try again.' } };
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error };
   };
 
   const signOut = async () => {

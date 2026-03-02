@@ -538,24 +538,24 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const chatContent = (
     <>
       <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollAreaRef} onScrollCapture={handleScroll}>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {messages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground animate-fade-in">
+            <div className="text-center py-8 text-muted-foreground">
               No messages yet. Start the conversation!
             </div>
           ) : (
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex animate-fade-in ${
+                className={`flex ${
                   msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
                 }`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 overflow-hidden shadow-sm transition-all ${
+                  className={`max-w-[70%] rounded-lg px-4 py-2 overflow-hidden ${
                     msg.sender_id === user?.id
-                      ? 'bg-primary text-primary-foreground rounded-br-md'
-                      : 'bg-muted rounded-bl-md'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
                   }`}
                 >
                   {msg.message_type === 'location' && msg.latitude && msg.longitude ? (
@@ -566,10 +566,10 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
                       isOwnMessage={msg.sender_id === user?.id}
                     />
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                   )}
                   <p
-                    className={`text-[10px] mt-1 text-right ${
+                    className={`text-xs mt-1 ${
                       msg.sender_id === user?.id
                         ? 'text-primary-foreground/70'
                         : 'text-muted-foreground'
@@ -611,18 +611,18 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
       <div className="border-t p-3 flex-shrink-0 bg-background">
         {otherUserTyping && <TypingIndicator userName={otherUserName} />}
         {sending && (
-          <p className="text-xs text-muted-foreground mb-2 animate-fade-in">
+          <p className="text-xs text-muted-foreground mb-2">
             Sending message...
           </p>
         )}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="icon"
             onClick={getLocation}
             disabled={isGettingLocation}
             title="Share location"
-            className="flex-shrink-0 rounded-full h-10 w-10 transition-transform active:scale-95"
+            className="flex-shrink-0"
           >
             {isGettingLocation ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -645,14 +645,9 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
               }, 100);
             }}
             disabled={sending}
-            className="flex-1 h-10 rounded-full px-4 bg-muted/50 border-muted-foreground/20"
+            className="flex-1"
           />
-          <Button 
-            onClick={sendMessage} 
-            disabled={sending || !newMessage.trim()} 
-            size="icon"
-            className="flex-shrink-0 rounded-full h-10 w-10 transition-transform active:scale-95"
-          >
+          <Button onClick={sendMessage} disabled={sending || !newMessage.trim()} className="flex-shrink-0">
             {sending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
