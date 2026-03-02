@@ -1,45 +1,36 @@
 
 
-# Add Special Notification Sound for Nearby Donation Alerts
+## Fix: "Failed to fetch" on Sign-In and Google Authentication
 
-## Problem
+### Problem Analysis
 
-When a donor posts a new donation, receivers in the matching radius/district get a `nearby_donation` notification, but it plays the same generic beep as every other notification. There is an existing `donationAlertSound.ts` file with a distinctive chime pattern, but it is unused and has a stale reference to the deleted `notification.mp3`.
+**Issue 1 - "Failed to fetch" on email/password sign-in:**
+The generic `catch` block in `handleSubmit` shows "An error occurred" which doesn't help users. The actual error is likely a network timeout or connectivity issue. The sign-in flow needs better error handling with a timeout safety net and specific messaging for fetch failures.
 
-## What Already Works
+**Issue 2 - Google Authentication not working:**
+The code uses `supabase.auth.signInWithOAuth()` directly, but this project runs on Lovable Cloud which requires using `lovable.auth.signInWithOAuth()` instead. The Lovable Cloud managed solution needs to be configured first.
 
-The backend (`notify-nearby-users` edge function + `notify_nearby_on_donation_insert` trigger) already notifies receivers within 10km radius OR matching district when a donation is posted. No backend changes are needed.
+---
 
-## Changes
+### Plan
 
-### 1. Fix `src/lib/donationAlertSound.ts`
+**Step 1: Configure Google OAuth via Lovable Cloud**
+- Use the social auth configuration tool to generate the `lovable` integration module
+- This will create `src/integrations/lovable/` with the managed OAuth client
 
-- Add mobile support (resume suspended AudioContext, same pattern as `notificationSound.ts`)
-- Replace the stale `notification.mp3` fallback with a programmatic Web Audio fallback
-- Keep the distinctive 7-note chime pattern (C5-E5-G5-A5-G5-E5-C5) that makes it clearly different from the standard beep
+**Step 2: Update Auth.tsx - Fix Google sign-in**
+- Replace `supabase.auth.signInWithOAuth()` with `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
+- Import `lovable` from `@/integrations/lovable/index`
 
-### 2. Update `src/contexts/NotificationContext.tsx`
+**Step 3: Update Auth.tsx - Fix "Failed to fetch" error handling**
+- Wrap the `signIn` call with a timeout (e.g., 15 seconds) using `Promise.race` so users aren't stuck indefinitely
+- In the `catch` block, detect `TypeError: Failed to fetch` specifically and show a user-friendly message like "Network error. Please check your internet connection and try again."
+- Add a `finally` block safety to always clear loading state
 
-- Import `playDonationAlertSound` from `donationAlertSound.ts`
-- In `showNotificationToast()`, check if `n.type === 'nearby_donation'` and play the special chime instead of the generic beep
-- All other notification types continue using the standard beep -- no preference changes
+**Step 4: Update AuthContext.tsx - Add fetch error resilience**
+- Wrap the `signInWithPassword` call with a try/catch that specifically handles network failures, returning a descriptive error instead of letting it throw unhandled
 
-## How It Will Sound
-
-| Notification Type | Sound |
-|---|---|
-| `nearby_donation` (new food posted) | 7-note rising/falling chime (~3.5 seconds) |
-| All other types | Short 2-tone beep (~0.3 seconds) |
-
-## Technical Detail
-
-```text
-showNotificationToast(n):
-  if n.type === 'nearby_donation'
-    -> playDonationAlertSound()   (chime)
-  else
-    -> playNotificationSound()    (beep)
-```
-
-No notification preferences, backend logic, or other notification behavior will be modified.
+### Files to modify
+- `src/pages/Auth.tsx` - Google OAuth method + error handling
+- `src/contexts/AuthContext.tsx` - Network error resilience in signIn
 
