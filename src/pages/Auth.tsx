@@ -119,29 +119,34 @@ export default function Auth() {
       }
     }
 
-    // Check if user signed in with Google and validate they have an account
+    // Check if user signed in and navigate to dashboard
     if (user && !isRecoveryMode) {
-      (async () => {
-        // Check if user has a profile in our system
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .single();
+      const provider = user.app_metadata?.provider;
+      
+      // Only do the profile existence check for OAuth providers (e.g., Google)
+      // Email/password users always have a profile created by the trigger
+      if (provider && provider !== 'email') {
+        (async () => {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user.id)
+            .single();
 
-        if (error || !profile) {
-          // User doesn't have a profile, they're trying to sign in without signing up
-          await supabase.auth.signOut();
-          toast.error(
-            'No account found. Please sign up with email and password first before using Google sign-in.',
-            { duration: 6000 }
-          );
-          return;
-        }
+          if (error || !profile) {
+            await supabase.auth.signOut();
+            toast.error(
+              'No account found. Please sign up with email and password first before using Google sign-in.',
+              { duration: 6000 }
+            );
+            return;
+          }
 
-        // Profile exists, proceed to dashboard
+          navigate('/dashboard');
+        })();
+      } else {
         navigate('/dashboard');
-      })();
+      }
     }
   }, [user, navigate, searchParams]);
 
