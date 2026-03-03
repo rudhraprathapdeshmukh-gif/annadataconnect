@@ -287,6 +287,12 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
+    // Safety timeout: force-clear loading after 15 seconds
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+      toast.error('Sign-in is taking too long. Please check your internet connection and try again.');
+    }, 15000);
+
     try {
       // Validate input based on mode
       if (isSignUp) {
@@ -399,8 +405,9 @@ export default function Auth() {
         }
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error('An error occurred. Please try again.');
     } finally {
+      clearTimeout(safetyTimeout);
       setLoading(false);
     }
   };
