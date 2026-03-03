@@ -1,45 +1,20 @@
 
 
-# Add Special Notification Sound for Nearby Donation Alerts
+## Diagnosis
 
-## Problem
+After reviewing the code, I identified **two issues** causing the "stuck on Loading" problem:
 
-When a donor posts a new donation, receivers in the matching radius/district get a `nearby_donation` notification, but it plays the same generic beep as every other notification. There is an existing `donationAlertSound.ts` file with a distinctive chime pattern, but it is unused and has a stale reference to the deleted `notification.mp3`.
+### Issue 1: Dashboard `loadingDonations` can hang indefinitely
+In `Dashboard.tsx`, `loadingDonations` starts as `true` and only becomes `false` when `fetchDonations()` completes. While `fetchDonations` has a try-catch-finally, there's no safety timeout — if the database query hangs on slow connections or specific account states, the user sees "Loading..." forever.
 
-## What Already Works
+### Issue 2: Auth.tsx early returns don't clear the safety timeout
+In `handleSubmit`, early returns (validation failures on lines 300-315) call `setLoading(false)` but **don't clear `safetyTimeout`**. The timeout still fires 15 seconds later showing a confusing "Sign-in is taking too long" error even though the user already got a validation error.
 
-The backend (`notify-nearby-users` edge function + `notify_nearby_on_donation_insert` trigger) already notifies receivers within 10km radius OR matching district when a donation is posted. No backend changes are needed.
+## Plan
 
-## Changes
+### 1. Add safety timeout to Dashboard loading state
+In `src/pages/Dashboard.tsx`, add a `useEffect` that sets a 5-second safety timeout on `loadingDonations`. If it's still `true` after 5 seconds, force it to `false` so users aren't stuck.
 
-### 1. Fix `src/lib/donationAlertSound.ts`
-
-- Add mobile support (resume suspended AudioContext, same pattern as `notificationSound.ts`)
-- Replace the stale `notification.mp3` fallback with a programmatic Web Audio fallback
-- Keep the distinctive 7-note chime pattern (C5-E5-G5-A5-G5-E5-C5) that makes it clearly different from the standard beep
-
-### 2. Update `src/contexts/NotificationContext.tsx`
-
-- Import `playDonationAlertSound` from `donationAlertSound.ts`
-- In `showNotificationToast()`, check if `n.type === 'nearby_donation'` and play the special chime instead of the generic beep
-- All other notification types continue using the standard beep -- no preference changes
-
-## How It Will Sound
-
-| Notification Type | Sound |
-|---|---|
-| `nearby_donation` (new food posted) | 7-note rising/falling chime (~3.5 seconds) |
-| All other types | Short 2-tone beep (~0.3 seconds) |
-
-## Technical Detail
-
-```text
-showNotificationToast(n):
-  if n.type === 'nearby_donation'
-    -> playDonationAlertSound()   (chime)
-  else
-    -> playNotificationSound()    (beep)
-```
-
-No notification preferences, backend logic, or other notification behavior will be modified.
+### 2. Fix Auth.tsx timeout cleanup on early returns
+In `src/pages/Auth.tsx`, move `clearTimeout(safetyTimeout)` calls into every early return path (validation failures for both sign-in and sign-up), not just the `finally` block.
 
