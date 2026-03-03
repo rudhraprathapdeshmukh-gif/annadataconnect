@@ -301,6 +301,7 @@ export default function Auth() {
         if (!validation.success) {
           const firstError = validation.error.errors[0];
           toast.error(firstError.message);
+          clearTimeout(safetyTimeout);
           setLoading(false);
           return;
         }
@@ -310,6 +311,7 @@ export default function Auth() {
         if (!validation.success) {
           const firstError = validation.error.errors[0];
           toast.error(firstError.message);
+          clearTimeout(safetyTimeout);
           setLoading(false);
           return;
         }
@@ -330,6 +332,7 @@ export default function Auth() {
 
           if (uploadError) {
             toast.error('Failed to upload profile picture');
+            clearTimeout(safetyTimeout);
             setLoading(false);
             return;
           }
@@ -349,11 +352,13 @@ export default function Auth() {
           const avail = typeof availability === 'string' ? JSON.parse(availability) : availability;
           if (avail.email_taken) {
             toast.error('This email is already registered. Please sign in instead, or use a different email.');
+            clearTimeout(safetyTimeout);
             setLoading(false);
             return;
           }
           if (avail.phone_taken) {
             toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            clearTimeout(safetyTimeout);
             setLoading(false);
             return;
           }
