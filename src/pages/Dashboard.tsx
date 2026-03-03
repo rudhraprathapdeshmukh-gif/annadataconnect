@@ -118,6 +118,17 @@ export default function Dashboard() {
   const [myRequestsAll, setMyRequestsAll] = useState<FoodRequest[]>([]);
   const [myDonations, setMyDonations] = useState<FoodDonation[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
+
+  // Safety timeout: force-clear loading after 5 seconds to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loadingDonations) {
+        console.log('Dashboard loading safety timeout triggered');
+        setLoadingDonations(false);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [loadingDonations]);
   const [userProfile, setUserProfile] = useState<{ first_name: string; last_name: string; user_type: string; avatar_url?: string } | null>(null);
   const [editingDonation, setEditingDonation] = useState<FoodDonation | null>(null);
   const [deletingDonationId, setDeletingDonationId] = useState<string | null>(null);
