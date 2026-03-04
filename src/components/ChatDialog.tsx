@@ -56,13 +56,10 @@ export default function ChatDialog({
         <DrawerContent className="h-[95dvh] flex flex-col">
           <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 py-3 flex-shrink-0">
             <DrawerTitle className="text-base font-semibold flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <MessageCircle className="h-4 w-4 text-primary" />
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="truncate text-sm">{donationTitle}</span>
-                <span className="text-xs text-muted-foreground font-normal truncate">with {otherUserName}</span>
-              </div>
+              <span className="truncate">{donationTitle}</span>
             </DrawerTitle>
             <DrawerClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full flex-shrink-0">
@@ -87,7 +84,7 @@ export default function ChatDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90dvh] h-auto p-0 animate-scale-in flex flex-col" style={{ minHeight: '400px', maxHeight: '85dvh' }}>
+      <DialogContent className="max-w-2xl max-h-[90dvh] h-[600px] p-0 animate-scale-in">
         <Chat
           donationId={donationId}
           otherUserId={otherUserId}
