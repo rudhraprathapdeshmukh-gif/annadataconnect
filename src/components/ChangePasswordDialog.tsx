@@ -31,8 +31,25 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error(t('password.minLength', 'Password must be at least 6 characters'));
+    // Strong password validation matching signup requirements
+    if (newPassword.length < 8) {
+      toast.error(t('password.minLength', 'Password must be at least 8 characters'));
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      toast.error(t('password.uppercase', 'Password must contain at least one uppercase letter'));
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      toast.error(t('password.lowercase', 'Password must contain at least one lowercase letter'));
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      toast.error(t('password.number', 'Password must contain at least one number'));
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      toast.error(t('password.special', 'Password must contain at least one special character'));
       return;
     }
 

@@ -195,7 +195,7 @@ export default function Profile() {
     setUploadingAvatar(true);
     try {
       const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `avatars/${user.id}/${fileName}`;
 
       if (userProfile?.avatar_url) {
