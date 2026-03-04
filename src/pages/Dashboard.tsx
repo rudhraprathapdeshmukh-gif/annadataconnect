@@ -183,8 +183,6 @@ export default function Dashboard() {
           if (district) {
             setReceiverDistrict(district);
           }
-        } else {
-          await supabase.from('profiles').update({ latitude: loc.lat, longitude: loc.lng } as any).eq('id', user.id);
         }
       },
       async () => {
@@ -471,16 +469,17 @@ export default function Dashboard() {
           distance_km: d.distance_km,
         })));
       } else {
-        // Fallback: show all donations globally
-        const { data, error } = await supabase
-          .from('food_donations')
-          .select('id, title, description, pickup_location, status, latitude, longitude, quantity, quantity_unit, food_type, diet_type, created_at, expiry_date, rating, image_url')
-          .eq('status', 'available')
-          .is('deleted_at', null);
+        // Fallback: use get_public_donations RPC to mask sensitive location data
+        const { data, error } = await supabase.rpc('get_public_donations');
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter(d => !d.expiry_date || d.expiry_date > now));
+        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+          ...d,
+          pickup_location: d.masked_location,
+          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
+          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+        })));
       }
     } catch (error) {
       toast.error('Failed to load donations');
@@ -792,18 +791,7 @@ export default function Dashboard() {
             .update({ status: 'rejected' })
             .in('id', otherIds);
 
-          // Notify rejected requesters
-          for (const req of otherPending) {
-            await supabase
-              .from('notifications')
-              .insert({
-                user_id: req.requester_id,
-                type: 'request_approved',
-                title: 'Request Not Selected',
-                message: `Your request for "${req.food_donations.title}" was not selected. The donor chose another requester.`,
-                related_id: req.donation_id,
-              });
-          }
+          // Notification for rejected requesters is handled by DB trigger
 
           toast.info(`${otherPending.length} other pending request(s) auto-rejected`);
         }
@@ -848,16 +836,7 @@ export default function Dashboard() {
       const remainingExtensions = 2 - currentExtensionCount;
       toast.success(`Extension granted - Timer extended by 10 minutes (${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining)`);
       
-      // Create notification for receiver
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: request.requester_id,
-          type: 'extension_granted',
-          title: 'Extension Granted',
-          message: `The donor has granted your time extension request. You now have 10 more minutes. ${remainingExtensions > 0 ? `${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining.` : 'No more extensions available.'}`,
-          related_id: requestId,
-        });
+      // Notification for receiver is handled by DB trigger
       
       fetchRequests();
     } catch (error) {
@@ -886,16 +865,7 @@ export default function Dashboard() {
 
       toast.info('Extension request rejected');
       
-      // Create notification for receiver
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: request.requester_id,
-          type: 'extension_rejected',
-          title: 'Extension Request Rejected',
-          message: `The donor has declined your time extension request. ${3 - (currentExtensionCount + 1)} extension${3 - (currentExtensionCount + 1) !== 1 ? 's' : ''} remaining.`,
-          related_id: requestId,
-        });
+      // Notification for receiver is handled by DB trigger
       
       fetchRequests();
     } catch (error) {
@@ -914,17 +884,40 @@ export default function Dashboard() {
     });
   };
 
-  const handleSaveEdit = async () => {
+   const handleSaveEdit = async () => {
     if (!editingDonation) return;
+
+    // Validate edit form inputs
+    const trimmedTitle = editForm.title?.trim();
+    const trimmedDescription = editForm.description?.trim();
+    const trimmedQuantity = editForm.quantity?.trim();
+    const trimmedLocation = editForm.pickup_location?.trim();
+
+    if (!trimmedTitle || trimmedTitle.length > 200) {
+      toast.error('Title is required and must be under 200 characters');
+      return;
+    }
+    if (trimmedDescription && trimmedDescription.length > 2000) {
+      toast.error('Description must be under 2000 characters');
+      return;
+    }
+    if (!trimmedQuantity || trimmedQuantity.length > 50) {
+      toast.error('Quantity is required and must be under 50 characters');
+      return;
+    }
+    if (!trimmedLocation || trimmedLocation.length > 500) {
+      toast.error('Pickup location is required and must be under 500 characters');
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('food_donations')
         .update({
-          title: editForm.title,
-          description: editForm.description,
-          quantity: editForm.quantity,
-          pickup_location: editForm.pickup_location,
+          title: trimmedTitle,
+          description: trimmedDescription || null,
+          quantity: trimmedQuantity,
+          pickup_location: trimmedLocation,
         })
         .eq('id', editingDonation.id);
 
