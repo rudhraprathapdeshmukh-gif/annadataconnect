@@ -208,9 +208,9 @@ const Index = () => {
                 <p className="text-muted-foreground">{t('home.loadingDonations')}</p>
               </div>
             ) : activeDonations.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
                 {activeDonations.map(donation => (
-                  <Card key={donation.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 card-3d group">
+                  <Card key={donation.id} className="overflow-hidden hover-lift card-3d group shadow-soft">
                     {donation.image_url && (
                       <div className="w-full h-48 overflow-hidden">
                         <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
@@ -247,7 +247,7 @@ const Index = () => {
                         </div>
                       )}
                       <Link to="/dashboard" className="block pt-2">
-                        <Button variant="secondary" size="sm" className="w-full">
+                        <Button variant="secondary" size="sm" className="w-full btn-press">
                           {t('home.viewDetails')}
                         </Button>
                       </Link>
