@@ -119,11 +119,11 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 md:py-28 overflow-hidden mesh-gradient">
+      <section className="relative py-16 md:py-28 overflow-hidden mesh-gradient">
         {/* Animated Background Blobs */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" />
-        <div className="absolute top-0 right-0 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 blob" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-0 left-0 w-64 md:w-80 h-64 md:h-80 bg-primary/15 rounded-full mix-blend-multiply filter blur-3xl blob" />
+        <div className="absolute top-0 right-0 w-64 md:w-80 h-64 md:h-80 bg-accent/15 rounded-full mix-blend-multiply filter blur-3xl blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/2 w-64 md:w-80 h-64 md:h-80 bg-secondary/15 rounded-full mix-blend-multiply filter blur-3xl blob" style={{ animationDelay: '4s' }} />
         
         {/* Floating Food Icons */}
         <div className="floating-element">🍕</div>
@@ -136,42 +136,42 @@ const Index = () => {
             {user && userProfile ? (
               <>
                 <div className="flex justify-center">
-                  <Avatar className="h-24 w-24 mb-6 border-4 border-primary/20 shadow-xl">
+                  <Avatar className="h-20 w-20 md:h-24 md:w-24 mb-4 border-4 border-primary/20 shadow-elevated ring-4 ring-primary/10 transition-transform duration-500 hover:scale-105">
                     <AvatarImage src={userProfile.avatar_url || undefined} alt={`${capitalizeName(userProfile.first_name)} ${capitalizeName(userProfile.last_name)}`} className="object-cover" />
-                    <AvatarFallback className="text-2xl bg-primary/10">
+                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                       {capitalizeName(userProfile.first_name)?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-lg">
-                  {t('home.welcomeBack')} <span className="text-primary drop-shadow-xl">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+                  {t('home.welcomeBack')} <span className="text-gradient-animated">{capitalizeName(userProfile.first_name)} {capitalizeName(userProfile.last_name)}</span>! 👋
                 </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground">
+                <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto">
                   {t('home.readyToMakeDifference')}
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight drop-shadow-lg">
-                  {t('home.shareFoodShareLove')} <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent drop-shadow-2xl animate-pulse">{t('home.love')}</span>
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight leading-tight">
+                  {t('home.shareFoodShareLove')} <span className="text-gradient-animated">{t('home.love')}</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+                <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                   {t('home.heroDescription')}
                 </p>
               </>
             )}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-6 stagger-children">
               {user ? (
                 <>
                   <Link to="/dashboard">
-                    <Button size="lg" variant="default" className="shadow-lg hover-lift w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
+                    <Button size="lg" variant="default" className="shadow-soft hover-lift btn-press w-full sm:w-auto">
                       <Package className="mr-2 h-5 w-5" />
                       {userType === 'receiver' ? t('home.availableFood') : t('home.yourDonations')}
                     </Button>
                   </Link>
                   {userType !== 'receiver' && (
                     <Link to="/donate">
-                      <Button size="lg" variant="secondary" className="shadow-lg hover-lift w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
+                      <Button size="lg" variant="secondary" className="shadow-soft hover-lift btn-press w-full sm:w-auto">
                         {t('nav.donateFood')}
                       </Button>
                     </Link>
@@ -179,7 +179,7 @@ const Index = () => {
                 </>
               ) : (
                 <Link to="/auth?mode=signup">
-                  <Button size="lg" className="shadow-lg glow-effect text-lg px-8 w-full sm:w-auto transform hover:scale-105 transition-all duration-300">
+                  <Button size="lg" className="shadow-glow glow-effect text-lg px-8 w-full sm:w-auto btn-press">
                     {t('home.getStarted')}
                   </Button>
                 </Link>
@@ -208,9 +208,9 @@ const Index = () => {
                 <p className="text-muted-foreground">{t('home.loadingDonations')}</p>
               </div>
             ) : activeDonations.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
                 {activeDonations.map(donation => (
-                  <Card key={donation.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 card-3d group">
+                  <Card key={donation.id} className="overflow-hidden hover-lift card-3d group shadow-soft">
                     {donation.image_url && (
                       <div className="w-full h-48 overflow-hidden">
                         <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
@@ -247,7 +247,7 @@ const Index = () => {
                         </div>
                       )}
                       <Link to="/dashboard" className="block pt-2">
-                        <Button variant="secondary" size="sm" className="w-full">
+                        <Button variant="secondary" size="sm" className="w-full btn-press">
                           {t('home.viewDetails')}
                         </Button>
                       </Link>
@@ -274,45 +274,45 @@ const Index = () => {
       )}
 
       {/* Features Section */}
-      <section className="py-20 gradient-warm">
+      <section className="py-16 md:py-20 gradient-warm">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">{t('home.howItWorks')}</h2>
-            <p className="text-muted-foreground text-lg md:text-xl">{t('home.simpleEffective')}</p>
+          <div className="text-center mb-12 md:mb-16 page-enter">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">{t('home.howItWorks')}</h2>
+            <p className="text-muted-foreground text-base md:text-lg">{t('home.simpleEffective')}</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto stagger-children">
+            <Card className="text-center hover-lift border-0 shadow-soft card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full gradient-primary flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Heart className="h-8 w-8 text-white" />
+                <div className="mx-auto mb-5 h-14 w-14 md:h-16 md:w-16 rounded-2xl gradient-primary flex items-center justify-center shadow-elevated transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                  <Heart className="h-7 w-7 md:h-8 md:w-8 text-primary-foreground" />
                 </div>
-                <CardTitle className="text-2xl mb-3">{t('home.donateFood')}</CardTitle>
-                <CardDescription className="text-base">
+                <CardTitle className="text-xl md:text-2xl mb-2">{t('home.donateFood')}</CardTitle>
+                <CardDescription className="text-sm md:text-base leading-relaxed">
                   {t('home.donateFoodDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
+            <Card className="text-center hover-lift border-0 shadow-soft card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-8 w-8 text-secondary" />
+                <div className="mx-auto mb-5 h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-secondary/20 flex items-center justify-center shadow-elevated transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+                  <Users className="h-7 w-7 md:h-8 md:w-8 text-secondary" />
                 </div>
-                <CardTitle className="text-2xl mb-3">{t('home.connect')}</CardTitle>
-                <CardDescription className="text-base">
+                <CardTitle className="text-xl md:text-2xl mb-2">{t('home.connect')}</CardTitle>
+                <CardDescription className="text-sm md:text-base leading-relaxed">
                   {t('home.connectDesc')}
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="text-center hover-lift border-0 shadow-lg card-3d gradient-border overflow-hidden group">
+            <Card className="text-center hover-lift border-0 shadow-soft card-3d gradient-border overflow-hidden group">
               <CardHeader className="pb-6 pt-8">
-                <div className="mx-auto mb-6 h-16 w-16 rounded-full bg-accent/20 flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform duration-300">
-                  <Leaf className="h-8 w-8 text-accent" />
+                <div className="mx-auto mb-5 h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-accent/20 flex items-center justify-center shadow-elevated transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                  <Leaf className="h-7 w-7 md:h-8 md:w-8 text-accent" />
                 </div>
-                <CardTitle className="text-2xl mb-3">{t('home.makeImpact')}</CardTitle>
-                <CardDescription className="text-base">
+                <CardTitle className="text-xl md:text-2xl mb-2">{t('home.makeImpact')}</CardTitle>
+                <CardDescription className="text-sm md:text-base leading-relaxed">
                   {t('home.makeImpactDesc')}
                 </CardDescription>
               </CardHeader>
@@ -348,7 +348,7 @@ const Index = () => {
       )}
 
       {/* Footer */}
-      <footer className="bg-muted/30 border-t mt-20">
+      <footer className="bg-muted/30 border-t mt-12 md:mt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
             <Link to="/terms" className="hover:text-primary transition-colors">

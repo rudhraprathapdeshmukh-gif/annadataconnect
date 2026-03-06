@@ -135,7 +135,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="nav-glass sticky top-0 z-50 transition-all duration-300">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg sm:text-xl text-primary">
             <HeartHandshake className="h-5 w-5 sm:h-6 sm:w-6" />
