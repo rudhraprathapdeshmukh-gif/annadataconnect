@@ -175,7 +175,7 @@ export default function HelpChatbot() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg z-[999] hover:scale-110 transition-transform"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg z-40 hover:scale-110 transition-transform"
           size="icon"
         >
           <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
@@ -212,7 +212,7 @@ export default function HelpChatbot() {
           </DrawerContent>
         </Drawer>
       ) : isOpen ? (
-        <Card className="hidden md:flex fixed bottom-6 right-6 w-[380px] h-[480px] shadow-2xl z-[999] flex-col rounded-2xl border-border/50 overflow-hidden">
+        <Card className="hidden md:flex fixed bottom-6 right-6 w-[380px] h-[480px] shadow-2xl z-40 flex-col rounded-2xl border-border/50 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 border-b bg-card">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
