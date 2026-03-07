@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translateStatus, translateUnit } from '@/lib/translateDynamic';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,6 +65,7 @@ interface RequestCardProps {
 }
 
 export default function RequestCard({ request, expiryTime }: RequestCardProps) {
+  const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -184,11 +187,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           <div className="flex items-center gap-2">
             <XCircle className="h-6 w-6 text-amber-600" />
             <CardTitle className="text-amber-900 dark:text-amber-100">
-              Donation Cancelled
+              {t('dashboard.cancelled') + ' ' + t('donate.title')}
             </CardTitle>
           </div>
           <CardDescription className="text-amber-800 dark:text-amber-200">
-            We sincerely apologize for the inconvenience
+            {t('dashboard.requestCancelled')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -206,7 +209,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             className="w-full"
             onClick={() => navigate('/dashboard')}
           >
-            Browse Other Donations
+            {t('dashboard.availableDonations')}
           </Button>
         </CardFooter>
       </Card>
@@ -239,7 +242,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                     ? 'bg-green-500' 
                     : 'bg-red-500'
                 }`} />
-                {request.food_donations.diet_type === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
+                {request.food_donations.diet_type === 'veg' ? t('donate.dietTypes.veg') : t('donate.dietTypes.nonVeg')}
               </span>
             )}
             <Badge variant={
@@ -247,7 +250,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               request.status === 'rejected' ? 'destructive' :
               'secondary'
             }>
-              {request.status}
+              {translateStatus(t, request.status)}
             </Badge>
           </div>
         </div>
@@ -258,7 +261,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       <CardContent className="space-y-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
+          <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
         </div>
         {request.food_donations.rating && (
           <div className="flex items-center gap-2 text-sm">
@@ -270,11 +273,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
+          <span>{t('dynamic.requested', { date: new Date(request.created_at).toLocaleDateString() })}</span>
         </div>
         {request.status === 'approved' && request.food_donations.pickup_location && (
           <div className="mt-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
-            <p className="text-sm font-semibold text-primary">Pickup Details:</p>
+            <p className="text-sm font-semibold text-primary">{t('dashboard.pickupLocation')}:</p>
             <div className="flex items-start gap-2 text-sm">
               <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{request.food_donations.pickup_location}</span>
@@ -290,11 +293,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               className="inline-flex items-center gap-1.5 text-primary hover:underline text-xs mt-1"
             >
               <MapPin className="h-3 w-3" />
-              Open in Google Maps
+              {t('chat.openInGoogleMaps')}
             </a>
             {request.food_donations.donor_profile && (
               <div className="space-y-1 text-sm text-muted-foreground border-t border-border/50 pt-2 mt-2">
-                <p className="font-medium text-foreground">Donor Contact:</p>
+                <p className="font-medium text-foreground">{t('dynamic.requestDetails')}:</p>
                 <div className="flex items-center gap-2">
                   <User className="h-3.5 w-3.5" />
                   <span>{request.food_donations.donor_profile.first_name} {request.food_donations.donor_profile.last_name}</span>
@@ -321,7 +324,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                   to={`/profile/${request.food_donations.donor_id}`}
                   className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
                 >
-                  View Full Profile →
+                  {t('dynamic.viewFullProfile')}
                 </Link>
               </div>
             )}
@@ -331,14 +334,14 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
           <div className="mt-3 p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30 space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-primary">
               <KeyRound className="h-4 w-4" />
-              <span>Your Pickup OTP</span>
+              <span>{t('dashboard.yourOTP')}</span>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold tracking-widest text-foreground font-mono bg-background/50 rounded px-4 py-3 border border-border/50">
                 {otp}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Show this code to the donor during pickup
+                {t('dynamic.enterOTPFromReceiver')}
               </p>
             </div>
           </div>
@@ -359,18 +362,18 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                 onClick={() => setShowExtensionDialog(true)}
               >
                 <Clock className="h-4 w-4 mr-2" />
-                Request Extension (+10 min) • {3 - (request.extension_count || 0)} left
+                Request Extension (+10 min) • {3 - (request.extension_count || 0)} {t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })}
               </Button>
             )}
             {request.extension_requested_at && !request.extension_granted && (
               <p className="text-sm text-muted-foreground text-center">
-                Extension requested - waiting for donor approval ({3 - (request.extension_count || 0)} remaining)
+                Extension requested - {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
               </p>
             )}
             {request.extension_granted && (
               <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
                 <p className="text-sm text-green-600 dark:text-green-400">
-                  ✓ Extension granted - Timer extended by 10 minutes
+                  {t('dynamic.extensionGrantedMsg')}
                 </p>
                 <Button
                   variant="ghost"
@@ -383,7 +386,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                   }}
                   className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                 >
-                  Got it
+                  {t('dynamic.gotIt')}
                 </Button>
               </div>
             )}
@@ -400,28 +403,28 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               : 'Donor'}
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
-            buttonText="Chat"
+            buttonText={t('dynamic.chat')}
           />
         </CardFooter>
       )}
       {request.status === 'completed' && (
         <CardFooter>
           <div className="w-full space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+            <p className="text-sm font-semibold text-foreground">{t('dynamic.mutualRatings')}</p>
             <div className="space-y-2">
               {/* Rating you gave (receiver rating donor) */}
               {request.receiver_rating ? (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
                   <span className="text-sm">
-                    You rated donor: {request.receiver_rating}/5
+                    {t('dynamic.youRatedThem', { rating: request.receiver_rating })}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    You haven't rated the donor yet
+                    {t('dynamic.youHaventRated')}
                   </span>
                 </div>
               )}

@@ -31,6 +31,7 @@ import { useCountdown } from '@/hooks/useCountdown';
 import { calculateDynamicTimer, calculateExpiryTime } from '@/lib/timerCalculations';
 import { shouldBlockUser } from '@/lib/reliabilityScore';
 import { reverseGeocode } from '@/lib/geoUtils';
+import { translateStatus, translateFoodType, translateUnit, translateDietType } from '@/lib/translateDynamic';
 
 
 interface PublicDonation {
@@ -961,7 +962,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/.15)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.15)_1px,transparent_1px)] bg-[size:24px_24px] opacity-20" />
         </div>
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Loading...</p>
+          <p className="text-center text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -997,15 +998,15 @@ export default function Dashboard() {
                     const lastName = userProfile?.last_name || '';
                     const fullName = `${firstName} ${lastName}`.trim();
                     const displayName = fullName || 'User';
-                    return `Welcome, ${displayName}! 👋`;
+                    return t('dynamic.welcome', { name: displayName });
                   })()}
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground break-words">
                   {userProfile?.user_type === 'donor' 
-                    ? 'Manage incoming food requests from your community' 
+                    ? t('dashboard.donorSubtitle')
                     : userProfile?.user_type === 'receiver'
-                    ? 'Browse and request food from generous donors in your community'
-                    : 'Manage donations and browse available food in your community'}
+                    ? t('dashboard.receiverSubtitle')
+                    : t('dashboard.bothSubtitle')}
                 </p>
               </div>
             </div>
@@ -1019,7 +1020,7 @@ export default function Dashboard() {
               <Button variant="outline" className="w-full flex items-center justify-between gap-2 py-3">
                 <span className="flex items-center gap-2 text-sm font-medium">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  Impact Tracker
+                  {t('dynamic.impactTracker')}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
               </Button>
@@ -1031,8 +1032,8 @@ export default function Dashboard() {
 
           <Tabs defaultValue="active-donations" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="active-donations">Active Donations</TabsTrigger>
-              <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
+              <TabsTrigger value="active-donations">{t('dynamic.activeDonations')}</TabsTrigger>
+              <TabsTrigger value="requests">{t('dynamic.requestsCount', { count: requests.length })}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active-donations" className="space-y-4">
@@ -1040,8 +1041,8 @@ export default function Dashboard() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-4">No active donations yet</p>
-                    <Button onClick={() => navigate('/donate')} className="transition-all hover:scale-105 active:scale-95">Create Your First Donation</Button>
+                    <p className="text-muted-foreground mb-4">{t('dynamic.noActiveDonationsYet')}</p>
+                    <Button onClick={() => navigate('/donate')} className="transition-all hover:scale-105 active:scale-95">{t('dynamic.createYourFirstDonation')}</Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -1069,7 +1070,7 @@ export default function Dashboard() {
                               ? 'bg-green-500/90 text-white' 
                               : 'bg-red-500/90 text-white'
                           }`}>
-                            {donation.diet_type === 'veg' ? '● Veg' : '● Non-Veg'}
+                            {donation.diet_type === 'veg' ? `● ${t('dashboard.veg')}` : `● ${t('dashboard.nonVeg')}`}
                           </span>
                         )}
                       </div>
@@ -1077,7 +1078,7 @@ export default function Dashboard() {
                         <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
                           <Badge variant={donation.status === 'available' ? 'default' : 'secondary'}>
-                            {donation.status}
+                            {translateStatus(t, donation.status)}
                           </Badge>
                         </div>
                         <CardDescription className="line-clamp-2">
@@ -1087,7 +1088,7 @@ export default function Dashboard() {
                       <CardContent className="space-y-3">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Package className="h-4 w-4" />
-                          <span>{donation.quantity} {donation.quantity_unit}</span>
+                          <span>{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 shrink-0" />
@@ -1096,7 +1097,7 @@ export default function Dashboard() {
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4" />
-                            <span>Expires: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                            <span>{t('dynamic.expiresAt', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) })}</span>
                           </div>
                         )}
                         {donation.rating && (
@@ -1114,7 +1115,7 @@ export default function Dashboard() {
                           onClick={() => setDeletingDonationId(donation.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                           {t('common.delete')}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -1128,7 +1129,7 @@ export default function Dashboard() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No requests received yet</p>
+                    <p className="text-muted-foreground">{t('dynamic.noRequestsReceivedYet')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -1173,8 +1174,8 @@ export default function Dashboard() {
         {(userProfile?.user_type === 'receiver' || userProfile?.user_type === 'both') && (
           <Tabs defaultValue="list" className={userProfile?.user_type === 'both' ? 'space-y-6 mt-8' : 'space-y-6'}>
             <TabsList>
-              <TabsTrigger value="list">Available Food</TabsTrigger>
-              <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+              <TabsTrigger value="list">{t('dashboard.availableDonations')}</TabsTrigger>
+              <TabsTrigger value="my-requests">{t('dashboard.myRequests')}</TabsTrigger>
               
             </TabsList>
 
@@ -1183,7 +1184,7 @@ export default function Dashboard() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">You haven't made any requests yet</p>
+                    <p className="text-muted-foreground">{t('dynamic.youHaventMadeRequests')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -1211,8 +1212,8 @@ export default function Dashboard() {
               {/* Location Status Banners */}
               {locationStatus === 'loading' && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Detecting your location...</span>
+                   <Loader2 className="h-4 w-4 animate-spin" />
+                   <span>{t('dynamic.detectingLocation')}</span>
                 </div>
               )}
               {locationStatus === 'denied' && (
@@ -1221,19 +1222,19 @@ export default function Dashboard() {
                     <MapPinOff className="h-4 w-4 shrink-0" />
                     <span>
                       {receiverDistrict 
-                        ? `Location denied. Showing donations in ${receiverDistrict}.`
-                        : 'Location access denied. Showing all donations. Enable location for nearby results.'}
+                        ? t('dynamic.locationDeniedWithDistrict', { district: receiverDistrict })
+                        : t('dynamic.locationDeniedGeneral')}
                     </span>
                   </div>
                   <Button variant="outline" size="sm" onClick={requestLocation} className="shrink-0">
-                    Retry
+                    {t('dynamic.retry')}
                   </Button>
                 </div>
               )}
               {locationStatus === 'unavailable' && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                   <MapPinOff className="h-4 w-4" />
-                  <span>Location services not available. Showing all donations.</span>
+                  <span>{t('dynamic.locationUnavailable')}</span>
                 </div>
               )}
 
@@ -1243,15 +1244,15 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-sm text-primary min-w-0">
                       <Navigation className="h-4 w-4 shrink-0" />
-                      <span className="shrink-0">Showing nearby</span>
+                       <span className="shrink-0">{t('dynamic.showingNearby')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm" onClick={() => setShowMap(!showMap)} className="shrink-0 text-xs gap-1">
                         <Map className="h-3.5 w-3.5" />
-                        {showMap ? 'Hide Map' : 'Show Map'}
+                        {showMap ? t('dynamic.hideMap') : t('dynamic.showMap')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(true)} className="shrink-0 text-xs">
-                        {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show All'}
+                        {receiverDistrict ? t('dynamic.showAllInDistrict', { district: receiverDistrict }) : t('dynamic.showAll')}
                       </Button>
                     </div>
                   </div>
@@ -1277,10 +1278,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    <span>{receiverDistrict ? `Showing donations in ${receiverDistrict}` : 'Showing all donations'}</span>
+                    <span>{receiverDistrict ? t('dynamic.showingDonationsInDistrict', { district: receiverDistrict }) : t('dynamic.showingAllDonations')}</span>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setShowAllDonations(false)} className="shrink-0 text-xs">
-                    Show Nearby Only
+                    {t('dynamic.showNearbyOnly')}
                   </Button>
                 </div>
               )}
@@ -1306,7 +1307,7 @@ export default function Dashboard() {
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
-                    All
+                     {t('dashboard.all')}
                   </button>
                   <button
                     onClick={() => setDietFilter('veg')}
@@ -1317,7 +1318,7 @@ export default function Dashboard() {
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    Veg
+                     {t('dashboard.veg')}
                   </button>
                   <button
                     onClick={() => setDietFilter('non-veg')}
@@ -1328,7 +1329,7 @@ export default function Dashboard() {
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    Non-Veg
+                     {t('dashboard.nonVeg')}
                   </button>
                 </div>
               </div>
@@ -1345,12 +1346,12 @@ export default function Dashboard() {
                       <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p className="text-muted-foreground">
                         {receiverLocation && !showAllDonations
-                          ? `No donations found within ${searchRadius} km`
+                          ? t('dynamic.noDonationsInRadius', { radius: searchRadius })
                           : showAllDonations && receiverDistrict
-                            ? `No donations found in ${receiverDistrict}`
+                            ? t('dynamic.noDonationsInDistrict', { district: receiverDistrict })
                             : dietFilter === 'all' 
-                              ? 'No donations available at the moment'
-                              : `No ${dietFilter === 'veg' ? 'vegetarian' : 'non-vegetarian'} donations available`}
+                              ? t('dashboard.noDonationsAvailable')
+                              : dietFilter === 'veg' ? t('dashboard.noVegDonations') : t('dashboard.noNonVegDonations')}
                       </p>
                       {receiverLocation && !showAllDonations && (
                         <Button 
@@ -1358,7 +1359,7 @@ export default function Dashboard() {
                           className="mt-2"
                           onClick={() => setShowAllDonations(true)}
                         >
-                          {receiverDistrict ? `Show all in ${receiverDistrict}` : 'Show all donations'}
+                          {receiverDistrict ? t('dynamic.showAllInDistrict', { district: receiverDistrict }) : t('dynamic.showAllDonations')}
                         </Button>
                       )}
                       {dietFilter !== 'all' && (
@@ -1367,7 +1368,7 @@ export default function Dashboard() {
                           className="mt-2"
                           onClick={() => setDietFilter('all')}
                         >
-                          View all donations
+                          {t('dynamic.viewAllDonations')}
                         </Button>
                       )}
                     </CardContent>
@@ -1398,7 +1399,7 @@ export default function Dashboard() {
                               : 'bg-red-500/90 text-white'
                           }`}>
                             <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            {donation.diet_type === 'veg' ? 'Veg' : 'Non-Veg'}
+                            {donation.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
                           </span>
                         )}
                         
@@ -1414,13 +1415,13 @@ export default function Dashboard() {
                             </PopoverTrigger>
                             <PopoverContent side="bottom" align="end" className="w-48 p-3">
                               <div className="space-y-2">
-                                <p className="text-xs font-semibold">Food Freshness Rating</p>
+                                <p className="text-xs font-semibold">{t('dynamic.freshness.title')}</p>
                                 <div className="space-y-1 text-xs text-muted-foreground">
-                                  <div className="flex justify-between"><span>★★★★★</span><span>Just-Made</span></div>
-                                  <div className="flex justify-between"><span>★★★★☆</span><span>Fresh</span></div>
-                                  <div className="flex justify-between"><span>★★★☆☆</span><span>Okay</span></div>
-                                  <div className="flex justify-between"><span>★★☆☆☆</span><span>Poor</span></div>
-                                  <div className="flex justify-between"><span>★☆☆☆☆</span><span>Aged</span></div>
+                                  <div className="flex justify-between"><span>★★★★★</span><span>{t('dynamic.freshness.5')}</span></div>
+                                  <div className="flex justify-between"><span>★★★★☆</span><span>{t('dynamic.freshness.4')}</span></div>
+                                  <div className="flex justify-between"><span>★★★☆☆</span><span>{t('dynamic.freshness.3')}</span></div>
+                                  <div className="flex justify-between"><span>★★☆☆☆</span><span>{t('dynamic.freshness.2')}</span></div>
+                                  <div className="flex justify-between"><span>★☆☆☆☆</span><span>{t('dynamic.freshness.1')}</span></div>
                                 </div>
                               </div>
                             </PopoverContent>
@@ -1444,10 +1445,10 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
                           <div className="flex items-center gap-1.5">
                             <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="font-medium">{donation.quantity} {donation.quantity_unit}</span>
+                            <span className="font-medium">{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
                           </div>
                           <span className="text-muted-foreground">•</span>
-                          <Badge variant="secondary" className="text-xs">{donation.food_type}</Badge>
+                          <Badge variant="secondary" className="text-xs">{translateFoodType(t, donation.food_type)}</Badge>
                         </div>
                         
                         {/* Location */}
@@ -1460,7 +1461,7 @@ export default function Dashboard() {
                         {donation.distance_km != null && (
                           <div className="flex items-center gap-2 text-sm text-primary font-medium">
                             <Navigation className="h-4 w-4 shrink-0" />
-                            <span>{donation.distance_km < 1 ? `${Math.round(donation.distance_km * 1000)} m away` : `${donation.distance_km.toFixed(1)} km away`}</span>
+                            <span>{donation.distance_km < 1 ? t('dynamic.mAway', { distance: Math.round(donation.distance_km * 1000) }) : t('dynamic.kmAway', { distance: donation.distance_km.toFixed(1) })}</span>
                           </div>
                         )}
                         
@@ -1468,11 +1469,11 @@ export default function Dashboard() {
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
-                            <span>Approx. Expiry: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], {
+                             <span>{t('dynamic.approxExpiry', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], {
                               hour: 'numeric',
                               minute: '2-digit',
                               hour12: true
-                            })}</span>
+                            }) })}</span>
                           </div>
                         )}
                       </CardContent>
@@ -1483,7 +1484,7 @@ export default function Dashboard() {
                           className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all" 
                           onClick={() => requestFood(donation.id)}
                         >
-                          Request Food
+                          {t('dynamic.requestFood')}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -1501,33 +1502,33 @@ export default function Dashboard() {
       <Dialog open={!!editingDonation} onOpenChange={(open) => !open && setEditingDonation(null)}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Donation</DialogTitle>
+             <DialogTitle>{t('dynamic.editDonation')}</DialogTitle>
             <DialogDescription>
-              Make changes to your donation details below.
+              {t('dynamic.makeChanges')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
+               <Label htmlFor="edit-title">{t('dashboard.title')}</Label>
               <Input
                 id="edit-title"
                 value={editForm.title}
                 onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                placeholder="Food item name"
+                placeholder={t('dynamic.foodItemName')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
+               <Label htmlFor="edit-description">{t('dashboard.description')}</Label>
               <Textarea
                 id="edit-description"
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                placeholder="Describe the food"
+                placeholder={t('dynamic.describeFood')}
                 rows={3}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-quantity">Quantity</Label>
+              <Label htmlFor="edit-quantity">{t('dashboard.quantity')}</Label>
               <Input
                 id="edit-quantity"
                 value={editForm.quantity}
@@ -1536,21 +1537,21 @@ export default function Dashboard() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-location">Pickup Location</Label>
+               <Label htmlFor="edit-location">{t('dashboard.pickupLocation')}</Label>
               <Input
                 id="edit-location"
                 value={editForm.pickup_location}
                 onChange={(e) => setEditForm({ ...editForm, pickup_location: e.target.value })}
-                placeholder="Where to pick up"
+                placeholder={t('dynamic.whereToPickUp')}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingDonation(null)} className="transition-all hover:scale-105 active:scale-95">
-              Cancel
+             <Button variant="outline" onClick={() => setEditingDonation(null)} className="transition-all hover:scale-105 active:scale-95">
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSaveEdit} className="transition-all hover:scale-105 active:scale-95">
-              Save Changes
+              {t('dashboard.saveChanges')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1560,15 +1561,15 @@ export default function Dashboard() {
       <AlertDialog open={!!deletingDonationId} onOpenChange={(open) => !open && setDeletingDonationId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+             <AlertDialogTitle>{t('dynamic.areYouSure')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide your donation from the active list. You can still view it in your history.
+              {t('dynamic.deleteConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteDonation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1579,7 +1580,7 @@ export default function Dashboard() {
         open={!!pendingRating} 
         onOpenChange={(open) => {
           if (!open && globalRating === 0) {
-            toast.error('Please rate before closing - this is required to complete the transaction');
+            toast.error(t('dynamic.pleaseRateBeforeClosing'));
             return;
           }
         }}
@@ -1587,17 +1588,17 @@ export default function Dashboard() {
         <DialogContent
           onInteractOutside={(e) => {
             e.preventDefault();
-            toast.error('Please complete your rating to continue');
+            toast.error(t('dynamic.pleaseCompleteRating'));
           }}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
-            toast.error('Please complete your rating to continue');
+             toast.error(t('dynamic.pleaseCompleteRating'));
           }}
         >
           <DialogHeader>
-            <DialogTitle>Rate {pendingRating?.type === 'donor' ? 'the Receiver' : 'the Donor'}</DialogTitle>
+             <DialogTitle>{pendingRating?.type === 'donor' ? t('dynamic.rateReceiver') : t('dynamic.rateDonor')}</DialogTitle>
             <DialogDescription>
-              You need to rate {pendingRating?.otherUserName} for "{pendingRating?.donationTitle}" to complete this transaction.
+              {t('dynamic.rateDescription', { name: pendingRating?.otherUserName, donation: pendingRating?.donationTitle })}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
@@ -1626,10 +1627,10 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="globalReview">Review (Optional)</Label>
+               <Label htmlFor="globalReview">{t('dynamic.reviewOptional')}</Label>
               <Textarea
                 id="globalReview"
-                placeholder={`Share your experience with ${pendingRating?.otherUserName}...`}
+                placeholder={t('dynamic.shareExperience', { name: pendingRating?.otherUserName })}
                 value={globalReview}
                 onChange={(e) => setGlobalReview(e.target.value)}
                 className="min-h-[100px] resize-none"
@@ -1646,7 +1647,7 @@ export default function Dashboard() {
               disabled={globalRating === 0} 
               className="transition-all hover:scale-105 active:scale-95"
             >
-              Submit Rating
+              {t('dynamic.submitRating')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1668,6 +1669,7 @@ interface DonorRequestCardProps {
 }
 
 function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
+  const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
@@ -1738,7 +1740,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         throw rpcError;
       }
 
-      toast.success('Pickup confirmed! Thank you for donating.');
+      toast.success(t('dynamic.pickupConfirmed'));
       setShowOtpDialog(false);
       
       // Send completion emails (non-blocking)
@@ -1786,7 +1788,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             request.status === 'rejected' ? 'destructive' :
             'secondary'
           }>
-            {request.status}
+            {translateStatus(t, request.status)}
           </Badge>
         </div>
         <CardDescription className="line-clamp-2">
@@ -1796,7 +1798,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
       <CardContent className="space-y-2">
         {request.profiles && (
           <div className="mb-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20 animate-fade-in">
-            <p className="text-sm font-semibold text-primary">Request Details:</p>
+            <p className="text-sm font-semibold text-primary">{t('dynamic.requestDetails')}:</p>
             <div className="space-y-1 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-3.5 w-3.5" />
@@ -1824,7 +1826,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
                 href={`/profile/${request.requester_id}`}
                 className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
               >
-                View Full Profile →
+                {t('dynamic.viewFullProfile')}
               </a>
             </div>
           </div>
@@ -1832,7 +1834,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         <p className="text-sm text-muted-foreground italic">{request.message}</p>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
+          <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
         </div>
         {request.food_donations.rating && (
           <div className="flex items-center gap-1 text-sm">
@@ -1842,7 +1844,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
+          <span>{t('dynamic.requested', { date: new Date(request.created_at).toLocaleDateString() })}</span>
         </div>
         {request.status === 'approved' && expiryTime && (
           <div className={`flex items-center gap-2 text-sm font-semibold ${
@@ -1850,10 +1852,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           }`}>
             <Clock className="h-4 w-4" />
             {countdown.expired ? (
-              <span>Time Expired - Request auto-rejected</span>
+              <span>{t('dynamic.timeExpired')}</span>
             ) : (
-              <span>
-                Time remaining: {countdown.days > 0 && `${countdown.days}d `}
+              <span>{t('dynamic.timeRemaining')} {countdown.days > 0 && `${countdown.days}d `}
                 {(countdown.days > 0 || countdown.hours > 0) && `${countdown.hours}h `}
                 {countdown.minutes}m {countdown.seconds.toString().padStart(2, '0')}s
               </span>
@@ -1864,28 +1865,28 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <Clock className="h-4 w-4" />
-              <span className="font-semibold">Extension Requested (+10 minutes)</span>
+              <span className="font-semibold">{t('dynamic.extensionRequestedPlus10')}</span>
             </div>
             <p className="text-sm text-muted-foreground">
               {extensionReason ? (
                 <span className="block"><span className="font-medium text-foreground">Reason:</span> {extensionReason}</span>
               ) : (
-                'The receiver needs more time to reach the pickup location'
+                t('dynamic.receiverNeedsMoreTime')
               )}
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="block mt-1 font-medium">
-                  {3 - (request.extension_count || 0)} extension{3 - (request.extension_count || 0) !== 1 ? 's' : ''} remaining
+                  {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
                 </span>
               )}
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="default" onClick={onGrantExtension}>
                 <Check className="h-4 w-4 mr-1" />
-                Grant Extension
+                {t('dynamic.grantExtension')}
               </Button>
               <Button size="sm" variant="outline" onClick={onRejectExtension}>
                 <X className="h-4 w-4 mr-1" />
-                Reject
+                {t('dashboard.reject')}
               </Button>
             </div>
           </div>
@@ -1893,10 +1894,10 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         {request.extension_granted && (
           <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
             <p className="text-sm text-green-600 dark:text-green-400">
-              ✓ Extension granted - Timer extended by 10 minutes
+              {t('dynamic.extensionGrantedMsg')}
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="ml-2 text-muted-foreground">
-                  ({3 - (request.extension_count || 0)} remaining)
+                  ({t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })})
                 </span>
               )}
             </p>
@@ -1911,27 +1912,27 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               }}
               className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
             >
-              Got it
+              {t('dynamic.gotIt')}
             </Button>
           </div>
         )}
         {request.status === 'completed' && (
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+            <p className="text-sm font-semibold text-foreground">{t('dynamic.mutualRatings')}</p>
             <div className="space-y-2">
               {/* Rating you gave (donor rating receiver) */}
               {request.receiver_rating ? (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
                   <span className="text-sm">
-                    You rated them: {request.receiver_rating}/5
+                    {t('dynamic.youRatedThem', { rating: request.receiver_rating })}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    You haven't rated them yet
+                    {t('dynamic.youHaventRated')}
                   </span>
                 </div>
               )}
@@ -1949,7 +1950,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
             <Check className="h-4 w-4 mr-2" />
-            {isAcceptDisabled ? 'Already Accepted' : 'Accept'}
+            {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
           <Button 
             variant="destructive" 
@@ -1957,7 +1958,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             onClick={onReject}
           >
             <X className="h-4 w-4 mr-2" />
-            Reject
+             {t('dashboard.reject')}
           </Button>
         </CardFooter>
       ) : request.status === 'approved' && !countdown.expired ? (
@@ -1970,7 +1971,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               donationTitle={request.food_donations.title}
               buttonVariant="outline"
               buttonSize="default"
-              buttonText="Chat"
+              buttonText={t('dynamic.chat')}
             />
             <Button 
               variant="default" 
@@ -1978,11 +1979,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               onClick={() => setShowOtpDialog(true)}
             >
               <KeyRound className="h-4 w-4 mr-2" />
-              Verify Pickup OTP
+               {t('dynamic.verifyPickupOTP')}
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground">
-            Enter the OTP provided by the receiver to confirm pickup
+            {t('dynamic.enterOTPFromReceiver')}
           </p>
         </CardFooter>
       ) : request.status === 'completed' ? (
@@ -1994,7 +1995,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
             buttonSize="default"
-            buttonText="View Chat History"
+            buttonText={t('dynamic.viewChatHistory')}
           />
         </CardFooter>
       ) : null}
@@ -2003,9 +2004,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
     <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Verify Pickup OTP</DialogTitle>
+           <DialogTitle>{t('dynamic.verifyOTPTitle')}</DialogTitle>
           <DialogDescription>
-            Ask the receiver to show their OTP and enter it below to confirm the pickup
+            {t('dynamic.verifyOTPDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center py-6">
@@ -2026,14 +2027,14 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowOtpDialog(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleVerifyOtp} 
             disabled={isVerifying || otpValue.length !== 6}
             className="transition-all hover:scale-105 active:scale-95"
           >
-            {isVerifying ? 'Verifying...' : 'Verify & Confirm Pickup'}
+            {isVerifying ? t('dynamic.verifying') : t('dynamic.verifyConfirmPickup')}
           </Button>
         </DialogFooter>
       </DialogContent>
