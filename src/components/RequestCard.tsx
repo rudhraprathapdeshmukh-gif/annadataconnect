@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translateStatus, translateUnit } from '@/lib/translateDynamic';
 import { getFreshnessLabel } from '@/lib/freshnessLabels';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,6 +65,7 @@ interface RequestCardProps {
 }
 
 export default function RequestCard({ request, expiryTime }: RequestCardProps) {
+  const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const { user } = useAuth();
   const navigate = useNavigate();
