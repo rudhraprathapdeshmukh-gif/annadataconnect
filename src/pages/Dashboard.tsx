@@ -1740,7 +1740,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         throw rpcError;
       }
 
-      toast.success('Pickup confirmed! Thank you for donating.');
+      toast.success(t('dynamic.pickupConfirmed'));
       setShowOtpDialog(false);
       
       // Send completion emails (non-blocking)
@@ -1788,7 +1788,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             request.status === 'rejected' ? 'destructive' :
             'secondary'
           }>
-            {request.status}
+            {translateStatus(t, request.status)}
           </Badge>
         </div>
         <CardDescription className="line-clamp-2">
@@ -1798,7 +1798,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
       <CardContent className="space-y-2">
         {request.profiles && (
           <div className="mb-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20 animate-fade-in">
-            <p className="text-sm font-semibold text-primary">Request Details:</p>
+            <p className="text-sm font-semibold text-primary">{t('dynamic.requestDetails')}:</p>
             <div className="space-y-1 text-sm">
               <div className="flex items-center gap-2">
                 <User className="h-3.5 w-3.5" />
@@ -1826,7 +1826,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
                 href={`/profile/${request.requester_id}`}
                 className="inline-flex items-center gap-1 text-primary hover:underline text-xs mt-1"
               >
-                View Full Profile →
+                {t('dynamic.viewFullProfile')}
               </a>
             </div>
           </div>
@@ -1834,7 +1834,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         <p className="text-sm text-muted-foreground italic">{request.message}</p>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Package className="h-4 w-4" />
-          <span>{request.food_donations.quantity} {request.food_donations.quantity_unit}</span>
+          <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
         </div>
         {request.food_donations.rating && (
           <div className="flex items-center gap-1 text-sm">
@@ -1844,7 +1844,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>Requested: {new Date(request.created_at).toLocaleDateString()}</span>
+          <span>{t('dynamic.requested', { date: new Date(request.created_at).toLocaleDateString() })}</span>
         </div>
         {request.status === 'approved' && expiryTime && (
           <div className={`flex items-center gap-2 text-sm font-semibold ${
@@ -1852,10 +1852,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           }`}>
             <Clock className="h-4 w-4" />
             {countdown.expired ? (
-              <span>Time Expired - Request auto-rejected</span>
+              <span>{t('dynamic.timeExpired')}</span>
             ) : (
-              <span>
-                Time remaining: {countdown.days > 0 && `${countdown.days}d `}
+              <span>{t('dynamic.timeRemaining')} {countdown.days > 0 && `${countdown.days}d `}
                 {(countdown.days > 0 || countdown.hours > 0) && `${countdown.hours}h `}
                 {countdown.minutes}m {countdown.seconds.toString().padStart(2, '0')}s
               </span>
@@ -1866,28 +1865,28 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <Clock className="h-4 w-4" />
-              <span className="font-semibold">Extension Requested (+10 minutes)</span>
+              <span className="font-semibold">{t('dynamic.extensionRequestedPlus10')}</span>
             </div>
             <p className="text-sm text-muted-foreground">
               {extensionReason ? (
                 <span className="block"><span className="font-medium text-foreground">Reason:</span> {extensionReason}</span>
               ) : (
-                'The receiver needs more time to reach the pickup location'
+                t('dynamic.receiverNeedsMoreTime')
               )}
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="block mt-1 font-medium">
-                  {3 - (request.extension_count || 0)} extension{3 - (request.extension_count || 0) !== 1 ? 's' : ''} remaining
+                  {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
                 </span>
               )}
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="default" onClick={onGrantExtension}>
                 <Check className="h-4 w-4 mr-1" />
-                Grant Extension
+                {t('dynamic.grantExtension')}
               </Button>
               <Button size="sm" variant="outline" onClick={onRejectExtension}>
                 <X className="h-4 w-4 mr-1" />
-                Reject
+                {t('dashboard.reject')}
               </Button>
             </div>
           </div>
@@ -1895,10 +1894,10 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         {request.extension_granted && (
           <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
             <p className="text-sm text-green-600 dark:text-green-400">
-              ✓ Extension granted - Timer extended by 10 minutes
+              {t('dynamic.extensionGrantedMsg')}
               {request.extension_count !== undefined && request.extension_count < 3 && (
                 <span className="ml-2 text-muted-foreground">
-                  ({3 - (request.extension_count || 0)} remaining)
+                  ({t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })})
                 </span>
               )}
             </p>
@@ -1913,27 +1912,27 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               }}
               className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
             >
-              Got it
+              {t('dynamic.gotIt')}
             </Button>
           </div>
         )}
         {request.status === 'completed' && (
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm font-semibold text-foreground">Mutual Ratings</p>
+            <p className="text-sm font-semibold text-foreground">{t('dynamic.mutualRatings')}</p>
             <div className="space-y-2">
               {/* Rating you gave (donor rating receiver) */}
               {request.receiver_rating ? (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
                   <span className="text-sm">
-                    You rated them: {request.receiver_rating}/5
+                    {t('dynamic.youRatedThem', { rating: request.receiver_rating })}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    You haven't rated them yet
+                    {t('dynamic.youHaventRated')}
                   </span>
                 </div>
               )}
@@ -1951,7 +1950,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
             <Check className="h-4 w-4 mr-2" />
-            {isAcceptDisabled ? 'Already Accepted' : 'Accept'}
+            {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
           <Button 
             variant="destructive" 
@@ -1959,7 +1958,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             onClick={onReject}
           >
             <X className="h-4 w-4 mr-2" />
-            Reject
+             {t('dashboard.reject')}
           </Button>
         </CardFooter>
       ) : request.status === 'approved' && !countdown.expired ? (
@@ -1972,7 +1971,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               donationTitle={request.food_donations.title}
               buttonVariant="outline"
               buttonSize="default"
-              buttonText="Chat"
+              buttonText={t('dynamic.chat')}
             />
             <Button 
               variant="default" 
@@ -1980,11 +1979,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               onClick={() => setShowOtpDialog(true)}
             >
               <KeyRound className="h-4 w-4 mr-2" />
-              Verify Pickup OTP
+               {t('dynamic.verifyPickupOTP')}
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground">
-            Enter the OTP provided by the receiver to confirm pickup
+            {t('dynamic.enterOTPFromReceiver')}
           </p>
         </CardFooter>
       ) : request.status === 'completed' ? (
@@ -1996,7 +1995,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             donationTitle={request.food_donations.title}
             buttonVariant="outline"
             buttonSize="default"
-            buttonText="View Chat History"
+            buttonText={t('dynamic.viewChatHistory')}
           />
         </CardFooter>
       ) : null}
@@ -2005,9 +2004,9 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
     <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Verify Pickup OTP</DialogTitle>
+           <DialogTitle>{t('dynamic.verifyOTPTitle')}</DialogTitle>
           <DialogDescription>
-            Ask the receiver to show their OTP and enter it below to confirm the pickup
+            {t('dynamic.verifyOTPDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center py-6">
@@ -2028,14 +2027,14 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowOtpDialog(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleVerifyOtp} 
             disabled={isVerifying || otpValue.length !== 6}
             className="transition-all hover:scale-105 active:scale-95"
           >
-            {isVerifying ? 'Verifying...' : 'Verify & Confirm Pickup'}
+            {isVerifying ? t('dynamic.verifying') : t('dynamic.verifyConfirmPickup')}
           </Button>
         </DialogFooter>
       </DialogContent>
