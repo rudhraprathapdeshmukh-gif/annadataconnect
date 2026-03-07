@@ -1588,7 +1588,7 @@ export default function Dashboard() {
         <DialogContent
           onInteractOutside={(e) => {
             e.preventDefault();
-            toast.error('Please complete your rating to continue');
+            toast.error(t('dynamic.pleaseCompleteRating'));
           }}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
