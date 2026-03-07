@@ -1669,6 +1669,7 @@ interface DonorRequestCardProps {
 }
 
 function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
+  const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [otpValue, setOtpValue] = useState('');
