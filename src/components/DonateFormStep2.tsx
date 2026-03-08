@@ -2,12 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Clock, ShieldCheck, MapPin, Loader2, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
-import { format, addDays, addMonths, addYears } from 'date-fns';
+import { ShieldCheck, MapPin, Loader2, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SharedData {
@@ -20,15 +16,6 @@ interface SharedData {
 interface DonateFormStep2Props {
   sharedData: SharedData;
   setSharedData: React.Dispatch<React.SetStateAction<SharedData>>;
-  itemFoodTypes: string[];
-  expiryDate: Date | undefined;
-  setExpiryDate: (date: Date | undefined) => void;
-  hour12: string;
-  setHour12: (hour: string) => void;
-  minute: string;
-  setMinute: (minute: string) => void;
-  ampm: string;
-  setAmpm: (ampm: string) => void;
   safetyConfirmed: boolean;
   setSafetyConfirmed: (confirmed: boolean) => void;
   loadingLocation: boolean;
@@ -42,15 +29,6 @@ interface DonateFormStep2Props {
 export function DonateFormStep2({
   sharedData,
   setSharedData,
-  itemFoodTypes,
-  expiryDate,
-  setExpiryDate,
-  hour12,
-  setHour12,
-  minute,
-  setMinute,
-  ampm,
-  setAmpm,
   safetyConfirmed,
   setSafetyConfirmed,
   loadingLocation,
@@ -62,127 +40,8 @@ export function DonateFormStep2({
 }: DonateFormStep2Props) {
   const { t } = useTranslation();
 
-  // Determine the most restrictive expiry based on ALL item food types
-  const hasPreparedFood = itemFoodTypes.includes('Prepared Food');
-  const hasVegetableOrFruit = itemFoodTypes.includes('Vegetables') || itemFoodTypes.includes('Fruits');
-  const hasDairy = itemFoodTypes.includes('Dairy');
-  const hasBakery = itemFoodTypes.includes('Bakery Products');
-  const hasGrains = itemFoodTypes.includes('Grains');
-
-  const getDateConstraints = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Use the most restrictive constraint across all items
-    if (hasPreparedFood || hasDairy || hasBakery) {
-      return { min: today, max: addDays(today, 2) };
-    } else if (hasVegetableOrFruit) {
-      return { min: today, max: addDays(today, 4) };
-    } else if (hasGrains) {
-      return { min: today, max: addMonths(today, 5) };
-    }
-    return { min: today, max: addYears(today, 2) };
-  };
-
-  const constraints = getDateConstraints();
-
-  const getDateHelpText = () => {
-    const types: string[] = [];
-    if (hasPreparedFood) types.push('Prepared Food');
-    if (hasDairy) types.push('Dairy');
-    if (hasBakery) types.push('Bakery');
-    if (hasVegetableOrFruit) types.push('Vegetables/Fruits');
-    if (hasGrains) types.push('Grains');
-
-    if (hasPreparedFood || hasDairy || hasBakery) {
-      return `Most perishable item limits expiry to 2 days (${types.join(', ')})`;
-    }
-    if (hasVegetableOrFruit) return 'Vegetables/Fruits: Expiry within 4 days';
-    if (hasGrains) return 'Grains: Expiry within 5 months';
-    return 'Select expiry date (up to 2 years)';
-  };
-
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      {/* Date & Time Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <CalendarIcon className="h-5 w-5 text-primary" />
-          <Label className="text-base font-semibold">
-            Approx Expiry Date & Time *
-          </Label>
-        </div>
-        
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(
-                "w-full h-12 justify-start text-left font-normal",
-                !expiryDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={expiryDate}
-              onSelect={setExpiryDate}
-              disabled={(date) => date < constraints.min || date > constraints.max}
-              initialFocus
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-
-        {/* Time Picker */}
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="grid grid-cols-3 gap-2 flex-1">
-            <Select value={hour12} onValueChange={setHour12}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Hour" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                  <SelectItem key={hour} value={String(hour)}>
-                    {String(hour).padStart(2, '0')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={minute} onValueChange={setMinute}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Min" />
-              </SelectTrigger>
-              <SelectContent>
-                {['00', '15', '30', '45'].map((min) => (
-                  <SelectItem key={min} value={min}>
-                    {min}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={ampm} onValueChange={setAmpm}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="AM/PM" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AM">AM</SelectItem>
-                <SelectItem value="PM">PM</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">{getDateHelpText()}</p>
-      </div>
-
       {/* Phone Number */}
       <div className="space-y-2">
         <Label htmlFor="phone_number" className="text-base font-semibold">Contact Phone Number *</Label>
