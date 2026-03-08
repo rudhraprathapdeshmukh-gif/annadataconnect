@@ -644,16 +644,14 @@ export default function History() {
             ))}
           </div>
 
-          <DialogFooter className="flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={() => {
-                setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
-                setSelectedRating(0);
-              }}
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
             >
-              {t('common.cancel')}
+              <X className="h-4 w-4 mr-1" />
+              Report {ratingDialog.otherPersonName}
             </Button>
             <Button 
               className="flex-1"
@@ -665,6 +663,49 @@ export default function History() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report {ratingDialog.otherPersonName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a warning to {ratingDialog.otherPersonName} about their behavior regarding this donation. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!user || !ratingDialog.otherPersonId) return;
+                setReportSubmitting(true);
+                try {
+                  const { error } = await supabase
+                    .from('notifications')
+                    .insert({
+                      user_id: ratingDialog.otherPersonId,
+                      type: 'user_report_warning',
+                      title: '⚠️ You have been reported',
+                      message: `A user has reported you regarding the donation "${ratingDialog.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+                      related_id: ratingDialog.requestId
+                    });
+                  if (error) throw error;
+                  toast.success('Report submitted successfully');
+                  setShowReportConfirm(false);
+                } catch (error) {
+                  console.error('Error reporting user:', error);
+                  toast.error('Failed to submit report');
+                } finally {
+                  setReportSubmitting(false);
+                }
+              }}
+              disabled={reportSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
