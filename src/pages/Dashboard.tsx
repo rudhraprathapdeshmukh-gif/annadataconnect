@@ -446,8 +446,28 @@ export default function Dashboard() {
     }
   }, [receiverLocation, locationStatus, showAllDonations, searchRadius, receiverDistrict]);
 
+  const fetchDonationItems = async (donationIds: string[]): Promise<Record<string, DonationItem[]>> => {
+    if (donationIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('donation_items')
+      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
+      .in('donation_id', donationIds);
+    if (error) {
+      console.error('Failed to fetch donation items:', error);
+      return {};
+    }
+    const map: Record<string, DonationItem[]> = {};
+    (data || []).forEach((item: any) => {
+      if (!map[item.donation_id]) map[item.donation_id] = [];
+      map[item.donation_id].push(item);
+    });
+    return map;
+  };
+
   const fetchDonations = async () => {
     try {
+      let rawDonations: PublicDonation[] = [];
+
       // Use nearby RPC if receiver has location and not showing all
       if (receiverLocation && !showAllDonations) {
         const { data, error } = await supabase.rpc('get_nearby_donations', {
@@ -458,15 +478,14 @@ export default function Dashboard() {
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
           longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
-        })));
+        }));
       } else if (receiverLocation && showAllDonations) {
-        // Coordinate-based "Show All in District" with 50km radius
         const { data, error } = await supabase.rpc('get_nearby_donations', {
           p_lat: receiverLocation.lat,
           p_lng: receiverLocation.lng,
@@ -475,26 +494,34 @@ export default function Dashboard() {
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
           longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
-        })));
+        }));
       } else {
-        // Fallback: use get_public_donations RPC to mask sensitive location data
         const { data, error } = await supabase.rpc('get_public_donations');
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
           longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
-        })));
+        }));
       }
+
+      // Fetch items for all donations
+      const donationIds = rawDonations.map(d => d.id);
+      const itemsMap = await fetchDonationItems(donationIds);
+      const donationsWithItems = rawDonations.map(d => ({
+        ...d,
+        items: itemsMap[d.id] || [],
+      }));
+      setDonations(donationsWithItems);
     } catch (error) {
       toast.error('Failed to load donations');
     } finally {
