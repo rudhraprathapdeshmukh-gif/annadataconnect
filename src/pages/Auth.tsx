@@ -146,7 +146,7 @@ export default function Auth() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('auth.imageSizeTooLarge'));
         return;
       }
       if (!file.type.startsWith('image/')) {
