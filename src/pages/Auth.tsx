@@ -272,8 +272,8 @@ export default function Auth() {
         error?.message?.includes('existing accounts') || 
         error?.message?.includes('sign up first') ||
         error?.message?.includes('access_denied')
-          ? 'Google sign-in is only available for existing accounts. Please sign up with email and password first.'
-          : 'An error occurred during Google sign-in';
+          ? t('auth.googleOnlyExistingAccounts')
+          : t('auth.anError');
       
       toast.error(errorMessage, { duration: 6000 });
     }
