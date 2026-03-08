@@ -82,7 +82,7 @@ export default function Auth() {
         });
 
         if (error) {
-          toast.error('Reset link expired or invalid. Please request a new one.');
+          toast.error(t('auth.resetLinkExpired'));
           setShowResetPassword(false);
           setShowForgotPassword(true);
           return;
