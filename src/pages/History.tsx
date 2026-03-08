@@ -7,10 +7,11 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
 
@@ -79,14 +80,20 @@ export default function History() {
     requestId: string;
     type: 'donor' | 'receiver';
     otherPersonName: string;
+    otherPersonId: string;
+    donationTitle: string;
   }>({
     open: false,
     requestId: '',
     type: 'donor',
-    otherPersonName: ''
+    otherPersonName: '',
+    otherPersonId: '',
+    donationTitle: ''
   });
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
   const [donationStats, setDonationStats] = useState({
@@ -319,8 +326,8 @@ export default function History() {
     }
   };
 
-  const handleRateUser = (requestId: string, type: 'donor' | 'receiver', otherPersonName: string) => {
-    setRatingDialog({ open: true, requestId, type, otherPersonName });
+  const handleRateUser = (requestId: string, type: 'donor' | 'receiver', otherPersonName: string, otherPersonId: string, donationTitle: string) => {
+    setRatingDialog({ open: true, requestId, type, otherPersonName, otherPersonId, donationTitle });
     setSelectedRating(0);
   };
 
@@ -338,7 +345,7 @@ export default function History() {
         .eq('id', ratingDialog.requestId);
       if (error) throw error;
       toast.success(t('history.ratingSubmitted'));
-      setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
+      setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '', otherPersonId: '', donationTitle: '' });
       setSelectedRating(0);
       fetchHistory();
     } catch (error) {
@@ -637,16 +644,14 @@ export default function History() {
             ))}
           </div>
 
-          <DialogFooter className="flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={() => {
-                setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
-                setSelectedRating(0);
-              }}
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
             >
-              {t('common.cancel')}
+              <X className="h-4 w-4 mr-1" />
+              Report {ratingDialog.otherPersonName}
             </Button>
             <Button 
               className="flex-1"
@@ -658,6 +663,49 @@ export default function History() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report {ratingDialog.otherPersonName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a warning to {ratingDialog.otherPersonName} about their behavior regarding this donation. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!user || !ratingDialog.otherPersonId) return;
+                setReportSubmitting(true);
+                try {
+                  const { error } = await supabase
+                    .from('notifications')
+                    .insert({
+                      user_id: ratingDialog.otherPersonId,
+                      type: 'user_report_warning',
+                      title: '⚠️ You have been reported',
+                      message: `A user has reported you regarding the donation "${ratingDialog.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+                      related_id: ratingDialog.requestId
+                    });
+                  if (error) throw error;
+                  toast.success('Report submitted successfully');
+                  setShowReportConfirm(false);
+                } catch (error) {
+                  console.error('Error reporting user:', error);
+                  toast.error('Failed to submit report');
+                } finally {
+                  setReportSubmitting(false);
+                }
+              }}
+              disabled={reportSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

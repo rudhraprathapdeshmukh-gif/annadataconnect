@@ -156,11 +156,13 @@ export default function Dashboard() {
     requestId: string;
     type: 'donor' | 'receiver';
     otherUserName: string;
+    otherUserId: string;
     donationTitle: string;
   } | null>(null);
   const [globalRating, setGlobalRating] = useState(0);
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
-  const [globalReview, setGlobalReview] = useState('');
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   // Location state for nearby filtering
@@ -282,6 +284,7 @@ export default function Dashboard() {
           requestId: donorUnrated.id,
           type: 'donor',
           otherUserName: `${donorUnrated.profiles.first_name} ${donorUnrated.profiles.last_name}`,
+          otherUserId: donorUnrated.requester_id,
           donationTitle: donorUnrated.food_donations.title
         });
       }, 1000);
@@ -304,6 +307,7 @@ export default function Dashboard() {
           otherUserName: receiverUnrated.food_donations.donor_profile 
             ? `${receiverUnrated.food_donations.donor_profile.first_name} ${receiverUnrated.food_donations.donor_profile.last_name}`
             : 'the donor',
+          otherUserId: receiverUnrated.food_donations.donor_id,
           donationTitle: receiverUnrated.food_donations.title
         });
       }, 1000);
@@ -320,8 +324,8 @@ export default function Dashboard() {
 
     try {
       const updateData = pendingRating.type === 'donor'
-        ? { donor_rating: globalRating, donor_review: globalReview || null }
-        : { receiver_rating: globalRating, receiver_review: globalReview || null };
+        ? { donor_rating: globalRating }
+        : { receiver_rating: globalRating };
 
       const { error } = await supabase
         .from('food_requests')
@@ -330,20 +334,40 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Rating moderation (warnings/suspension/blocking) is handled by the database trigger
-
       toast.success('Thank you for your rating!');
       setPendingRating(null);
       setGlobalRating(0);
       setGlobalHoverRating(0);
-      setGlobalReview('');
       
-      // Refresh data
       fetchRequests();
       fetchMyRequests();
     } catch (error) {
       console.error('Error submitting rating:', error);
       toast.error('Failed to submit rating');
+    }
+  };
+
+  const handleReportUser = async () => {
+    if (!pendingRating || !user) return;
+    setReportSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: pendingRating.otherUserId,
+          type: 'user_report_warning',
+          title: '⚠️ You have been reported',
+          message: `A user has reported you regarding the donation "${pendingRating.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+          related_id: pendingRating.requestId
+        });
+      if (error) throw error;
+      toast.success('Report submitted successfully');
+      setShowReportConfirm(false);
+    } catch (error) {
+      console.error('Error reporting user:', error);
+      toast.error('Failed to submit report');
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -1197,6 +1221,7 @@ export default function Dashboard() {
                           requestId,
                           type: 'donor',
                           otherUserName: receiverName,
+                          otherUserId: request.requester_id,
                           donationTitle,
                         });
                       }}
@@ -1740,22 +1765,17 @@ export default function Dashboard() {
                 {getRatingLabel(globalHoverRating || globalRating)}
               </p>
             </div>
-            <div className="space-y-2">
-               <Label htmlFor="globalReview">{t('dynamic.reviewOptional')}</Label>
-              <Textarea
-                id="globalReview"
-                placeholder={t('dynamic.shareExperience', { name: pendingRating?.otherUserName })}
-                value={globalReview}
-                onChange={(e) => setGlobalReview(e.target.value)}
-                className="min-h-[100px] resize-none"
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {globalReview.length}/500
-              </p>
-            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
+              className="transition-all hover:scale-105 active:scale-95"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Report {pendingRating?.otherUserName}
+            </Button>
             <Button 
               onClick={handleGlobalRatingSubmit} 
               disabled={globalRating === 0} 
@@ -1766,6 +1786,28 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Report Confirmation Dialog */}
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report {pendingRating?.otherUserName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a warning to {pendingRating?.otherUserName} about their behavior regarding this donation. Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReportUser}
+              disabled={reportSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

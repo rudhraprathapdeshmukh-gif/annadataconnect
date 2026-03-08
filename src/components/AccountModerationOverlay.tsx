@@ -93,7 +93,7 @@ export default function AccountModerationOverlay() {
                   message: notif.message,
                 });
               });
-          } else if (notif.type === 'low_rating_warning') {
+          } else if (notif.type === 'low_rating_warning' || notif.type === 'user_report_warning') {
             setState({
               type: 'warning',
               message: notif.message,
