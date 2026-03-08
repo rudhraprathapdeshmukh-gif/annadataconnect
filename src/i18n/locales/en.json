@@ -257,7 +257,10 @@
     "thankYouRating": "Thank you for your rating!",
     "selectRating": "Please select a rating",
     "failedSubmitRating": "Failed to submit rating",
-    "blockedUser": "This user has a low reliability score and cannot request food at this time."
+    "blockedUser": "This user has a low reliability score and cannot request food at this time.",
+    "donorSubtitle": "Manage food requests from your community",
+    "receiverSubtitle": "Browse and request food from donors in your community",
+    "bothSubtitle": "Manage donations and browse available food in your community"
   },
   "profile": {
     "title": "Profile",
