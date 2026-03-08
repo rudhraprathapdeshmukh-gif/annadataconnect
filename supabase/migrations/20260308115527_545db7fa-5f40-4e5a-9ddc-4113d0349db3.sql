@@ -1,0 +1,1 @@
+ALTER TABLE public.donation_items ADD COLUMN expiry_date timestamptz NULL;

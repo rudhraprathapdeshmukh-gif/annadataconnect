@@ -20,6 +20,7 @@ export type Database = {
           description: string | null
           diet_type: string | null
           donation_id: string
+          expiry_date: string | null
           food_type: string
           id: string
           image_url: string | null
@@ -33,6 +34,7 @@ export type Database = {
           description?: string | null
           diet_type?: string | null
           donation_id: string
+          expiry_date?: string | null
           food_type: string
           id?: string
           image_url?: string | null
@@ -46,6 +48,7 @@ export type Database = {
           description?: string | null
           diet_type?: string | null
           donation_id?: string
+          expiry_date?: string | null
           food_type?: string
           id?: string
           image_url?: string | null
