@@ -326,7 +326,7 @@ export default function History() {
 
   const submitRating = async () => {
     if (selectedRating === 0) {
-      toast.error('Please select a rating');
+      toast.error(t('history.selectRating'));
       return;
     }
     setSubmittingRating(true);
@@ -337,13 +337,13 @@ export default function History() {
         .update({ [updateField]: selectedRating })
         .eq('id', ratingDialog.requestId);
       if (error) throw error;
-      toast.success('Rating submitted successfully!');
+      toast.success(t('history.ratingSubmitted'));
       setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
       setSelectedRating(0);
       fetchHistory();
     } catch (error) {
       console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
+      toast.error(t('history.failedSubmitRating'));
     } finally {
       setSubmittingRating(false);
     }
@@ -354,7 +354,7 @@ export default function History() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Loading...</p>
+          <p className="text-center text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -365,31 +365,29 @@ export default function History() {
       <Navbar />
       
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
-        {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1">Your History</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1">{t('history.title')}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            {userType === 'donor' ? 'Track your donations and achievements' : 'View your received food history'}
+            {userType === 'donor' ? t('history.donorDescription') : t('history.receiverDescription')}
           </p>
         </div>
 
-        {/* Quick Stats for Donors */}
         {userType !== 'receiver' && (
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <Card className="p-2 sm:p-4 text-center min-w-0">
               <Heart className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-red-500" />
               <p className="text-lg sm:text-2xl font-bold">{donationStats.completedDonations}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Donations</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t('history.donations')}</p>
             </Card>
             <Card className="p-2 sm:p-4 text-center min-w-0">
               <User className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-blue-500" />
               <p className="text-lg sm:text-2xl font-bold">{donationStats.peopleHelped}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Helped</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t('history.helped')}</p>
             </Card>
             <Card className="p-2 sm:p-4 text-center min-w-0">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-1 text-green-500" />
               <p className="text-lg sm:text-2xl font-bold">{Math.round(reliabilityScore)}%</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Reliability</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t('history.reliability')}</p>
             </Card>
           </div>
         )}
@@ -400,37 +398,35 @@ export default function History() {
               <>
                 <TabsTrigger value="donated" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
                   <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                  <span className="truncate">Completed ({completedDonations.length})</span>
+                  <span className="truncate">{t('history.completed')} ({completedDonations.length})</span>
                 </TabsTrigger>
                 <TabsTrigger value="deleted" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 min-w-0 overflow-hidden">
                   <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                  <span className="truncate">Deleted ({deletedDonations.length})</span>
+                  <span className="truncate">{t('history.deleted')} ({deletedDonations.length})</span>
                 </TabsTrigger>
               </>
             )}
             {userType === 'receiver' && (
               <TabsTrigger value="received" className="text-[11px] sm:text-sm py-2 px-1.5 sm:px-3 col-span-2 w-full min-w-0 overflow-hidden">
                 <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 shrink-0" />
-                <span className="truncate">Received ({requests.length})</span>
+                <span className="truncate">{t('history.received')} ({requests.length})</span>
               </TabsTrigger>
             )}
           </TabsList>
           
-          
-          {/* Donated Tab */}
           {userType !== 'receiver' && (
             <TabsContent value="donated" className="space-y-4 mt-4">
               <div className="flex justify-end">
                 <Select value={donationSort} onValueChange={setDonationSort}>
                   <SelectTrigger className="w-[140px] h-9">
                     <ArrowUpDown className="h-3 w-3 mr-1" />
-                    <SelectValue placeholder="Sort" />
+                    <SelectValue placeholder={t('common.sort')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date-newest">Newest</SelectItem>
-                    <SelectItem value="date-oldest">Oldest</SelectItem>
-                    <SelectItem value="title-az">A-Z</SelectItem>
-                    <SelectItem value="title-za">Z-A</SelectItem>
+                    <SelectItem value="date-newest">{t('common.newest')}</SelectItem>
+                    <SelectItem value="date-oldest">{t('common.oldest')}</SelectItem>
+                    <SelectItem value="title-az">{t('common.az')}</SelectItem>
+                    <SelectItem value="title-za">{t('common.za')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -439,7 +435,7 @@ export default function History() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No completed donations yet</p>
+                    <p className="text-muted-foreground">{t('history.noCompletedDonations')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -449,17 +445,13 @@ export default function History() {
                       <div className="flex">
                         {donation.image_url && (
                           <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
-                            <img 
-                              src={donation.image_url} 
-                              alt={donation.title} 
-                              className="w-full h-full object-cover" 
-                            />
+                            <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
                           </div>
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
-                            <Badge variant="secondary" className="shrink-0 text-xs">Completed</Badge>
+                            <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <p className="flex items-center gap-1">
@@ -479,7 +471,7 @@ export default function History() {
                             {donation.completed_request?.requester_profile && (
                               <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                To: {donation.completed_request.requester_profile.first_name}
+                                {t('common.to')} {donation.completed_request.requester_profile.first_name}
                               </p>
                             )}
                           </div>
@@ -492,20 +484,19 @@ export default function History() {
             </TabsContent>
           )}
 
-          {/* Deleted Tab */}
           {userType !== 'receiver' && (
             <TabsContent value="deleted" className="space-y-4 mt-4">
               <div className="flex justify-end">
                 <Select value={donationSort} onValueChange={setDonationSort}>
                   <SelectTrigger className="w-[140px] h-9">
                     <ArrowUpDown className="h-3 w-3 mr-1" />
-                    <SelectValue placeholder="Sort" />
+                    <SelectValue placeholder={t('common.sort')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date-newest">Newest</SelectItem>
-                    <SelectItem value="date-oldest">Oldest</SelectItem>
-                    <SelectItem value="title-az">A-Z</SelectItem>
-                    <SelectItem value="title-za">Z-A</SelectItem>
+                    <SelectItem value="date-newest">{t('common.newest')}</SelectItem>
+                    <SelectItem value="date-oldest">{t('common.oldest')}</SelectItem>
+                    <SelectItem value="title-az">{t('common.az')}</SelectItem>
+                    <SelectItem value="title-za">{t('common.za')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -514,7 +505,7 @@ export default function History() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No deleted donations</p>
+                    <p className="text-muted-foreground">{t('history.noDeletedDonations')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -524,17 +515,13 @@ export default function History() {
                       <div className="flex">
                         {donation.image_url && (
                           <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
-                            <img 
-                              src={donation.image_url} 
-                              alt={donation.title} 
-                              className="w-full h-full object-cover" 
-                            />
+                            <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
                           </div>
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
-                            <Badge variant="destructive" className="shrink-0 text-xs">Deleted</Badge>
+                            <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <p className="flex items-center gap-1">
@@ -555,20 +542,19 @@ export default function History() {
             </TabsContent>
           )}
           
-          {/* Received Tab for Receivers */}
           {userType !== 'donor' && (
             <TabsContent value="received" className="space-y-4 mt-4">
               <div className="flex justify-end">
                 <Select value={requestSort} onValueChange={setRequestSort}>
                   <SelectTrigger className="w-[140px] h-9">
                     <ArrowUpDown className="h-3 w-3 mr-1" />
-                    <SelectValue placeholder="Sort" />
+                    <SelectValue placeholder={t('common.sort')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date-newest">Newest</SelectItem>
-                    <SelectItem value="date-oldest">Oldest</SelectItem>
-                    <SelectItem value="title-az">A-Z</SelectItem>
-                    <SelectItem value="title-za">Z-A</SelectItem>
+                    <SelectItem value="date-newest">{t('common.newest')}</SelectItem>
+                    <SelectItem value="date-oldest">{t('common.oldest')}</SelectItem>
+                    <SelectItem value="title-az">{t('common.az')}</SelectItem>
+                    <SelectItem value="title-za">{t('common.za')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -577,7 +563,7 @@ export default function History() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No received food yet</p>
+                    <p className="text-muted-foreground">{t('history.noReceivedFood')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -587,11 +573,7 @@ export default function History() {
                       <div className="flex">
                         {request.food_donations?.image_url && (
                           <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
-                            <img 
-                              src={request.food_donations.image_url} 
-                              alt={request.food_donations.title} 
-                              className="w-full h-full object-cover" 
-                            />
+                            <img src={request.food_donations.image_url} alt={request.food_donations.title} className="w-full h-full object-cover" />
                           </div>
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
@@ -599,7 +581,7 @@ export default function History() {
                             <h3 className="font-semibold text-sm md:text-base truncate">
                               {request.food_donations?.title}
                             </h3>
-                            <Badge variant="default" className="shrink-0 text-xs">Received</Badge>
+                            <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <p className="flex items-center gap-1">
@@ -619,7 +601,7 @@ export default function History() {
                             {request.food_donations?.profiles && (
                               <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                From: {request.food_donations.profiles.first_name}
+                                {t('common.from')} {request.food_donations.profiles.first_name}
                               </p>
                             )}
                           </div>
@@ -634,13 +616,12 @@ export default function History() {
         </Tabs>
       </div>
 
-      {/* Rating Dialog */}
       <Dialog open={ratingDialog.open} onOpenChange={(open) => setRatingDialog({ ...ratingDialog, open })}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Rate {ratingDialog.otherPersonName}</DialogTitle>
+            <DialogTitle>{t('history.rate')} {ratingDialog.otherPersonName}</DialogTitle>
             <DialogDescription>
-              How was your experience?
+              {t('history.howWasExperience')}
             </DialogDescription>
           </DialogHeader>
           
@@ -665,14 +646,14 @@ export default function History() {
                 setSelectedRating(0);
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button 
               className="flex-1"
               onClick={submitRating} 
               disabled={submittingRating || selectedRating === 0}
             >
-              {submittingRating ? 'Submitting...' : 'Submit'}
+              {submittingRating ? t('common.submitting') : t('common.submit')}
             </Button>
           </DialogFooter>
         </DialogContent>
