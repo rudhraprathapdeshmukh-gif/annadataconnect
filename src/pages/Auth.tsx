@@ -379,7 +379,7 @@ export default function Auth() {
           }
         } else {
           // Automatically sign in after successful signup
-          toast.success('Account created successfully! Signing you in...');
+          toast.success(t('auth.accountCreated'));
           const { error: signInError } = await signIn(email, password);
           if (signInError) {
             toast.error('Account created but sign in failed. Please sign in manually.');
