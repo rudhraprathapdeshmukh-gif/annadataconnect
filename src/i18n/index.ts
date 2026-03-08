@@ -5,11 +5,13 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import en from './locales/en.json';
 import te from './locales/te.json';
 import hi from './locales/hi.json';
+import mr from './locales/mr.json';
 
 const resources = {
   en: { translation: en },
   te: { translation: te },
   hi: { translation: hi },
+  mr: { translation: mr },
 };
 
 // Only initialize if not already initialized

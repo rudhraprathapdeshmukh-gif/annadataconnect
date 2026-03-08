@@ -38,6 +38,7 @@ const LANGUAGES = [
   { value: 'en', label: 'EN' },
   { value: 'te', label: 'తె' },
   { value: 'hi', label: 'हि' },
+  { value: 'mr', label: 'मरा' },
 ];
 
 export default function Navbar() {
