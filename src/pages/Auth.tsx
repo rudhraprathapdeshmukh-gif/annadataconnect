@@ -328,7 +328,7 @@ export default function Auth() {
             .upload(filePath, avatarFile);
 
           if (uploadError) {
-            toast.error('Failed to upload profile picture');
+            toast.error(t('auth.failedUploadAvatar'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
