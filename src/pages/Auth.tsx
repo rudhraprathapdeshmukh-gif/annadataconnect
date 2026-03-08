@@ -82,7 +82,7 @@ export default function Auth() {
         });
 
         if (error) {
-          toast.error('Reset link expired or invalid. Please request a new one.');
+          toast.error(t('auth.resetLinkExpired'));
           setShowResetPassword(false);
           setShowForgotPassword(true);
           return;
@@ -106,9 +106,9 @@ export default function Auth() {
         
         // Handle access_denied specifically for Google OAuth blocking
         if (errorType === 'access_denied' || message.includes('access_denied') || message.includes('Database error saving new user') || message.includes('database_error')) {
-          message = 'Google sign-in is only available for existing accounts. Please sign up with email and password first, then you can link your Google account.';
+          message = t('auth.googleOnlyExistingAccounts');
         } else if (message.includes('existing accounts') || message.includes('sign up first')) {
-          message = 'You need to sign up first with email and password before using Google sign-in.';
+          message = t('auth.googleOnlyExistingAccounts');
         }
         
         toast.error(message, { duration: 6000 }); // Longer duration for important message
@@ -132,10 +132,7 @@ export default function Auth() {
         if (error || !profile) {
           // User doesn't have a profile, they're trying to sign in without signing up
           await supabase.auth.signOut();
-          toast.error(
-            'No account found. Please sign up with email and password first before using Google sign-in.',
-            { duration: 6000 }
-          );
+          toast.error(t('auth.noAccountFound'), { duration: 6000 });
           return;
         }
 
@@ -149,11 +146,11 @@ export default function Auth() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('auth.imageSizeTooLarge'));
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('auth.pleaseUploadImage'));
         return;
       }
       setAvatarFile(file);
@@ -177,7 +174,7 @@ export default function Auth() {
     try {
       const validation = z.string().email().safeParse(resetEmail);
       if (!validation.success) {
-        toast.error('Please enter a valid email address');
+        toast.error(t('auth.pleaseEnterValidEmail'));
         setLoading(false);
         return;
       }
@@ -189,12 +186,12 @@ export default function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Password reset link sent! Check your email.');
+        toast.success(t('auth.passwordResetSent'));
         setShowForgotPassword(false);
         setResetEmail('');
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error(t('auth.anError'));
     } finally {
       setLoading(false);
     }
@@ -209,7 +206,7 @@ export default function Auth() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error('Reset link expired. Please request a new password reset.');
+        toast.error(t('auth.resetLinkExpiredRequest'));
         setShowResetPassword(false);
         setShowForgotPassword(true);
         setLoading(false);
@@ -231,13 +228,13 @@ export default function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Password updated successfully! Please sign in.');
+        toast.success(t('auth.passwordUpdated'));
         setShowResetPassword(false);
         setNewPassword('');
         navigate('/auth');
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error(t('auth.anError'));
     } finally {
       setLoading(false);
     }
@@ -263,9 +260,9 @@ export default function Auth() {
         if (error.message.includes('existing accounts') || 
             error.message.includes('sign up first') ||
             error.message.includes('access_denied')) {
-          errorMessage = 'Google sign-in is only available for existing accounts. Please sign up with email and password first.';
+          errorMessage = t('auth.googleOnlyExistingAccounts');
         } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
-          errorMessage = 'Google sign-in is not configured. Please contact the administrator.';
+          errorMessage = t('auth.googleNotConfigured');
         }
         
         toast.error(errorMessage, { duration: 6000 });
@@ -275,8 +272,8 @@ export default function Auth() {
         error?.message?.includes('existing accounts') || 
         error?.message?.includes('sign up first') ||
         error?.message?.includes('access_denied')
-          ? 'Google sign-in is only available for existing accounts. Please sign up with email and password first.'
-          : 'An error occurred during Google sign-in';
+          ? t('auth.googleOnlyExistingAccounts')
+          : t('auth.anError');
       
       toast.error(errorMessage, { duration: 6000 });
     }
@@ -290,7 +287,7 @@ export default function Auth() {
     // Safety timeout: force-clear loading after 15 seconds
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-      toast.error('Sign-in is taking too long. Please check your internet connection and try again.');
+      toast.error(t('auth.signInTakingLong'));
     }, 15000);
 
     try {
@@ -331,7 +328,7 @@ export default function Auth() {
             .upload(filePath, avatarFile);
 
           if (uploadError) {
-            toast.error('Failed to upload profile picture');
+            toast.error(t('auth.failedUploadAvatar'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
@@ -351,13 +348,13 @@ export default function Auth() {
         if (!checkError && availability) {
           const avail = typeof availability === 'string' ? JSON.parse(availability) : availability;
           if (avail.email_taken) {
-            toast.error('This email is already registered. Please sign in instead, or use a different email.');
+            toast.error(t('auth.emailAlreadyRegistered'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
           }
           if (avail.phone_taken) {
-            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            toast.error(t('auth.phoneAlreadyLinked'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
@@ -368,9 +365,9 @@ export default function Auth() {
         if (error) {
           const msg = error.message || '';
           if (msg.includes('phone_number') || msg.includes('idx_profiles_phone_number_unique')) {
-            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            toast.error(t('auth.phoneAlreadyLinked'));
           } else if (msg.includes('profiles_email_key') || (msg.includes('email') && msg.includes('unique'))) {
-            toast.error('This email is already registered. Please use a different email or sign in.');
+            toast.error(t('auth.emailAlreadyRegistered'));
           } else if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('already been registered') || msg.includes('already registered')) {
             toast.error('An account with these details already exists. Please sign in instead, or use a different email/phone number.');
           } else if (msg.includes('Database error saving new user') || msg.includes('unexpected_failure')) {
@@ -382,13 +379,13 @@ export default function Auth() {
           }
         } else {
           // Automatically sign in after successful signup
-          toast.success('Account created successfully! Signing you in...');
+          toast.success(t('auth.accountCreated'));
           const { error: signInError } = await signIn(email, password);
           if (signInError) {
-            toast.error('Account created but sign in failed. Please sign in manually.');
+            toast.error(t('auth.accountCreatedSignInFailed'));
             setIsSignUp(false);
           } else {
-            toast.success('Welcome to Annadataconnect! 🎉');
+            toast.success(t('auth.welcomeAnnadataconnect'));
             navigate('/dashboard');
           }
         }
@@ -397,20 +394,20 @@ export default function Auth() {
         if (error) {
           const msg = error.message || '';
           if (msg.includes('Email not confirmed')) {
-            toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
+            toast.error(t('auth.emailNotVerified'));
           } else if (msg.includes('Invalid login credentials')) {
-            toast.error('Incorrect email or password. Please check your credentials and try again.');
+            toast.error(t('auth.incorrectCredentials'));
           } else {
             toast.error(msg);
           }
         } else {
-          toast.success('Signed in successfully!');
+          toast.success(t('auth.signedInSuccess'));
           // Explicitly navigate to dashboard after successful login
           navigate('/dashboard');
         }
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.');
+      toast.error(t('auth.anError'));
     } finally {
       clearTimeout(safetyTimeout);
       setLoading(false);
@@ -478,7 +475,7 @@ export default function Auth() {
                 </div>
                 {newPassword && (
                   <div className="space-y-2 mt-3 p-3 rounded-md bg-muted/50">
-                    <p className="text-xs font-medium text-muted-foreground">Password must contain:</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('auth.passwordMustContain')}</p>
                     <ul className="space-y-1">
                       {passwordRequirements.map((req, index) => (
                         <li key={index} className="flex items-center gap-2 text-xs">
@@ -561,7 +558,7 @@ export default function Auth() {
                         onChange={handleAvatarChange}
                         className="cursor-pointer"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Max size: 5MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('auth.maxSize5MB')}</p>
                     </div>
                   </div>
                 </div>
@@ -600,7 +597,7 @@ export default function Auth() {
                     required
                     className="transition-all focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="text-xs text-muted-foreground">Format: +91 followed by 10 digits</p>
+                  <p className="text-xs text-muted-foreground">{t('auth.phoneFormat')}</p>
                 </div>
               </>
             )}
@@ -645,7 +642,7 @@ export default function Auth() {
               </div>
               {isSignUp && password && (
                 <div className="space-y-2 mt-3 p-3 rounded-md bg-muted/50">
-                  <p className="text-xs font-medium text-muted-foreground">Password must contain:</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t('auth.passwordMustContain')}</p>
                   <ul className="space-y-1">
                     {passwordRequirements.map((req, index) => (
                       <li key={index} className="flex items-center gap-2 text-xs">
@@ -682,7 +679,7 @@ export default function Auth() {
                     <span className="truncate">{t('auth.receiveFood')}</span>
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
+                <p className="text-xs text-muted-foreground">{t('auth.chooseCareully')}</p>
               </div>
             )}
             <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl glow-effect" disabled={loading}>
@@ -728,7 +725,7 @@ export default function Auth() {
                 </Button>
                 
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Only available if you signed up with email first
+                  {t('auth.googleOnlyExisting')}
                 </p>
               </>
             )}
@@ -761,7 +758,7 @@ export default function Auth() {
           )}
           
           <p className="text-center text-xs text-muted-foreground pt-4 border-t mt-6">
-            By continuing, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+            {t('auth.agreeTerms')} <Link to="/terms" className="text-primary hover:underline">{t('auth.termsOfService')}</Link> {t('auth.and')} <Link to="/privacy" className="text-primary hover:underline">{t('auth.privacyPolicy')}</Link>
           </p>
         </CardContent>
       </Card>

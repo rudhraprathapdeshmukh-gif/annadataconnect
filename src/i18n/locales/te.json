@@ -413,7 +413,9 @@
     "pickADate": "తేదీ ఎంచుకోండి",
     "detectLocationFirst": "దయచేసి సమర్పించే ముందు మీ ప్రస్తుత స్థానం గుర్తించండి",
     "geolocationNotSupported": "మీ బ్రౌజర్ జియోలొకేషన్‌కు మద్దతు ఇవ్వదు",
-    "failedGetAddress": "స్థానం నుండి చిరునామా పొందడంలో విఫలమైంది"
+    "failedGetAddress": "స్థానం నుండి చిరునామా పొందడంలో విఫలమైంది",
+    "stepFoodDetails": "ఆహార వివరాలు",
+    "stepPickupSubmit": "పికప్ & సమర్పించు"
   },
   "history": {
     "title": "మీ చరిత్ర",
