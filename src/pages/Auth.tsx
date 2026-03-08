@@ -407,7 +407,7 @@ export default function Auth() {
         }
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.');
+      toast.error(t('auth.anError'));
     } finally {
       clearTimeout(safetyTimeout);
       setLoading(false);
