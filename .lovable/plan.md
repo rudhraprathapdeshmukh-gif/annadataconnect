@@ -1,93 +1,80 @@
 
 
-# Security and Bug Audit Report
+# Plan: Complete Telugu Translation Coverage
 
-After a thorough review of the codebase, database schema, RLS policies, and security scan results, here are the issues found, organized by severity.
+## Summary
+Multiple pages still contain hardcoded English strings that don't switch to Telugu. This plan covers all remaining untranslated text across History, Profile, Donate, Help, Auth, and Terms/Privacy pages.
 
----
+## Pages with Hardcoded English
 
-## CRITICAL BUGS
+### 1. History Page (`src/pages/History.tsx`)
+Hardcoded strings to replace with `t()` calls:
+- "Your History", "Track your donations and achievements", "View your received food history"
+- "Donations", "Helped", "Reliability" (stat card labels)
+- "Completed", "Deleted", "Received" (tab labels and badges)
+- Sort options: "Newest", "Oldest", "A-Z", "Z-A"
+- "No completed donations yet", "No deleted donations", "No received food yet"
+- "To:", "From:" labels
+- Rating dialog: "Rate", "How was your experience?", "Cancel", "Submit", "Submitting..."
+- "Loading..."
 
-### 1. Crash when `user` is null on Dashboard (line 187)
-In `requestLocation()`, the `else` branch at line 186-188 executes when `user` is `null`, but then accesses `user.id`. This will crash with a runtime error.
+### 2. Profile Page (`src/pages/Profile.tsx`)
+Hardcoded strings:
+- "Profile", "Back", "Personal Information", "Your profile and contact details"
+- "Donor & Receiver", "Donor", "Receiver" (public profile badge)
+- "ratings", "Member Since", "Total Donations", "Accepted Donations"
+- "Change Photo", "Photo change limit reached", "photo change(s) remaining this month"
+- "Save Photo", "Uploading...", "Name", "Email", "Phone", "Not provided"
+- "Loading...", image validation toasts
+- "Only available if you signed up with email first" (Auth page)
 
-```
-} else {
-  // user is null here, so user.id will throw!
-  await supabase.from('profiles').update(...).eq('id', user.id);
-}
-```
+### 3. Donate Page (`src/pages/Donate.tsx`)
+Hardcoded strings:
+- "Donate Food", "Share your surplus food with those in need"
+- Various toast messages (already have keys but page uses English directly)
 
-**Fix:** Remove the `else` branch entirely -- it should never run when `user` is null.
+### 4. Help Page (`src/pages/Help.tsx`)
+Nearly all content is hardcoded English — FAQ answers, user guides, technical support sections, report issue section. This is the largest block of untranslated content.
 
-### 2. Fallback donation query exposes sensitive data
-When a receiver has no location, `fetchDonations()` (line 473-483) queries `food_donations` directly, exposing `pickup_location` (exact addresses), `latitude`, and `longitude` to anyone. The `get_nearby_donations` and `get_public_donations` RPCs mask this data, but this fallback bypasses that.
+### 5. Auth Page (`src/pages/Auth.tsx`)
+- "Only available if you signed up with email first"
+- "Choose carefully - this cannot be changed later."
+- "By continuing, you agree to our Terms of Service and Privacy Policy"
+- "Format: +91 followed by 10 digits", "Max size: 5MB"
+- "Password must contain:" label
+- Various toast error messages (hardcoded English)
 
-**Fix:** Use `get_public_donations()` RPC instead of direct table query for the fallback.
+### 6. Terms & Privacy Pages
+Entirely hardcoded English. These are legal pages with substantial content.
 
-### 3. ChangePasswordDialog weak password policy
-The change password dialog (line 34) only requires 6 characters minimum, while the signup form requires 8+ with uppercase, lowercase, number, and special character. A user could weaken their password via the change password flow.
+## Implementation Approach
 
-**Fix:** Apply the same `passwordSchema` validation from Auth.tsx.
+### Step 1: Add Missing Translation Keys
+Add ~150+ new keys to both `en.json` and `te.json` covering:
+- History page labels, Profile page labels
+- Help page full content (FAQ answers, guides, technical support)
+- Auth page remaining strings
+- Donate page header
 
----
+### Step 2: Update Components
+Replace all hardcoded strings with `t('key')` calls in:
+- `src/pages/History.tsx`
+- `src/pages/Profile.tsx`
+- `src/pages/Donate.tsx`
+- `src/pages/Help.tsx`
+- `src/pages/Auth.tsx`
 
-## SECURITY VULNERABILITIES
+### Step 3: Terms & Privacy (Partial)
+For Terms and Privacy pages, add translation keys for section headers and key content. These are large legal documents, so we will translate all visible text.
 
-### 4. `insert_user_location` function has no `search_path` set
-The linter flagged this. The function also has no `SECURITY DEFINER` and no RLS check -- any authenticated user could potentially call it with another user's ID.
-
-**Fix:** Add `SET search_path = 'public'` and either add authorization checks or remove it if unused (it appears unused in the client code).
-
-### 5. Notifications INSERT RLS is too restrictive
-The `notifications` table only allows inserting `extension_request` type notifications. But the client code inserts `request_approved`, `extension_granted`, `extension_rejected`, and other types directly from Dashboard.tsx (lines 797-805, 852-860, 890-898). These inserts will silently fail due to RLS.
-
-**Fix:** Either:
-- Move all notification inserts to database triggers/functions (preferred), or
-- Expand the RLS policy to allow authenticated users to insert notifications for users they have active relationships with.
-
-### 6. Auto-reject of expired approved requests done client-side
-In `fetchRequests()` (lines 550-573), the donor's browser auto-rejects expired requests. This means if a donor never opens the dashboard, expired approved requests remain active indefinitely. The server-side `auto_reject_stale_requests` cron only handles pending requests, not approved ones past their timer.
-
-**Fix:** Extend the `auto_reject_stale_requests` database function to also reject approved requests whose `accepted_at + timer_duration` has passed.
-
----
-
-## MODERATE ISSUES
-
-### 7. Edit donation form has no input validation
-`handleSaveEdit()` (line 917-940) directly submits form values without any validation or sanitization. An attacker could set title/description to excessively long strings or inject content.
-
-**Fix:** Add Zod validation similar to the donation creation form.
-
-### 8. Race condition in request approval
-`handleRequestAction()` checks for existing approved requests using local state (`requests.some(...)` at line 752), not the database. Two donors viewing the same request simultaneously could both approve, or the state could be stale.
-
-**Fix:** Use a database-level check (the trigger `handle_request_status_change` partially handles this, but an explicit database-level guard would be more robust).
-
-### 9. Avatar upload path uses `Math.random()` -- predictable filenames
-Both Auth.tsx (line 326) and Profile.tsx use `Math.random().toString(36)` for avatar filenames. `Math.random()` is not cryptographically random and could be predicted.
-
-**Fix:** Use `crypto.randomUUID()` instead.
-
----
-
-## PLAN SUMMARY
-
-| # | Issue | Severity | Fix |
-|---|-------|----------|-----|
-| 1 | Null `user` crash in Dashboard | Critical | Remove dead `else` branch |
-| 2 | Fallback query leaks exact locations | Critical | Use `get_public_donations()` RPC |
-| 3 | Weak password change validation | Critical | Reuse `passwordSchema` |
-| 4 | `insert_user_location` insecure | Security | Add search_path + auth check |
-| 5 | Notification INSERT RLS blocks client inserts | Security | Move inserts to DB triggers |
-| 6 | Expired approved requests not auto-rejected server-side | Security | Extend cron function |
-| 7 | No validation on edit donation form | Moderate | Add Zod schema |
-| 8 | Race condition in request approval | Moderate | Add DB-level guard |
-| 9 | Predictable avatar filenames | Moderate | Use `crypto.randomUUID()` |
-
-### Implementation approach:
-1. Fix bugs #1, #2, #3 in the client code
-2. Create a database migration for #4 (secure `insert_user_location`), #5 (add notification insert triggers for extension_granted/rejected and request rejection notifications), #6 (extend `auto_reject_stale_requests` to handle expired approved requests)
-3. Fix #7, #9 in client code
+### Files to Modify
+1. `src/i18n/locales/en.json` — add missing keys
+2. `src/i18n/locales/te.json` — add Telugu translations
+3. `src/pages/History.tsx` — replace ~30 hardcoded strings
+4. `src/pages/Profile.tsx` — replace ~25 hardcoded strings
+5. `src/pages/Donate.tsx` — replace ~5 hardcoded strings
+6. `src/pages/Help.tsx` — replace ~80+ hardcoded strings
+7. `src/pages/Auth.tsx` — replace ~10 hardcoded strings
+8. `src/pages/Terms.tsx` — add i18n support
+9. `src/pages/Privacy.tsx` — add i18n support
 
