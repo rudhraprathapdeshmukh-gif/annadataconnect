@@ -13,22 +13,27 @@ import { addYears, isAfter, isBefore } from 'date-fns';
 import { DonateStepIndicator } from '@/components/DonateStepIndicator';
 import { DonateFormStep1 } from '@/components/DonateFormStep1';
 import { DonateFormStep2 } from '@/components/DonateFormStep2';
+import type { DonationItemData } from '@/types/donationItem';
+import { createEmptyItem } from '@/types/donationItem';
 
 const phoneSchema = z.string()
   .trim()
   .regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit Indian mobile number" });
 
-const donationSchema = z.object({
+const itemSchema = z.object({
   title: z.string().trim().min(1, { message: "Title is required" }).max(100, { message: "Title must be less than 100 characters" }),
   description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
-  quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50, { message: "Quantity must be less than 50 characters" }),
+  quantity: z.string().trim().min(1, { message: "Quantity is required" }).max(50),
   quantity_unit: z.enum(['kg', 'grams', 'liters', 'pieces', 'servings'], { message: "Please select a unit" }),
   food_type: z.enum(['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food', 'Bakery Products'], { message: "Please select a food type" }),
   diet_type: z.enum(['veg', 'non-veg'], { message: "Please select diet type" }),
+  rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
+  image: z.instanceof(File, { message: "Food image is required" }),
+});
+
+const donationSchema = z.object({
+  items: z.array(itemSchema).min(1, { message: "At least one item is required" }).max(10, { message: "Maximum 10 items allowed" }),
   phone_number: phoneSchema,
-  city: z.string().optional(),
-  area: z.string().optional(),
-  complete_address: z.string().optional(),
   expiry_datetime: z.date({
     required_error: "Expiry date and time are required",
   }).refine((date) => {
@@ -36,8 +41,6 @@ const donationSchema = z.object({
     const twoYearsFromNow = addYears(now, 2);
     return isAfter(date, now) && isBefore(date, twoYearsFromNow);
   }, { message: "Expiry date must be between now and 2 years from today" }),
-  rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
-  image: z.instanceof(File, { message: "Food image is required" }),
   safety_confirmed: z.boolean().refine((val) => val === true, {
     message: "You must confirm the food is safe to donate",
   }),
@@ -51,40 +54,34 @@ export default function Donate() {
   const [userType, setUserType] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    quantity: '',
-    quantity_unit: 'kg',
-    food_type: '',
-    diet_type: 'veg',
+  const [items, setItems] = useState<DonationItemData[]>([createEmptyItem()]);
+  const [sharedData, setSharedData] = useState({
     phone_number: '',
     city: '',
     area: '',
     complete_address: '',
-    rating: 0,
   });
+
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [hour12, setHour12] = useState('12');
   const [minute, setMinute] = useState('00');
   const [ampm, setAmpm] = useState('PM');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const locationAutoTriggered = useRef(false);
 
-  const isPreparedFood = formData.food_type === 'Prepared Food';
+  // Derive food types from items for expiry constraints
+  const itemFoodTypes = items.map(i => i.food_type).filter(Boolean);
+  const hasPreparedFood = itemFoodTypes.includes('Prepared Food');
 
-  const convertTo24Hour = (hour12: string, minute: string, ampm: string): [number, number] => {
-    let hours = parseInt(hour12);
-    if (ampm === 'AM' && hours === 12) hours = 0;
-    if (ampm === 'PM' && hours !== 12) hours += 12;
-    return [hours, parseInt(minute)];
+  const convertTo24Hour = (h12: string, min: string, ap: string): [number, number] => {
+    let hours = parseInt(h12);
+    if (ap === 'AM' && hours === 12) hours = 0;
+    if (ap === 'PM' && hours !== 12) hours += 12;
+    return [hours, parseInt(min)];
   };
 
-  // Auto-trigger location detection when step 2 loads
   useEffect(() => {
     if (currentStep === 2 && !coordinates && !locationAutoTriggered.current) {
       locationAutoTriggered.current = true;
@@ -98,39 +95,29 @@ export default function Donate() {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
-      
       if (!response.ok) throw new Error('Geocoding failed');
-      
       const data = await response.json();
       const addr = data.address;
-      
       const cleanComponent = (value?: string) => {
         if (!value) return '';
         return value.replace(/\bmandal\b/gi, '').trim();
       };
-      
       const rawCity = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
       const city = cleanComponent(rawCity);
-      
       const areaComponentsRaw = [
         addr.locality, addr.suburb, addr.neighbourhood,
         addr.quarter, addr.hamlet, addr.city_district,
       ];
-      
       const areaComponents = areaComponentsRaw
         .map(cleanComponent)
-        .filter((val, idx, arr) => val && arr.indexOf(val) === idx);
-      
+        .filter((val: string, idx: number, arr: string[]) => val && arr.indexOf(val) === idx);
       const area = areaComponents.length > 0 ? areaComponents.join(', ') : city;
-      
       const addressParts = [
         addr.house_number, addr.road, addr.suburb || addr.neighbourhood,
         addr.village || addr.town || addr.city, addr.state_district || addr.county,
         addr.state, addr.country, addr.postcode
       ].filter(Boolean);
-      
       const completeAddress = addressParts.join(', ');
-      
       return { city, area, completeAddress };
     } catch (error) {
       console.error('Reverse geocoding error:', error);
@@ -143,27 +130,22 @@ export default function Donate() {
       toast.error(t('donate.geolocationNotSupported'));
       return;
     }
-
     setLoadingLocation(true);
-    
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           setCoordinates({ lat, lng });
-          
           const address = await reverseGeocode(lat, lng);
-          
-          setFormData(prev => ({
+          setSharedData(prev => ({
             ...prev,
             city: address.city,
             area: address.area,
             complete_address: address.completeAddress,
           }));
-            
           toast.success(t('donate.locationDetected'));
-        } catch (error) {
+        } catch {
           toast.error(t('donate.failedGetAddress'));
         } finally {
           setLoadingLocation(false);
@@ -187,7 +169,6 @@ export default function Donate() {
     }
   }, [user, loading, navigate]);
 
-
   useEffect(() => {
     const fetchUserType = async () => {
       if (user) {
@@ -196,7 +177,6 @@ export default function Donate() {
           .select('user_type')
           .eq('id', user.id)
           .maybeSingle();
-        
         if (data) {
           setUserType(data.user_type);
           if (data.user_type === 'receiver') {
@@ -206,51 +186,24 @@ export default function Donate() {
         }
       }
     };
-
     fetchUserType();
   }, [user, navigate]);
 
+  // Auto-set expiry for prepared food
   useEffect(() => {
-    if (formData.food_type === 'Prepared Food') {
+    if (hasPreparedFood) {
       setExpiryDate(new Date());
       const futureTime = new Date();
       futureTime.setHours(futureTime.getHours() + 2);
       futureTime.setMinutes(futureTime.getMinutes() + 15);
-      
       const hours = futureTime.getHours();
       const mins = futureTime.getMinutes();
-      
       const hour12Val = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
       setHour12(String(hour12Val));
       setMinute(String(Math.floor(mins / 15) * 15).padStart(2, '0'));
       setAmpm(hours >= 12 ? 'PM' : 'AM');
     }
-  }, [formData.food_type]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error(t('auth.pleaseUploadImage'));
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(t('auth.imageSizeTooLarge'));
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
+  }, [hasPreparedFood]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,17 +213,15 @@ export default function Donate() {
     try {
       let expiryDateTime: Date;
 
-      if (isPreparedFood) {
+      if (hasPreparedFood) {
         const dateToUse = expiryDate || new Date();
         const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
         expiryDateTime = new Date(
           dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(),
           hours24, mins, 0, 0
         );
-        
         const now = new Date();
         const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000);
-        
         if (expiryDateTime < minAllowedTime) {
           toast.error(t('donate.pickupTimeMustBeFuture'));
           setSubmitting(false);
@@ -282,7 +233,6 @@ export default function Donate() {
           setSubmitting(false);
           return;
         }
-
         const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
         expiryDateTime = new Date(
           expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate(),
@@ -296,13 +246,25 @@ export default function Donate() {
         return;
       }
 
-      const validation = donationSchema.safeParse({ 
-        ...formData, 
-        image: imageFile,
+      // Build validation data
+      const validationItems = items.map(item => ({
+        title: item.title,
+        description: item.description || undefined,
+        quantity: item.quantity,
+        quantity_unit: item.quantity_unit,
+        food_type: item.food_type,
+        diet_type: item.diet_type,
+        rating: item.rating,
+        image: item.imageFile!,
+      }));
+
+      const validation = donationSchema.safeParse({
+        items: validationItems,
+        phone_number: sharedData.phone_number,
         expiry_datetime: expiryDateTime,
         safety_confirmed: safetyConfirmed,
       });
-      
+
       if (!validation.success) {
         const firstError = validation.error.errors[0];
         toast.error(firstError.message);
@@ -310,19 +272,38 @@ export default function Donate() {
         return;
       }
 
-      const fileExt = imageFile!.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('food-images')
-        .upload(fileName, imageFile!);
+      // Upload all images in parallel
+      const imageUploadPromises = items.map(async (item) => {
+        const file = item.imageFile!;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}-${item.id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('food-images')
+          .upload(fileName, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('food-images')
+          .getPublicUrl(fileName);
+        return publicUrl;
+      });
 
-      if (uploadError) throw uploadError;
+      const imageUrls = await Promise.all(imageUploadPromises);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('food-images')
-        .getPublicUrl(fileName);
+      // Build summary for food_donations parent row
+      const firstItem = items[0];
+      const summaryTitle = items.length === 1 
+        ? firstItem.title 
+        : `${items.length} food items`;
+      const summaryFoodType = items.length === 1 
+        ? firstItem.food_type 
+        : 'Mixed';
+      const summaryDietType = items.some(i => i.diet_type === 'non-veg') ? 'non-veg' : 'veg';
+      const avgRating = Math.round(items.reduce((s, i) => s + i.rating, 0) / items.length);
+      const totalQuantity = items.length === 1
+        ? firstItem.quantity
+        : items.map(i => `${i.quantity} ${i.quantity_unit}`).join(', ');
 
-      const pickupLocation = `${validation.data.complete_address}, ${validation.data.area}, ${validation.data.city}`;
+      const pickupLocation = `${sharedData.complete_address}, ${sharedData.area}, ${sharedData.city}`;
       const otpArray = new Uint32Array(1);
       crypto.getRandomValues(otpArray);
       const otp = ((otpArray[0] % 900000) + 100000).toString();
@@ -331,25 +312,50 @@ export default function Donate() {
         .from('food_donations')
         .insert([{
           donor_id: user.id,
-          title: validation.data.title,
-          description: validation.data.description || '',
-          quantity: validation.data.quantity,
-          quantity_unit: validation.data.quantity_unit,
-          food_type: validation.data.food_type,
-          diet_type: validation.data.diet_type,
-          phone_number: validation.data.phone_number,
+          title: summaryTitle,
+          description: items.length === 1 ? (firstItem.description || '') : `Donation with ${items.length} items`,
+          quantity: totalQuantity,
+          quantity_unit: items.length === 1 ? firstItem.quantity_unit : 'pieces',
+          food_type: summaryFoodType,
+          diet_type: summaryDietType,
+          phone_number: sharedData.phone_number,
           pickup_location: pickupLocation,
-          latitude: coordinates?.lat || null,
-          longitude: coordinates?.lng || null,
-          expiry_date: validation.data.expiry_datetime.toISOString(),
-          rating: validation.data.rating,
-          image_url: publicUrl,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
+          expiry_date: expiryDateTime.toISOString(),
+          rating: avgRating,
+          image_url: imageUrls[0],
           otp: otp,
         }])
         .select()
         .single();
 
       if (error) throw error;
+
+      // Insert individual items into donation_items
+      if (donationData) {
+        const itemsToInsert = items.map((item, idx) => ({
+          donation_id: donationData.id,
+          title: item.title.trim(),
+          description: item.description?.trim() || null,
+          quantity: item.quantity,
+          quantity_unit: item.quantity_unit,
+          food_type: item.food_type,
+          diet_type: item.diet_type,
+          rating: item.rating,
+          image_url: imageUrls[idx],
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('donation_items' as any)
+          .insert(itemsToInsert);
+
+        if (itemsError) {
+          console.error('Failed to insert donation items:', itemsError);
+          // Don't fail the whole donation if items insert fails
+          // The parent donation still works with summary data
+        }
+      }
 
       toast.success(t('donate.donationCreated'));
       navigate('/dashboard');
@@ -375,32 +381,25 @@ export default function Donate() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
       <div className="container mx-auto px-4 py-6 max-w-lg">
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="text-2xl">{t('donate.title')}</CardTitle>
-            <CardDescription>
-              {t('donate.subtitle')}
-            </CardDescription>
+            <CardDescription>{t('donate.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <DonateStepIndicator currentStep={currentStep} onStepClick={(step) => setCurrentStep(step)} />
-            
             {currentStep === 1 ? (
               <DonateFormStep1
-                formData={formData}
-                setFormData={setFormData}
-                imageFile={imageFile}
-                imagePreview={imagePreview}
-                onImageChange={handleImageChange}
-                onRemoveImage={handleRemoveImage}
+                items={items}
+                setItems={setItems}
                 onNext={() => setCurrentStep(2)}
               />
             ) : (
               <DonateFormStep2
-                formData={formData}
-                setFormData={setFormData}
+                sharedData={sharedData}
+                setSharedData={setSharedData}
+                itemFoodTypes={itemFoodTypes}
                 expiryDate={expiryDate}
                 setExpiryDate={setExpiryDate}
                 hour12={hour12}
