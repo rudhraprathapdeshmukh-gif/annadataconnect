@@ -74,6 +74,37 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
     onChange({ ...item, imageFile: null, imagePreview: null });
   };
 
+  const handleAnalyzeImage = async () => {
+    if (!item.imagePreview) return;
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-food-image', {
+        body: { imageBase64: item.imagePreview },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const updates: Partial<DonationItemData> = {};
+      if (data.title) updates.title = data.title;
+      if (data.food_type) updates.food_type = data.food_type;
+      if (data.diet_type) updates.diet_type = data.diet_type;
+      if (data.quantity) updates.quantity = data.quantity;
+      if (data.quantity_unit) updates.quantity_unit = data.quantity_unit;
+      if (data.rating) updates.rating = data.rating;
+
+      onChange({ ...item, ...updates });
+      toast.success('AI filled the details! Review and adjust if needed.');
+    } catch (err) {
+      console.error('AI analysis failed:', err);
+      toast.error('Could not analyze image. Please fill manually.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const getDateConstraints = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
