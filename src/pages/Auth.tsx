@@ -174,7 +174,7 @@ export default function Auth() {
     try {
       const validation = z.string().email().safeParse(resetEmail);
       if (!validation.success) {
-        toast.error('Please enter a valid email address');
+        toast.error(t('auth.pleaseEnterValidEmail'));
         setLoading(false);
         return;
       }
