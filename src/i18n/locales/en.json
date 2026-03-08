@@ -552,8 +552,8 @@
       "whatIsImpactTrackerIntro": "The Impact Tracker is a donor-exclusive feature that shows your contribution statistics:",
       "whatIsImpactTrackerSteps": ["Meals Shared: Total number of completed donations", "People Helped: Estimated based on quantity and unit donated", "Active Monthly Streak: Consecutive months of donations", "Average Rating: Your rating from receivers", "Achievement Badges: Unlock badges as you donate more", "Monthly Charts: Visual breakdown of your donations over time"],
       "whatIsImpactTrackerNote": "🏆 Keep donating to unlock new badges and earn achievement certificates!",
-      "howToChangeLanguageIntro": "AnnadataConnect supports English, Telugu (తెలుగు), and Hindi (हिन्दी):",
-      "howToChangeLanguageSteps": ["Tap your profile avatar in the navbar", "Find the Language section under App Preferences", "Select your preferred language (EN, తె, or हि)", "The entire app will switch to your chosen language instantly", "Your language preference is saved to your account"],
+      "howToChangeLanguageIntro": "AnnadataConnect supports English, Telugu (తెలుగు), Hindi (हिन्दी), and Marathi (मराठी):",
+      "howToChangeLanguageSteps": ["Tap your profile avatar in the navbar", "Find the Language section under App Preferences", "Select your preferred language (EN, తె, हि, or मरा)", "The entire app will switch to your chosen language instantly", "Your language preference is saved to your account"],
       "howToChangeLanguageNote": "🌐 All pages including Help, Terms, and Privacy are fully translated!"
     },
     "donorGuide": {
