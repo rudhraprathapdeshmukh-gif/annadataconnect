@@ -206,7 +206,7 @@ export default function Auth() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error('Reset link expired. Please request a new password reset.');
+        toast.error(t('auth.resetLinkExpiredRequest'));
         setShowResetPassword(false);
         setShowForgotPassword(true);
         setLoading(false);
