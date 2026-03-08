@@ -284,6 +284,7 @@ export default function Dashboard() {
           requestId: donorUnrated.id,
           type: 'donor',
           otherUserName: `${donorUnrated.profiles.first_name} ${donorUnrated.profiles.last_name}`,
+          otherUserId: donorUnrated.requester_id,
           donationTitle: donorUnrated.food_donations.title
         });
       }, 1000);
