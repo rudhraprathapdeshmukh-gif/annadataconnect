@@ -1215,7 +1215,10 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                                 {item.rating && (
-                                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                                  </div>
                                 )}
                               </div>
                             ))}
