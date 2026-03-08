@@ -86,6 +86,7 @@ interface FoodDonation {
   longitude?: number;
   image_url?: string | null;
   phone_number?: string | null;
+  items?: DonationItem[];
   donor_profile?: {
     first_name: string;
     last_name: string;
