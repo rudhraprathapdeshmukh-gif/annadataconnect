@@ -1221,6 +1221,7 @@ export default function Dashboard() {
                           requestId,
                           type: 'donor',
                           otherUserName: receiverName,
+                          otherUserId: request.requester_id,
                           donationTitle,
                         });
                       }}
