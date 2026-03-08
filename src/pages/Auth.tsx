@@ -234,7 +234,7 @@ export default function Auth() {
         navigate('/auth');
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error(t('auth.anError'));
     } finally {
       setLoading(false);
     }
