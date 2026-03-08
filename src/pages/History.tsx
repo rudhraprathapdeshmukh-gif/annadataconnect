@@ -80,14 +80,20 @@ export default function History() {
     requestId: string;
     type: 'donor' | 'receiver';
     otherPersonName: string;
+    otherPersonId: string;
+    donationTitle: string;
   }>({
     open: false,
     requestId: '',
     type: 'donor',
-    otherPersonName: ''
+    otherPersonName: '',
+    otherPersonId: '',
+    donationTitle: ''
   });
   const [selectedRating, setSelectedRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
   const [donationStats, setDonationStats] = useState({
