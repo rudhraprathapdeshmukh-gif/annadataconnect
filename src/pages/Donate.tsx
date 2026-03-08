@@ -29,11 +29,6 @@ const itemSchema = z.object({
   diet_type: z.enum(['veg', 'non-veg'], { message: "Please select diet type" }),
   rating: z.number().min(1, { message: "Please rate the food quality" }).max(5),
   image: z.instanceof(File, { message: "Food image is required" }),
-});
-
-const donationSchema = z.object({
-  items: z.array(itemSchema).min(1, { message: "At least one item is required" }).max(10, { message: "Maximum 10 items allowed" }),
-  phone_number: phoneSchema,
   expiry_datetime: z.date({
     required_error: "Expiry date and time are required",
   }).refine((date) => {
@@ -41,10 +36,22 @@ const donationSchema = z.object({
     const twoYearsFromNow = addYears(now, 2);
     return isAfter(date, now) && isBefore(date, twoYearsFromNow);
   }, { message: "Expiry date must be between now and 2 years from today" }),
+});
+
+const donationSchema = z.object({
+  items: z.array(itemSchema).min(1, { message: "At least one item is required" }).max(10, { message: "Maximum 10 items allowed" }),
+  phone_number: phoneSchema,
   safety_confirmed: z.boolean().refine((val) => val === true, {
     message: "You must confirm the food is safe to donate",
   }),
 });
+
+const convertTo24Hour = (h12: string, min: string, ap: string): [number, number] => {
+  let hours = parseInt(h12);
+  if (ap === 'AM' && hours === 12) hours = 0;
+  if (ap === 'PM' && hours !== 12) hours += 12;
+  return [hours, parseInt(min)];
+};
 
 export default function Donate() {
   const { user, loading } = useAuth();
@@ -62,25 +69,10 @@ export default function Donate() {
     complete_address: '',
   });
 
-  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
-  const [hour12, setHour12] = useState('12');
-  const [minute, setMinute] = useState('00');
-  const [ampm, setAmpm] = useState('PM');
   const [safetyConfirmed, setSafetyConfirmed] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const locationAutoTriggered = useRef(false);
-
-  // Derive food types from items for expiry constraints
-  const itemFoodTypes = items.map(i => i.food_type).filter(Boolean);
-  const hasPreparedFood = itemFoodTypes.includes('Prepared Food');
-
-  const convertTo24Hour = (h12: string, min: string, ap: string): [number, number] => {
-    let hours = parseInt(h12);
-    if (ap === 'AM' && hours === 12) hours = 0;
-    if (ap === 'PM' && hours !== 12) hours += 12;
-    return [hours, parseInt(min)];
-  };
 
   useEffect(() => {
     if (currentStep === 2 && !coordinates && !locationAutoTriggered.current) {
@@ -189,21 +181,14 @@ export default function Donate() {
     fetchUserType();
   }, [user, navigate]);
 
-  // Auto-set expiry for prepared food
-  useEffect(() => {
-    if (hasPreparedFood) {
-      setExpiryDate(new Date());
-      const futureTime = new Date();
-      futureTime.setHours(futureTime.getHours() + 2);
-      futureTime.setMinutes(futureTime.getMinutes() + 15);
-      const hours = futureTime.getHours();
-      const mins = futureTime.getMinutes();
-      const hour12Val = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-      setHour12(String(hour12Val));
-      setMinute(String(Math.floor(mins / 15) * 15).padStart(2, '0'));
-      setAmpm(hours >= 12 ? 'PM' : 'AM');
-    }
-  }, [hasPreparedFood]);
+  const buildExpiryDateTime = (item: DonationItemData): Date => {
+    const dateToUse = item.expiryDate || new Date();
+    const [hours24, mins] = convertTo24Hour(item.hour12, item.minute, item.ampm);
+    return new Date(
+      dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(),
+      hours24, mins, 0, 0
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,33 +196,22 @@ export default function Donate() {
 
     setSubmitting(true);
     try {
-      let expiryDateTime: Date;
-
-      if (hasPreparedFood) {
-        const dateToUse = expiryDate || new Date();
-        const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
-        expiryDateTime = new Date(
-          dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(),
-          hours24, mins, 0, 0
-        );
-        const now = new Date();
-        const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000);
-        if (expiryDateTime < minAllowedTime) {
-          toast.error(t('donate.pickupTimeMustBeFuture'));
-          setSubmitting(false);
-          return;
+      // Build per-item expiry dates
+      const itemExpiryDates: Date[] = [];
+      for (const item of items) {
+        const expiryDateTime = buildExpiryDateTime(item);
+        
+        if (item.food_type === 'Prepared Food') {
+          const now = new Date();
+          const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000);
+          if (expiryDateTime < minAllowedTime) {
+            toast.error(`${item.title || 'Prepared Food'}: Expiry time must be at least 5 minutes in the future`);
+            setSubmitting(false);
+            return;
+          }
         }
-      } else {
-        if (!expiryDate) {
-          toast.error(t('donate.selectExpiryDate'));
-          setSubmitting(false);
-          return;
-        }
-        const [hours24, mins] = convertTo24Hour(hour12, minute, ampm);
-        expiryDateTime = new Date(
-          expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate(),
-          hours24, mins, 0, 0
-        );
+        
+        itemExpiryDates.push(expiryDateTime);
       }
 
       if (!coordinates) {
@@ -247,7 +221,7 @@ export default function Donate() {
       }
 
       // Build validation data
-      const validationItems = items.map(item => ({
+      const validationItems = items.map((item, idx) => ({
         title: item.title,
         description: item.description || undefined,
         quantity: item.quantity,
@@ -256,12 +230,12 @@ export default function Donate() {
         diet_type: item.diet_type,
         rating: item.rating,
         image: item.imageFile!,
+        expiry_datetime: itemExpiryDates[idx],
       }));
 
       const validation = donationSchema.safeParse({
         items: validationItems,
         phone_number: sharedData.phone_number,
-        expiry_datetime: expiryDateTime,
         safety_confirmed: safetyConfirmed,
       });
 
@@ -288,6 +262,9 @@ export default function Donate() {
       });
 
       const imageUrls = await Promise.all(imageUploadPromises);
+
+      // Use the earliest expiry as the parent donation expiry
+      const earliestExpiry = new Date(Math.min(...itemExpiryDates.map(d => d.getTime())));
 
       // Build summary for food_donations parent row
       const firstItem = items[0];
@@ -322,7 +299,7 @@ export default function Donate() {
           pickup_location: pickupLocation,
           latitude: coordinates.lat,
           longitude: coordinates.lng,
-          expiry_date: expiryDateTime.toISOString(),
+          expiry_date: earliestExpiry.toISOString(),
           rating: avgRating,
           image_url: imageUrls[0],
           otp: otp,
@@ -344,6 +321,7 @@ export default function Donate() {
           diet_type: item.diet_type,
           rating: item.rating,
           image_url: imageUrls[idx],
+          expiry_date: itemExpiryDates[idx].toISOString(),
         }));
 
         const { error: itemsError } = await supabase
@@ -352,8 +330,6 @@ export default function Donate() {
 
         if (itemsError) {
           console.error('Failed to insert donation items:', itemsError);
-          // Don't fail the whole donation if items insert fails
-          // The parent donation still works with summary data
         }
       }
 
@@ -399,15 +375,6 @@ export default function Donate() {
               <DonateFormStep2
                 sharedData={sharedData}
                 setSharedData={setSharedData}
-                itemFoodTypes={itemFoodTypes}
-                expiryDate={expiryDate}
-                setExpiryDate={setExpiryDate}
-                hour12={hour12}
-                setHour12={setHour12}
-                minute={minute}
-                setMinute={setMinute}
-                ampm={ampm}
-                setAmpm={setAmpm}
                 safetyConfirmed={safetyConfirmed}
                 setSafetyConfirmed={setSafetyConfirmed}
                 loadingLocation={loadingLocation}

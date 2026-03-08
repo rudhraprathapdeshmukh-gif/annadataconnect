@@ -6,9 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Upload, X, ChevronDown, Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Upload, X, ChevronDown, Trash2, CalendarIcon, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { format, addDays, addMonths, addYears } from 'date-fns';
 import type { DonationItemData } from '@/types/donationItem';
 
 interface DonationItemCardProps {
@@ -27,6 +30,24 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
     const num = parseInt(item.quantity);
     setIsCustomQuantity(num > 9 || isNaN(num) || item.quantity === '');
   }, []);
+
+  // Auto-set expiry for prepared food
+  useEffect(() => {
+    if (item.food_type === 'Prepared Food' && !item.expiryDate) {
+      const now = new Date();
+      const futureTime = new Date(now.getTime() + 2 * 60 * 60 * 1000 + 15 * 60 * 1000);
+      const hours = futureTime.getHours();
+      const mins = futureTime.getMinutes();
+      const hour12Val = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      onChange({
+        ...item,
+        expiryDate: now,
+        hour12: String(hour12Val),
+        minute: String(Math.floor(mins / 15) * 15).padStart(2, '0'),
+        ampm: hours >= 12 ? 'PM' : 'AM',
+      });
+    }
+  }, [item.food_type]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +72,31 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
     onChange({ ...item, imageFile: null, imagePreview: null });
   };
 
+  const getDateConstraints = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const ft = item.food_type;
+    if (ft === 'Prepared Food' || ft === 'Dairy' || ft === 'Bakery Products') {
+      return { min: today, max: addDays(today, 2) };
+    } else if (ft === 'Vegetables' || ft === 'Fruits') {
+      return { min: today, max: addDays(today, 4) };
+    } else if (ft === 'Grains') {
+      return { min: today, max: addMonths(today, 5) };
+    }
+    return { min: today, max: addYears(today, 2) };
+  };
+
+  const getDateHelpText = () => {
+    const ft = item.food_type;
+    if (ft === 'Prepared Food' || ft === 'Dairy' || ft === 'Bakery Products') {
+      return `${ft}: Expiry within 2 days`;
+    }
+    if (ft === 'Vegetables' || ft === 'Fruits') return `${ft}: Expiry within 4 days`;
+    if (ft === 'Grains') return 'Grains: Expiry within 5 months';
+    return 'Select expiry date (up to 2 years)';
+  };
+
+  const constraints = getDateConstraints();
   const inputId = `item-image-${item.id}`;
 
   return (
@@ -283,6 +329,81 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                   <span className="text-xs font-medium">Non-Veg</span>
                 </Label>
               </RadioGroup>
+            </div>
+
+            {/* Expiry Date & Time */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-semibold">Approx Expiry Date & Time *</Label>
+              </div>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "w-full h-11 justify-start text-left font-normal text-sm",
+                      !item.expiryDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {item.expiryDate ? format(item.expiryDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={item.expiryDate}
+                    onSelect={(date) => onChange({ ...item, expiryDate: date })}
+                    disabled={(date) => date < constraints.min || date > constraints.max}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Time Picker */}
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="grid grid-cols-3 gap-2 flex-1">
+                  <Select value={item.hour12} onValueChange={(v) => onChange({ ...item, hour12: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Hr" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                        <SelectItem key={hour} value={String(hour)}>
+                          {String(hour).padStart(2, '0')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={item.minute} onValueChange={(v) => onChange({ ...item, minute: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Min" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['00', '15', '30', '45'].map((min) => (
+                        <SelectItem key={min} value={min}>{min}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={item.ampm} onValueChange={(v) => onChange({ ...item, ampm: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="AM/PM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{getDateHelpText()}</p>
             </div>
 
             {/* Rating */}

@@ -54,6 +54,10 @@ export function DonateFormStep1({ items, setItems, onNext }: DonateFormStep1Prop
         toast.error(`${label}Please rate the food quality`);
         return;
       }
+      if (!item.expiryDate) {
+        toast.error(`${label}Please select an expiry date`);
+        return;
+      }
     }
     onNext();
   };
