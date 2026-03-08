@@ -150,7 +150,7 @@ export default function Auth() {
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('auth.pleaseUploadImage'));
         return;
       }
       setAvatarFile(file);
