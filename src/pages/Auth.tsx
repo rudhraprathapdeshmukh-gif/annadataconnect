@@ -385,7 +385,7 @@ export default function Auth() {
             toast.error(t('auth.accountCreatedSignInFailed'));
             setIsSignUp(false);
           } else {
-            toast.success('Welcome to Annadataconnect! 🎉');
+            toast.success(t('auth.welcomeAnnadataconnect'));
             navigate('/dashboard');
           }
         }
