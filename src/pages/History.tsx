@@ -345,7 +345,7 @@ export default function History() {
         .eq('id', ratingDialog.requestId);
       if (error) throw error;
       toast.success(t('history.ratingSubmitted'));
-      setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '' });
+      setRatingDialog({ open: false, requestId: '', type: 'donor', otherPersonName: '', otherPersonId: '', donationTitle: '' });
       setSelectedRating(0);
       fetchHistory();
     } catch (error) {
