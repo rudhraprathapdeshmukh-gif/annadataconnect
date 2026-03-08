@@ -642,7 +642,7 @@ export default function Auth() {
               </div>
               {isSignUp && password && (
                 <div className="space-y-2 mt-3 p-3 rounded-md bg-muted/50">
-                  <p className="text-xs font-medium text-muted-foreground">Password must contain:</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t('auth.passwordMustContain')}</p>
                   <ul className="space-y-1">
                     {passwordRequirements.map((req, index) => (
                       <li key={index} className="flex items-center gap-2 text-xs">
