@@ -24,4 +24,4 @@ export const createEmptyItem = (): DonationItemData => ({
   imagePreview: null,
 });
 
-export const MAX_DONATION_ITEMS = 10;
+export const MAX_DONATION_ITEMS = 4;
