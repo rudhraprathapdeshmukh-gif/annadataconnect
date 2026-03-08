@@ -10,23 +10,17 @@ import { CalendarIcon, Clock, ShieldCheck, MapPin, Loader2, ChevronLeft, CheckCi
 import { format, addDays, addMonths, addYears } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-interface FormData {
-  title: string;
-  description: string;
-  quantity: string;
-  quantity_unit: string;
-  food_type: string;
-  diet_type: string;
+interface SharedData {
   phone_number: string;
   city: string;
   area: string;
   complete_address: string;
-  rating: number;
 }
 
 interface DonateFormStep2Props {
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  sharedData: SharedData;
+  setSharedData: React.Dispatch<React.SetStateAction<SharedData>>;
+  itemFoodTypes: string[];
   expiryDate: Date | undefined;
   setExpiryDate: (date: Date | undefined) => void;
   hour12: string;
@@ -46,8 +40,9 @@ interface DonateFormStep2Props {
 }
 
 export function DonateFormStep2({
-  formData,
-  setFormData,
+  sharedData,
+  setSharedData,
+  itemFoodTypes,
   expiryDate,
   setExpiryDate,
   hour12,
@@ -67,26 +62,24 @@ export function DonateFormStep2({
 }: DonateFormStep2Props) {
   const { t } = useTranslation();
 
-  const isPreparedFood = formData.food_type === 'Prepared Food';
-  const isVegetableOrFruit = formData.food_type === 'Vegetables' || formData.food_type === 'Fruits';
-  const isDairy = formData.food_type === 'Dairy';
-  const isGrains = formData.food_type === 'Grains';
-  const isBakery = formData.food_type === 'Bakery Products';
+  // Determine the most restrictive expiry based on ALL item food types
+  const hasPreparedFood = itemFoodTypes.includes('Prepared Food');
+  const hasVegetableOrFruit = itemFoodTypes.includes('Vegetables') || itemFoodTypes.includes('Fruits');
+  const hasDairy = itemFoodTypes.includes('Dairy');
+  const hasBakery = itemFoodTypes.includes('Bakery Products');
+  const hasGrains = itemFoodTypes.includes('Grains');
 
   const getDateConstraints = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    if (isPreparedFood) {
+
+    // Use the most restrictive constraint across all items
+    if (hasPreparedFood || hasDairy || hasBakery) {
       return { min: today, max: addDays(today, 2) };
-    } else if (isVegetableOrFruit) {
+    } else if (hasVegetableOrFruit) {
       return { min: today, max: addDays(today, 4) };
-    } else if (isDairy) {
-      return { min: today, max: addDays(today, 2) };
-    } else if (isGrains) {
+    } else if (hasGrains) {
       return { min: today, max: addMonths(today, 5) };
-    } else if (isBakery) {
-      return { min: today, max: addDays(today, 2) };
     }
     return { min: today, max: addYears(today, 2) };
   };
@@ -94,11 +87,18 @@ export function DonateFormStep2({
   const constraints = getDateConstraints();
 
   const getDateHelpText = () => {
-    if (isPreparedFood) return 'Prepared food: Approx expiry within 2 days';
-    if (isVegetableOrFruit) return 'Vegetables/Fruits: Expiry within 4 days';
-    if (isDairy) return 'Dairy: Expiry within 2 days';
-    if (isGrains) return 'Grains: Expiry within 5 months';
-    if (isBakery) return 'Bakery Products: Expiry within 2 days';
+    const types: string[] = [];
+    if (hasPreparedFood) types.push('Prepared Food');
+    if (hasDairy) types.push('Dairy');
+    if (hasBakery) types.push('Bakery');
+    if (hasVegetableOrFruit) types.push('Vegetables/Fruits');
+    if (hasGrains) types.push('Grains');
+
+    if (hasPreparedFood || hasDairy || hasBakery) {
+      return `Most perishable item limits expiry to 2 days (${types.join(', ')})`;
+    }
+    if (hasVegetableOrFruit) return 'Vegetables/Fruits: Expiry within 4 days';
+    if (hasGrains) return 'Grains: Expiry within 5 months';
     return 'Select expiry date (up to 2 years)';
   };
 
@@ -113,7 +113,6 @@ export function DonateFormStep2({
           </Label>
         </div>
         
-        {/* Date Picker */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -190,8 +189,8 @@ export function DonateFormStep2({
         <Input
           id="phone_number"
           type="tel"
-          value={formData.phone_number}
-          onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+          value={sharedData.phone_number}
+          onChange={(e) => setSharedData(prev => ({ ...prev, phone_number: e.target.value }))}
           placeholder="10-digit mobile number"
           className="h-12"
           maxLength={10}
@@ -212,7 +211,7 @@ export function DonateFormStep2({
               <span>Location Detected</span>
             </div>
             <p className="text-sm text-foreground">
-              {formData.complete_address || `${formData.area}, ${formData.city}`}
+              {sharedData.complete_address || `${sharedData.area}, ${sharedData.city}`}
             </p>
             <Button
               type="button"

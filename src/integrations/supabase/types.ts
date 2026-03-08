@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      donation_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          diet_type: string | null
+          donation_id: string
+          food_type: string
+          id: string
+          image_url: string | null
+          quantity: string
+          quantity_unit: string
+          rating: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          diet_type?: string | null
+          donation_id: string
+          food_type: string
+          id?: string
+          image_url?: string | null
+          quantity: string
+          quantity_unit?: string
+          rating?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          diet_type?: string | null
+          donation_id?: string
+          food_type?: string
+          id?: string
+          image_url?: string | null
+          quantity?: string
+          quantity_unit?: string
+          rating?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donation_items_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "food_donations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_donations: {
         Row: {
           created_at: string
