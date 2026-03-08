@@ -597,7 +597,7 @@ export default function Auth() {
                     required
                     className="transition-all focus:ring-2 focus:ring-primary/20"
                   />
-                  <p className="text-xs text-muted-foreground">Format: +91 followed by 10 digits</p>
+                  <p className="text-xs text-muted-foreground">{t('auth.phoneFormat')}</p>
                 </div>
               </>
             )}
