@@ -1243,6 +1243,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-1 text-sm">
                             <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                             <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                            <span className="text-xs text-muted-foreground ml-1">{getFreshnessLabel(donation.rating)}</span>
                           </div>
                         )}
                       </CardContent>
