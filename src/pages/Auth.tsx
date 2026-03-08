@@ -191,7 +191,7 @@ export default function Auth() {
         setResetEmail('');
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error(t('auth.anError'));
     } finally {
       setLoading(false);
     }
