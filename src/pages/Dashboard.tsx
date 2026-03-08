@@ -34,6 +34,18 @@ import { reverseGeocode } from '@/lib/geoUtils';
 import { translateStatus, translateFoodType, translateUnit, translateDietType } from '@/lib/translateDynamic';
 
 
+interface DonationItem {
+  id: string;
+  title: string;
+  description: string | null;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  rating: number | null;
+  image_url: string | null;
+}
+
 interface PublicDonation {
   id: string;
   title: string;
@@ -51,6 +63,7 @@ interface PublicDonation {
   longitude?: number;
   image_url?: string | null;
   distance_km?: number;
+  items?: DonationItem[];
 }
 
 type LocationStatus = 'loading' | 'granted' | 'denied' | 'unavailable';
@@ -433,8 +446,28 @@ export default function Dashboard() {
     }
   }, [receiverLocation, locationStatus, showAllDonations, searchRadius, receiverDistrict]);
 
+  const fetchDonationItems = async (donationIds: string[]): Promise<Record<string, DonationItem[]>> => {
+    if (donationIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('donation_items')
+      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
+      .in('donation_id', donationIds);
+    if (error) {
+      console.error('Failed to fetch donation items:', error);
+      return {};
+    }
+    const map: Record<string, DonationItem[]> = {};
+    (data || []).forEach((item: any) => {
+      if (!map[item.donation_id]) map[item.donation_id] = [];
+      map[item.donation_id].push(item);
+    });
+    return map;
+  };
+
   const fetchDonations = async () => {
     try {
+      let rawDonations: PublicDonation[] = [];
+
       // Use nearby RPC if receiver has location and not showing all
       if (receiverLocation && !showAllDonations) {
         const { data, error } = await supabase.rpc('get_nearby_donations', {
@@ -445,15 +478,14 @@ export default function Dashboard() {
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
           longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
-        })));
+        }));
       } else if (receiverLocation && showAllDonations) {
-        // Coordinate-based "Show All in District" with 50km radius
         const { data, error } = await supabase.rpc('get_nearby_donations', {
           p_lat: receiverLocation.lat,
           p_lng: receiverLocation.lng,
@@ -462,26 +494,34 @@ export default function Dashboard() {
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.map_latitude ? Number(d.map_latitude) : (d.approx_latitude ? Number(d.approx_latitude) : undefined),
           longitude: d.map_longitude ? Number(d.map_longitude) : (d.approx_longitude ? Number(d.approx_longitude) : undefined),
           distance_km: d.distance_km,
-        })));
+        }));
       } else {
-        // Fallback: use get_public_donations RPC to mask sensitive location data
         const { data, error } = await supabase.rpc('get_public_donations');
 
         if (error) throw error;
         const now = new Date().toISOString();
-        setDonations((data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
           ...d,
           pickup_location: d.masked_location,
           latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
           longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
-        })));
+        }));
       }
+
+      // Fetch items for all donations
+      const donationIds = rawDonations.map(d => d.id);
+      const itemsMap = await fetchDonationItems(donationIds);
+      const donationsWithItems = rawDonations.map(d => ({
+        ...d,
+        items: itemsMap[d.id] || [],
+      }));
+      setDonations(donationsWithItems);
     } catch (error) {
       toast.error('Failed to load donations');
     } finally {
@@ -1377,22 +1417,34 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDonations.map((donation) => (
                     <Card key={donation.id} className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                      {/* Image Section with Overlay Badges */}
+                      {/* Image Section - show first item image or donation image */}
                       <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-                        {donation.image_url ? (
-                          <img
-                            src={donation.image_url}
-                            alt={donation.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
-                          </div>
+                        {(() => {
+                          const displayImage = donation.items && donation.items.length > 0 
+                            ? donation.items[0].image_url 
+                            : donation.image_url;
+                          return displayImage ? (
+                            <img
+                              src={displayImage}
+                              alt={donation.title}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
+                            </div>
+                          );
+                        })()}
+                        
+                        {/* Multi-item count badge */}
+                        {donation.items && donation.items.length > 1 && (
+                          <span className="absolute top-2 left-2 bg-primary/90 text-primary-foreground backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium">
+                            {donation.items.length} items
+                          </span>
                         )}
                         
-                        {/* Diet Type Badge - Top Left */}
-                        {donation.diet_type && (
+                        {/* Diet Type Badge */}
+                        {donation.items && donation.items.length <= 1 && donation.diet_type && (
                           <span className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
                             donation.diet_type === 'veg' 
                               ? 'bg-green-500/90 text-white' 
@@ -1432,7 +1484,7 @@ export default function Dashboard() {
                       {/* Header Section */}
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
-                        {donation.description && (
+                        {donation.description && (!donation.items || donation.items.length <= 1) && (
                           <CardDescription className="line-clamp-2 text-sm">
                             {donation.description}
                           </CardDescription>
@@ -1441,15 +1493,50 @@ export default function Dashboard() {
                       
                       {/* Content Section */}
                       <CardContent className="flex-1 space-y-3 pt-0">
-                        {/* Quantity & Type Row */}
-                        <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="font-medium">{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
+                        {/* Individual Items List for multi-item donations */}
+                        {donation.items && donation.items.length > 1 ? (
+                          <div className="space-y-2">
+                            {donation.items.map((item) => (
+                              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                                {item.image_url && (
+                                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
+                                    <span>•</span>
+                                    <span>{translateFoodType(t, item.food_type)}</span>
+                                    {item.diet_type && (
+                                      <>
+                                        <span>•</span>
+                                        <span className={`inline-flex items-center gap-1 ${
+                                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                          {item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                {item.rating && (
+                                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                          <span className="text-muted-foreground">•</span>
-                          <Badge variant="secondary" className="text-xs">{translateFoodType(t, donation.food_type)}</Badge>
-                        </div>
+                        ) : (
+                          /* Single item - show as before */
+                          <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-medium">{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
+                            </div>
+                            <span className="text-muted-foreground">•</span>
+                            <Badge variant="secondary" className="text-xs">{translateFoodType(t, donation.food_type)}</Badge>
+                          </div>
+                        )}
                         
                         {/* Location */}
                         <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -1465,7 +1552,7 @@ export default function Dashboard() {
                           </div>
                         )}
                         
-                        {/* Expiry Date - Softer Styling */}
+                        {/* Expiry Date */}
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
