@@ -156,11 +156,13 @@ export default function Dashboard() {
     requestId: string;
     type: 'donor' | 'receiver';
     otherUserName: string;
+    otherUserId: string;
     donationTitle: string;
   } | null>(null);
   const [globalRating, setGlobalRating] = useState(0);
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
-  const [globalReview, setGlobalReview] = useState('');
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   // Location state for nearby filtering
