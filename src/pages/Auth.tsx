@@ -558,7 +558,7 @@ export default function Auth() {
                         onChange={handleAvatarChange}
                         className="cursor-pointer"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Max size: 5MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('auth.maxSize5MB')}</p>
                     </div>
                   </div>
                 </div>
