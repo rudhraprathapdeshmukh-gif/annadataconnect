@@ -259,6 +259,7 @@ const Help = () => {
                     {[
                       { title: 'locationNotWorking', steps: 'locationSteps' },
                       { title: 'imageUploadFailing', steps: 'imageSteps' },
+                      { title: 'profilePhotoLimit', steps: 'profilePhotoSteps' },
                     ].map(({ title, steps }) => (
                       <div key={title} className="bg-muted/30 rounded-lg p-3">
                         <p className="text-sm font-medium mb-2">{t(`help.technicalGuide.${title}`)}</p>
