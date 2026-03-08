@@ -246,18 +246,37 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
 
   return (
     <Card>
-      {/* Image - show first item image or donation image */}
-      {(() => {
+      {/* Image Section */}
+      {donationItems.length > 1 ? (
+        <div className={`grid gap-0.5 ${
+          donationItems.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
+        }`}>
+          {donationItems.slice(0, 4).map((item, idx) => (
+            <div key={item.id} className={`relative overflow-hidden ${
+              donationItems.length === 3 && idx === 0 ? 'row-span-2' : ''
+            } ${donationItems.length === 2 ? 'aspect-[4/3]' : 'aspect-square'}`}>
+              {item.image_url ? (
+                <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted">
+                  <Package className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
+              {donationItems.length > 4 && idx === 3 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">+{donationItems.length - 4}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (() => {
         const displayImage = donationItems.length > 0 
           ? donationItems[0].image_url 
           : request.food_donations.image_url;
         return displayImage ? (
           <div className="w-full h-48 overflow-hidden">
-            <img
-              src={displayImage}
-              alt={request.food_donations.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={displayImage} alt={request.food_donations.title} className="w-full h-full object-cover" />
           </div>
         ) : null;
       })()}
