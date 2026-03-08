@@ -450,11 +450,11 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full text-xs sm:text-sm whitespace-normal h-auto py-2"
                 onClick={() => setShowExtensionDialog(true)}
               >
-                <Clock className="h-4 w-4 mr-2" />
-                Request Extension (+10 min) • {3 - (request.extension_count || 0)} {t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })}
+                <Clock className="h-4 w-4 mr-1.5 shrink-0" />
+                <span className="truncate">+10 min • {3 - (request.extension_count || 0)} {t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })}</span>
               </Button>
             )}
             {request.extension_requested_at && !request.extension_granted && (
