@@ -597,7 +597,7 @@
       "notReceivingEmails": "Not receiving emails?",
       "notReceivingEmailsSteps": ["Check spam/junk folder", "Add our email to your contacts", "Verify your email address is correct"],
       "locationNotWorking": "Location not working?",
-      "locationSteps": ["Enable location services in browser settings", "Grant location permission when prompted", "Use saved addresses as an alternative", "Manually enter address if auto-detection fails"],
+      "locationSteps": ["Enable location services in browser settings", "Grant location permission when prompted", "Refresh the page and try again", "Manually enter address if auto-detection fails"],
       "imageUploadFailing": "Image upload failing?",
       "imageSteps": ["Ensure image is under 5MB", "Use JPG, PNG, or WebP formats", "Try a different image or compress it"],
       "profilePhotoLimit": "Profile photo not updating?",
