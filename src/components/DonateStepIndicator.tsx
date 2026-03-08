@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface DonateStepIndicatorProps {
   currentStep: 1 | 2;
@@ -8,15 +9,15 @@ interface DonateStepIndicatorProps {
 }
 
 export function DonateStepIndicator({ currentStep, onStepClick, totalSteps = 2 }: DonateStepIndicatorProps) {
+  const { t } = useTranslation();
   const steps = [
-    { number: 1, label: 'Food Details' },
-    { number: 2, label: 'Pickup & Submit' },
+    { number: 1, label: t('donate.stepFoodDetails') },
+    { number: 2, label: t('donate.stepPickupSubmit') },
   ];
 
   return (
     <div className="w-full mb-8">
       <div className="flex items-center justify-between relative">
-        {/* Progress line */}
         <div className="absolute left-0 top-4 h-0.5 w-full bg-muted" />
         <div 
           className="absolute left-0 top-4 h-0.5 bg-primary transition-all duration-500"
