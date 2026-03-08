@@ -23,6 +23,7 @@ interface MobileMenuProps {
 const LANGUAGES = [
   { value: 'en', label: 'EN' },
   { value: 'te', label: 'తె' },
+  { value: 'hi', label: 'हि' },
 ];
 
 const capitalizeName = (name: string | null | undefined): string => {
