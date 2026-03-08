@@ -9,6 +9,10 @@ export interface DonationItemData {
   rating: number;
   imageFile: File | null;
   imagePreview: string | null;
+  expiryDate: Date | undefined;
+  hour12: string;
+  minute: string;
+  ampm: string;
 }
 
 export const createEmptyItem = (): DonationItemData => ({
@@ -22,6 +26,10 @@ export const createEmptyItem = (): DonationItemData => ({
   rating: 0,
   imageFile: null,
   imagePreview: null,
+  expiryDate: undefined,
+  hour12: '12',
+  minute: '00',
+  ampm: 'PM',
 });
 
 export const MAX_DONATION_ITEMS = 4;
