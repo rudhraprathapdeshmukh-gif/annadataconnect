@@ -1215,7 +1215,10 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                                 {item.rating && (
-                                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -1240,6 +1243,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-1 text-sm">
                             <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                             <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
+                            <span className="text-xs text-muted-foreground ml-1">{getFreshnessLabel(donation.rating)}</span>
                           </div>
                         )}
                       </CardContent>
@@ -1645,7 +1649,10 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                                 {item.rating && (
-                                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                                  </div>
                                 )}
                               </div>
                             ))}

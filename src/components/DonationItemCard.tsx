@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Upload, X, ChevronDown, Trash2, CalendarIcon, Clock } from 'lucide-react';
+import { Camera, X, ChevronDown, Trash2, CalendarIcon, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, addDays, addMonths, addYears } from 'date-fns';
@@ -165,8 +165,8 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                   htmlFor={inputId}
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
                 >
-                  <Upload className="h-8 w-8 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground font-medium">Tap to upload</span>
+                  <Camera className="h-8 w-8 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground font-medium">Tap to capture photo</span>
                   <span className="text-xs text-muted-foreground">PNG, JPG, WEBP (Max 5MB)</span>
                 </label>
               )}
@@ -174,6 +174,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 id={inputId}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageChange}
                 className="hidden"
               />
