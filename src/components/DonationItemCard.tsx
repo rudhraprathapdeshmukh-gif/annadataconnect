@@ -174,6 +174,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 id={inputId}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageChange}
                 className="hidden"
               />
