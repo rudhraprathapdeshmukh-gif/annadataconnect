@@ -26,6 +26,7 @@ interface DonationItemCardProps {
 export function DonationItemCard({ item, index, totalItems, onChange, onRemove }: DonationItemCardProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isCustomQuantity, setIsCustomQuantity] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const num = parseInt(item.quantity);
