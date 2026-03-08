@@ -17,6 +17,16 @@ const capitalizeName = (name: string | null | undefined): string => {
   return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
+interface DonationItemInfo {
+  id: string;
+  title: string;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  image_url: string | null;
+}
+
 interface ActiveDonation {
   id: string;
   title: string;
@@ -27,6 +37,7 @@ interface ActiveDonation {
   expiry_date: string | null;
   image_url: string | null;
   pending_requests: number;
+  items: DonationItemInfo[];
 }
 
 const Index = () => {
