@@ -324,8 +324,8 @@ export default function Dashboard() {
 
     try {
       const updateData = pendingRating.type === 'donor'
-        ? { donor_rating: globalRating, donor_review: globalReview || null }
-        : { receiver_rating: globalRating, receiver_review: globalReview || null };
+        ? { donor_rating: globalRating }
+        : { receiver_rating: globalRating };
 
       const { error } = await supabase
         .from('food_requests')
@@ -334,20 +334,40 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Rating moderation (warnings/suspension/blocking) is handled by the database trigger
-
       toast.success('Thank you for your rating!');
       setPendingRating(null);
       setGlobalRating(0);
       setGlobalHoverRating(0);
-      setGlobalReview('');
       
-      // Refresh data
       fetchRequests();
       fetchMyRequests();
     } catch (error) {
       console.error('Error submitting rating:', error);
       toast.error('Failed to submit rating');
+    }
+  };
+
+  const handleReportUser = async () => {
+    if (!pendingRating || !user) return;
+    setReportSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: pendingRating.otherUserId,
+          type: 'user_report_warning',
+          title: '⚠️ You have been reported',
+          message: `A user has reported you regarding the donation "${pendingRating.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+          related_id: pendingRating.requestId
+        });
+      if (error) throw error;
+      toast.success('Report submitted successfully');
+      setShowReportConfirm(false);
+    } catch (error) {
+      console.error('Error reporting user:', error);
+      toast.error('Failed to submit report');
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
