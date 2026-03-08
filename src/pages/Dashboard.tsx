@@ -34,6 +34,18 @@ import { reverseGeocode } from '@/lib/geoUtils';
 import { translateStatus, translateFoodType, translateUnit, translateDietType } from '@/lib/translateDynamic';
 
 
+interface DonationItem {
+  id: string;
+  title: string;
+  description: string | null;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  rating: number | null;
+  image_url: string | null;
+}
+
 interface PublicDonation {
   id: string;
   title: string;
@@ -51,6 +63,7 @@ interface PublicDonation {
   longitude?: number;
   image_url?: string | null;
   distance_km?: number;
+  items?: DonationItem[];
 }
 
 type LocationStatus = 'loading' | 'granted' | 'denied' | 'unavailable';
