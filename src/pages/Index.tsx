@@ -17,6 +17,16 @@ const capitalizeName = (name: string | null | undefined): string => {
   return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
+interface DonationItemInfo {
+  id: string;
+  title: string;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  image_url: string | null;
+}
+
 interface ActiveDonation {
   id: string;
   title: string;
@@ -27,6 +37,7 @@ interface ActiveDonation {
   expiry_date: string | null;
   image_url: string | null;
   pending_requests: number;
+  items: DonationItemInfo[];
 }
 
 const Index = () => {
@@ -77,10 +88,23 @@ const Index = () => {
           }).limit(6);
           if (error) throw error;
             if (donations) {
-            // Filter out expired donations client-side
             const now = new Date().toISOString();
             const activeDonationsList = donations.filter(d => !d.expiry_date || d.expiry_date > now);
-            // Fetch pending requests count for each donation
+            
+            // Fetch donation items
+            const donationIds = activeDonationsList.map(d => d.id);
+            let itemsMap: Record<string, DonationItemInfo[]> = {};
+            if (donationIds.length > 0) {
+              const { data: items } = await supabase
+                .from('donation_items')
+                .select('id, donation_id, title, quantity, quantity_unit, food_type, diet_type, image_url')
+                .in('donation_id', donationIds);
+              (items || []).forEach((item: any) => {
+                if (!itemsMap[item.donation_id]) itemsMap[item.donation_id] = [];
+                itemsMap[item.donation_id].push(item);
+              });
+            }
+            
             const donationsWithCounts = await Promise.all(activeDonationsList.map(async donation => {
               const { count } = await supabase.from('food_requests').select('*', {
                 count: 'exact',
@@ -88,7 +112,8 @@ const Index = () => {
               }).eq('donation_id', donation.id).eq('status', 'pending');
               return {
                 ...donation,
-                pending_requests: count || 0
+                pending_requests: count || 0,
+                items: itemsMap[donation.id] || [],
               };
             }));
             setActiveDonations(donationsWithCounts);
@@ -210,11 +235,40 @@ const Index = () => {
             ) : activeDonations.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {activeDonations.map(donation => (
-                  <Card key={donation.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 card-3d group">
-                    {donation.image_url && (
-                      <div className="w-full h-48 overflow-hidden">
-                        <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+                  <Card key={donation.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 card-3d group flex flex-col">
+                    {/* Image Section */}
+                    {donation.items.length > 1 ? (
+                      <div className={`grid gap-0.5 ${
+                        donation.items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
+                      }`}>
+                        {donation.items.slice(0, 4).map((item, idx) => (
+                          <div key={item.id} className={`relative overflow-hidden ${
+                            donation.items.length === 3 && idx === 0 ? 'row-span-2' : ''
+                          } ${donation.items.length === 2 ? 'aspect-[4/3]' : 'aspect-square'}`}>
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <Package className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            {donation.items.length > 4 && idx === 3 && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white font-semibold text-lg">+{donation.items.length - 4}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
+                    ) : (
+                      (() => {
+                        const displayImage = donation.items.length > 0 ? donation.items[0].image_url : donation.image_url;
+                        return displayImage ? (
+                          <div className="w-full h-48 overflow-hidden">
+                            <img src={displayImage} alt={donation.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                        ) : null;
+                      })()
                     )}
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
@@ -224,18 +278,29 @@ const Index = () => {
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Package className="h-4 w-4" />
-                        <span>{donation.quantity} {donation.quantity_unit}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 shrink-0" />
-                        <span className="line-clamp-1">{donation.pickup_location}</span>
+                    <CardContent className="space-y-3 flex-1">
+                      {donation.items.length > 1 ? (
+                        <div className="space-y-1.5">
+                          {donation.items.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Package className="h-3.5 w-3.5 shrink-0" />
+                              <span className="line-clamp-1">{item.title} — {item.quantity} {item.quantity_unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Package className="h-4 w-4" />
+                          <span>{donation.quantity} {donation.quantity_unit}</span>
+                        </div>
+                      )}
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span className="line-clamp-2 break-words">{donation.pickup_location}</span>
                       </div>
                       {donation.expiry_date && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
+                          <Clock className="h-4 w-4 shrink-0" />
                           <span>{t('home.expires')}: {new Date(donation.expiry_date).toLocaleDateString()} at {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                         </div>
                       )}

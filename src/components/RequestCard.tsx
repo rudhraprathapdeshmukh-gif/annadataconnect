@@ -450,21 +450,21 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full text-xs sm:text-sm whitespace-normal h-auto py-2"
                 onClick={() => setShowExtensionDialog(true)}
               >
-                <Clock className="h-4 w-4 mr-2" />
-                Request Extension (+10 min) • {3 - (request.extension_count || 0)} {t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })}
+                <Clock className="h-4 w-4 mr-1.5 shrink-0" />
+                <span className="truncate">+10 min • {3 - (request.extension_count || 0)} {t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })}</span>
               </Button>
             )}
             {request.extension_requested_at && !request.extension_granted && (
-              <p className="text-sm text-muted-foreground text-center">
-                Extension requested - {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
+              <p className="text-xs sm:text-sm text-muted-foreground text-center break-words">
+                Extension requested • {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
               </p>
             )}
             {request.extension_granted && (
-              <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
-                <p className="text-sm text-green-600 dark:text-green-400">
+              <div className="flex items-center justify-between gap-2 p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded overflow-hidden">
+                <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 break-words min-w-0">
                   {t('dynamic.extensionGrantedMsg')}
                 </p>
                 <Button

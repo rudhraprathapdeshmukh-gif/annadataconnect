@@ -86,6 +86,7 @@ interface FoodDonation {
   longitude?: number;
   image_url?: string | null;
   phone_number?: string | null;
+  items?: DonationItem[];
   donor_profile?: {
     first_name: string;
     last_name: string;
@@ -566,7 +567,16 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMyDonations(data || []);
+      
+      // Fetch donation items for all donations
+      const donationIds = (data || []).map(d => d.id);
+      const itemsMap = await fetchDonationItems(donationIds);
+      const donationsWithItems = (data || []).map(d => ({
+        ...d,
+        items: itemsMap[d.id] || [],
+      }));
+      
+      setMyDonations(donationsWithItems as any);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load my donations:', error);
@@ -1112,59 +1122,121 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myDonations.map((donation) => (
-                    <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      {/* Image Section with Overlay Badge */}
-                      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-                        {donation.image_url ? (
-                          <img
-                            src={donation.image_url}
-                            alt={donation.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
-                          </div>
-                        )}
-                        
-                        {/* Diet Type Badge - Top Left */}
-                        {donation.diet_type && (
-                          <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${
-                            donation.diet_type === 'veg' 
-                              ? 'bg-green-500/90 text-white' 
-                              : 'bg-red-500/90 text-white'
-                          }`}>
-                            {donation.diet_type === 'veg' ? `● ${t('dashboard.veg')}` : `● ${t('dashboard.nonVeg')}`}
-                          </span>
-                        )}
-                      </div>
-                      <CardHeader>
+                    <Card key={donation.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
+                      {/* Image Section */}
+                      {donation.items && donation.items.length > 1 ? (
+                        <div className={`grid gap-0.5 ${
+                          donation.items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
+                        }`}>
+                          {donation.items.slice(0, 4).map((item, idx) => (
+                            <div key={item.id} className={`relative overflow-hidden ${
+                              donation.items!.length === 3 && idx === 0 ? 'row-span-2' : ''
+                            } ${donation.items!.length === 2 ? 'aspect-[4/3]' : 'aspect-square'}`}>
+                              {item.image_url ? (
+                                <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-muted">
+                                  <Package className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                              )}
+                              {donation.items!.length > 4 && idx === 3 && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <span className="text-white font-semibold text-lg">+{donation.items!.length - 4}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                          {(() => {
+                            const displayImage = donation.items && donation.items.length > 0 
+                              ? donation.items[0].image_url 
+                              : donation.image_url;
+                            return displayImage ? (
+                              <img src={displayImage} alt={donation.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
+                              </div>
+                            );
+                          })()}
+                          {/* Diet Type Badge */}
+                          {donation.diet_type && (!donation.items || donation.items.length <= 1) && (
+                            <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${
+                              donation.diet_type === 'veg' 
+                                ? 'bg-green-500/90 text-white' 
+                                : 'bg-red-500/90 text-white'
+                            }`}>
+                              {donation.diet_type === 'veg' ? `● ${t('dashboard.veg')}` : `● ${t('dashboard.nonVeg')}`}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
-                          <Badge variant={donation.status === 'available' ? 'default' : 'secondary'}>
+                          <Badge variant={donation.status === 'available' ? 'default' : 'secondary'} className="shrink-0">
                             {translateStatus(t, donation.status)}
                           </Badge>
                         </div>
-                        <CardDescription className="line-clamp-2">
-                          {donation.description}
-                        </CardDescription>
+                        {(!donation.items || donation.items.length <= 1) && donation.description && (
+                          <CardDescription className="line-clamp-2">
+                            {donation.description}
+                          </CardDescription>
+                        )}
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 shrink-0" />
-                          <span className="line-clamp-1">{donation.pickup_location}</span>
+                      <CardContent className="space-y-3 flex-1">
+                        {/* Multi-item list */}
+                        {donation.items && donation.items.length > 1 ? (
+                          <div className="space-y-2">
+                            {donation.items.map((item) => (
+                              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                                {item.image_url && (
+                                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                                    <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
+                                    <span>•</span>
+                                    <span>{translateFoodType(t, item.food_type)}</span>
+                                    {item.diet_type && (
+                                      <>
+                                        <span>•</span>
+                                        <span className={`inline-flex items-center gap-1 ${
+                                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                          {item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                {item.rating && (
+                                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Package className="h-4 w-4" />
+                            <span>{donation.quantity} {translateUnit(t, donation.quantity_unit)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2 break-words">{donation.pickup_location}</span>
                         </div>
                         {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>{t('dynamic.expiresAt', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) })}</span>
+                            <Clock className="h-4 w-4 shrink-0" />
+                            <span className="break-words">{t('dynamic.expiresAt', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) })}</span>
                           </div>
                         )}
-                        {donation.rating && (
+                        {(!donation.items || donation.items.length <= 1) && donation.rating && (
                           <div className="flex items-center gap-1 text-sm">
                             <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                             <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
@@ -2018,10 +2090,10 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           </div>
         )}
         {request.status === 'approved' && request.extension_requested_at && !request.extension_granted && (
-          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
+           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3 overflow-hidden">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-              <Clock className="h-4 w-4" />
-              <span className="font-semibold">{t('dynamic.extensionRequestedPlus10')}</span>
+              <Clock className="h-4 w-4 shrink-0" />
+              <span className="font-semibold text-sm break-words">{t('dynamic.extensionRequestedPlus10')}</span>
             </div>
             <p className="text-sm text-muted-foreground">
               {extensionReason ? (
@@ -2048,11 +2120,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           </div>
         )}
         {request.extension_granted && (
-          <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
-            <p className="text-sm text-green-600 dark:text-green-400">
+          <div className="flex items-center justify-between gap-2 p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded overflow-hidden">
+            <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 break-words min-w-0">
               {t('dynamic.extensionGrantedMsg')}
               {request.extension_count !== undefined && request.extension_count < 3 && (
-                <span className="ml-2 text-muted-foreground">
+                <span className="ml-1 text-muted-foreground">
                   ({t('dynamic.remaining', { count: 3 - (request.extension_count || 0) })})
                 </span>
               )}
