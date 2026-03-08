@@ -1,4 +1,17 @@
 /**
+ * Reliability Score - Multi-Factor Calculation
+ * 
+ * Factors:
+ * 1. Donor Ratings (40%) - Average receiver ratings mapped to 0-100
+ * 2. Pickup Punctuality (25%) - On-time pickups / total pickups
+ * 3. Completion Rate (25%) - Completed requests / total resolved requests
+ * 4. No-Show Penalty (10%) - Penalizes no-show behavior
+ * 
+ * The actual score is calculated server-side via a DB trigger.
+ * This file provides tiers, display logic, and client-side utilities.
+ */
+
+/**
  * Reliability tiers based on score
  */
 export const RELIABILITY_TIERS = {
@@ -32,21 +45,16 @@ export function calculateNewReliabilityScore(
   outcome: 'on_time' | 'late' | 'no_show',
   totalPickups: number
 ): number {
-  // Define impact weights
   const weights = {
-    on_time: 5,    // +5 points for on-time pickup
-    late: -3,      // -3 points for late pickup
-    no_show: -15,  // -15 points for no-show (severe penalty)
+    on_time: 5,
+    late: -3,
+    no_show: -15,
   };
 
-  // Calculate smoothing factor (more weight to recent behavior for new users)
   const alpha = Math.min(0.3, 2 / (totalPickups + 1));
-  
-  // Calculate new score using exponential moving average
   const impact = weights[outcome];
   const rawNewScore = currentScore + impact * alpha * 100;
   
-  // Clamp score between 0 and 100
   return Math.max(0, Math.min(100, rawNewScore));
 }
 
@@ -55,22 +63,19 @@ export function calculateNewReliabilityScore(
  * Higher reliability = longer timer allowance
  */
 export function getReliabilityMultiplier(score: number): number {
-  if (score >= 85) return 1.2;  // Excellent: +20% time
-  if (score >= 70) return 1.0;  // Good: standard time
-  if (score >= 50) return 0.85; // Fair: -15% time
-  return 0.7;                   // Poor: -30% time
+  if (score >= 85) return 1.2;
+  if (score >= 70) return 1.0;
+  if (score >= 50) return 0.85;
+  return 0.7;
 }
 
 /**
  * Check if user should be temporarily blocked from requesting
  */
 export function shouldBlockUser(noShowCount: number, totalPickups: number): boolean {
-  // Block if 3+ no-shows in last 10 requests
   if (totalPickups >= 10 && noShowCount >= 3) {
     const noShowRate = noShowCount / totalPickups;
-    return noShowRate >= 0.3; // 30% no-show rate
+    return noShowRate >= 0.3;
   }
-  
-  // Block if 2 consecutive no-shows (for new users)
   return noShowCount >= 2 && totalPickups < 5;
 }
