@@ -2090,10 +2090,10 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           </div>
         )}
         {request.status === 'approved' && request.extension_requested_at && !request.extension_granted && (
-          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3">
+           <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-500 rounded-lg space-y-3 overflow-hidden">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-              <Clock className="h-4 w-4" />
-              <span className="font-semibold">{t('dynamic.extensionRequestedPlus10')}</span>
+              <Clock className="h-4 w-4 shrink-0" />
+              <span className="font-semibold text-sm break-words">{t('dynamic.extensionRequestedPlus10')}</span>
             </div>
             <p className="text-sm text-muted-foreground">
               {extensionReason ? (
