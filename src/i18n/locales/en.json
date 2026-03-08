@@ -552,8 +552,8 @@
       "whatIsImpactTrackerIntro": "The Impact Tracker is a donor-exclusive feature that shows your contribution statistics:",
       "whatIsImpactTrackerSteps": ["Meals Shared: Total number of completed donations", "People Helped: Estimated based on quantity and unit donated", "Active Monthly Streak: Consecutive months of donations", "Average Rating: Your rating from receivers", "Achievement Badges: Unlock badges as you donate more", "Monthly Charts: Visual breakdown of your donations over time"],
       "whatIsImpactTrackerNote": "🏆 Keep donating to unlock new badges and earn achievement certificates!",
-      "howToChangeLanguageIntro": "AnnadataConnect supports English, Telugu (తెలుగు), and Hindi (हिन्दी):",
-      "howToChangeLanguageSteps": ["Tap your profile avatar in the navbar", "Find the Language section under App Preferences", "Select your preferred language (EN, తె, or हि)", "The entire app will switch to your chosen language instantly", "Your language preference is saved to your account"],
+      "howToChangeLanguageIntro": "AnnadataConnect supports English, Telugu (తెలుగు), Hindi (हिन्दी), and Marathi (मराठी):",
+      "howToChangeLanguageSteps": ["Tap your profile avatar in the navbar", "Find the Language section under App Preferences", "Select your preferred language (EN, తె, हि, or मरा)", "The entire app will switch to your chosen language instantly", "Your language preference is saved to your account"],
       "howToChangeLanguageNote": "🌐 All pages including Help, Terms, and Privacy are fully translated!"
     },
     "donorGuide": {
@@ -791,7 +791,7 @@
     "lastUpdated": "Last Updated: March 8, 2026",
     "section1Title": "1. Introduction",
     "section1P1": "AnnadataConnect is a platform that connects food donors with food receivers to reduce food waste and fight hunger in the community.",
-    "section1P2": "By using our app or website, you agree to follow these Terms & Conditions. The platform is available in English, Telugu, and Hindi.",
+    "section1P2": "By using our app or website, you agree to follow these Terms & Conditions. The platform is available in English, Telugu, Hindi, and Marathi.",
     "section2Title": "2. Purpose of the Platform",
     "section2P1": "AnnadataConnect helps individuals, restaurants, homes, and organizations donate extra food to those in need.",
     "section2P2": "We provide a connection service with features including real-time chat, OTP-verified pickups, location-based matching, and a trust-based rating system.",
@@ -841,7 +841,7 @@
     "lastUpdated": "Last Updated: March 8, 2026",
     "section1Title": "1. Information We Collect",
     "section1Intro": "We collect the following information:",
-    "section1Items": ["Name, phone number, and email address during signup.", "Profile photo (stored securely with randomized filenames).", "User type preference (donor, receiver, or both).", "Location data (latitude/longitude) for nearby donation matching.", "Photos and details of donated food items.", "Chat messages between donors and receivers.", "Ratings and reviews you provide.", "Language preference (English, Telugu, or Hindi).", "Push notification subscription data.", "Device information and app usage data."],
+    "section1Items": ["Name, phone number, and email address during signup.", "Profile photo (stored securely with randomized filenames).", "User type preference (donor, receiver, or both).", "Location data (latitude/longitude) for nearby donation matching.", "Photos and details of donated food items.", "Chat messages between donors and receivers.", "Ratings and reviews you provide.", "Language preference (English, Telugu, Hindi, or Marathi).", "Push notification subscription data.", "Device information and app usage data."],
     "section2Title": "2. How We Use Your Information",
     "section2Intro": "We use the collected data to:",
     "section2Items": ["Match donors with nearby receivers using location data.", "Enable secure OTP-verified food pickups.", "Calculate and display reliability scores.", "Track donation statistics and impact metrics.", "Award achievement badges based on milestones.", "Send push notifications and email alerts.", "Enable real-time chat between donors and receivers.", "Save your language preference across sessions.", "Improve app features, safety, and user experience.", "Prevent fraud, abuse, or misuse of the platform."],
