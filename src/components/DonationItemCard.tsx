@@ -183,15 +183,32 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               {item.imagePreview ? (
                 <div className="relative w-full h-36 rounded-xl overflow-hidden border-2 border-primary/20">
                   <img src={item.imagePreview} alt="Food preview" className="w-full h-full object-cover" />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7"
-                    onClick={handleRemoveImage}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-7 text-xs gap-1 shadow-md"
+                      onClick={handleAnalyzeImage}
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      {isAnalyzing ? 'Analyzing...' : 'AI Fill'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <label
