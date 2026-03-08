@@ -382,7 +382,7 @@ export default function Auth() {
           toast.success(t('auth.accountCreated'));
           const { error: signInError } = await signIn(email, password);
           if (signInError) {
-            toast.error('Account created but sign in failed. Please sign in manually.');
+            toast.error(t('auth.accountCreatedSignInFailed'));
             setIsSignUp(false);
           } else {
             toast.success('Welcome to Annadataconnect! 🎉');
