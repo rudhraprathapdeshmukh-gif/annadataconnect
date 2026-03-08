@@ -106,9 +106,9 @@ export default function Auth() {
         
         // Handle access_denied specifically for Google OAuth blocking
         if (errorType === 'access_denied' || message.includes('access_denied') || message.includes('Database error saving new user') || message.includes('database_error')) {
-          message = 'Google sign-in is only available for existing accounts. Please sign up with email and password first, then you can link your Google account.';
+          message = t('auth.googleOnlyExistingAccounts');
         } else if (message.includes('existing accounts') || message.includes('sign up first')) {
-          message = 'You need to sign up first with email and password before using Google sign-in.';
+          message = t('auth.googleOnlyExistingAccounts');
         }
         
         toast.error(message, { duration: 6000 }); // Longer duration for important message
