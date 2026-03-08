@@ -326,8 +326,8 @@ export default function History() {
     }
   };
 
-  const handleRateUser = (requestId: string, type: 'donor' | 'receiver', otherPersonName: string) => {
-    setRatingDialog({ open: true, requestId, type, otherPersonName });
+  const handleRateUser = (requestId: string, type: 'donor' | 'receiver', otherPersonName: string, otherPersonId: string, donationTitle: string) => {
+    setRatingDialog({ open: true, requestId, type, otherPersonName, otherPersonId, donationTitle });
     setSelectedRating(0);
   };
 
