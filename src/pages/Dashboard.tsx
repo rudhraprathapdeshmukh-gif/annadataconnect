@@ -1764,22 +1764,17 @@ export default function Dashboard() {
                 {getRatingLabel(globalHoverRating || globalRating)}
               </p>
             </div>
-            <div className="space-y-2">
-               <Label htmlFor="globalReview">{t('dynamic.reviewOptional')}</Label>
-              <Textarea
-                id="globalReview"
-                placeholder={t('dynamic.shareExperience', { name: pendingRating?.otherUserName })}
-                value={globalReview}
-                onChange={(e) => setGlobalReview(e.target.value)}
-                className="min-h-[100px] resize-none"
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {globalReview.length}/500
-              </p>
-            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
+              className="transition-all hover:scale-105 active:scale-95"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Report {pendingRating?.otherUserName}
+            </Button>
             <Button 
               onClick={handleGlobalRatingSubmit} 
               disabled={globalRating === 0} 
