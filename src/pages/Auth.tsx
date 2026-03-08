@@ -260,9 +260,9 @@ export default function Auth() {
         if (error.message.includes('existing accounts') || 
             error.message.includes('sign up first') ||
             error.message.includes('access_denied')) {
-          errorMessage = 'Google sign-in is only available for existing accounts. Please sign up with email and password first.';
+          errorMessage = t('auth.googleOnlyExistingAccounts');
         } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
-          errorMessage = 'Google sign-in is not configured. Please contact the administrator.';
+          errorMessage = t('auth.googleNotConfigured');
         }
         
         toast.error(errorMessage, { duration: 6000 });
