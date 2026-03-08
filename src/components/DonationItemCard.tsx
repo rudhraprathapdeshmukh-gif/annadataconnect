@@ -165,8 +165,8 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                   htmlFor={inputId}
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
                 >
-                  <Upload className="h-8 w-8 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground font-medium">Tap to upload</span>
+                  <Camera className="h-8 w-8 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground font-medium">Tap to capture photo</span>
                   <span className="text-xs text-muted-foreground">PNG, JPG, WEBP (Max 5MB)</span>
                 </label>
               )}
