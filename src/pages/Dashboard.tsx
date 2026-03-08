@@ -307,6 +307,7 @@ export default function Dashboard() {
           otherUserName: receiverUnrated.food_donations.donor_profile 
             ? `${receiverUnrated.food_donations.donor_profile.first_name} ${receiverUnrated.food_donations.donor_profile.last_name}`
             : 'the donor',
+          otherUserId: receiverUnrated.food_donations.donor_id,
           donationTitle: receiverUnrated.food_donations.title
         });
       }, 1000);
