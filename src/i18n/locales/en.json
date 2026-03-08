@@ -379,7 +379,9 @@
     "addressLoaded": "Address loaded",
     "detectLocationFirst": "Please detect your current location before submitting",
     "geolocationNotSupported": "Geolocation is not supported by your browser",
-    "failedGetAddress": "Failed to get address from location"
+    "failedGetAddress": "Failed to get address from location",
+    "stepFoodDetails": "Food Details",
+    "stepPickupSubmit": "Pickup & Submit"
   },
   "history": {
     "title": "Your History",
