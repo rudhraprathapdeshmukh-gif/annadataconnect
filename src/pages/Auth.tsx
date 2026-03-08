@@ -186,7 +186,7 @@ export default function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Password reset link sent! Check your email.');
+        toast.success(t('auth.passwordResetSent'));
         setShowForgotPassword(false);
         setResetEmail('');
       }
