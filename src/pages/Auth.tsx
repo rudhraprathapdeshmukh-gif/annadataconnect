@@ -287,7 +287,7 @@ export default function Auth() {
     // Safety timeout: force-clear loading after 15 seconds
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-      toast.error('Sign-in is taking too long. Please check your internet connection and try again.');
+      toast.error(t('auth.signInTakingLong'));
     }, 15000);
 
     try {
