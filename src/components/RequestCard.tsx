@@ -87,6 +87,22 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const [showExtensionDialog, setShowExtensionDialog] = useState(false);
   const [warningShown, setWarningShown] = useState(false);
 
+  const [donationItems, setDonationItems] = useState<DonationItemInfo[]>([]);
+
+  useEffect(() => {
+    fetchDonationItems();
+  }, [request.food_donations.id]);
+
+  const fetchDonationItems = async () => {
+    const { data } = await supabase
+      .from('donation_items')
+      .select('id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
+      .eq('donation_id', request.food_donations.id);
+    if (data && data.length > 0) {
+      setDonationItems(data);
+    }
+  };
+
   useEffect(() => {
     if (request.status === 'approved') {
       fetchOtp();
