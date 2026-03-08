@@ -246,20 +246,26 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
 
   return (
     <Card>
-      {request.food_donations.image_url && (
-        <div className="w-full h-48 overflow-hidden">
-          <img
-            src={request.food_donations.image_url}
-            alt={request.food_donations.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+      {/* Image - show first item image or donation image */}
+      {(() => {
+        const displayImage = donationItems.length > 0 
+          ? donationItems[0].image_url 
+          : request.food_donations.image_url;
+        return displayImage ? (
+          <div className="w-full h-48 overflow-hidden">
+            <img
+              src={displayImage}
+              alt={request.food_donations.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : null;
+      })()}
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
           <div className="flex gap-2 flex-wrap">
-            {request.food_donations.diet_type && (
+            {donationItems.length <= 1 && request.food_donations.diet_type && (
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                 request.food_donations.diet_type === 'veg' 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
@@ -282,22 +288,62 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </Badge>
           </div>
         </div>
-        <CardDescription className="line-clamp-2">
-          {request.food_donations.description}
-        </CardDescription>
+        {donationItems.length <= 1 && request.food_donations.description && (
+          <CardDescription className="line-clamp-2">
+            {request.food_donations.description}
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Package className="h-4 w-4" />
-          <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
-        </div>
-        {request.food_donations.rating && (
-          <div className="flex items-center gap-2 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-              <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
-            </div>
+        {/* Individual items for multi-item donations */}
+        {donationItems.length > 1 ? (
+          <div className="space-y-2">
+            {donationItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                {item.image_url && (
+                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
+                    <span>•</span>
+                    <span>{item.food_type}</span>
+                    {item.diet_type && (
+                      <>
+                        <span>•</span>
+                        <span className={`inline-flex items-center gap-1 ${
+                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          {item.diet_type === 'veg' ? t('donate.dietTypes.veg') : t('donate.dietTypes.nonVeg')}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {item.rating && (
+                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                )}
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Package className="h-4 w-4" />
+              <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
+            </div>
+            {request.food_donations.rating && (
+              <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+                  <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
