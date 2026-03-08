@@ -1,12 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, Target, Users, Ban, AlertTriangle, Monitor, XCircle, Edit } from 'lucide-react';
+import { ArrowLeft, FileText, Target, Users, Ban, AlertTriangle, Timer, Shield, UserCheck, Star, Monitor, XCircle, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/Navbar';
 
-const sectionIcons = [FileText, Target, Users, Ban, AlertTriangle, Monitor, XCircle, Edit];
+const sectionIcons = [FileText, Target, Users, Ban, AlertTriangle, Timer, Shield, UserCheck, Star, Monitor, XCircle, Edit];
 
 const Terms = () => {
   const navigate = useNavigate();
@@ -21,7 +21,6 @@ const Terms = () => {
           {t('common.back')}
         </Button>
 
-        {/* Hero */}
         <div className="mb-6 sm:mb-10">
           <h1 className="text-2xl sm:text-4xl font-bold text-foreground mb-2">
             {t('terms.pageTitle')}
@@ -68,27 +67,50 @@ const Terms = () => {
             <p className="text-sm font-semibold bg-destructive/5 rounded-lg p-2.5">{t('terms.section5P4')}</p>
           </SectionCard>
 
-          {/* Section 6 - Platform Limitations */}
+          {/* Section 6 - Pickup Timer & Extensions */}
           <SectionCard icon={sectionIcons[5]} title={t('terms.section6Title')}>
-            <p className="text-sm text-muted-foreground">{t('terms.section6P1')}</p>
-            <ItemList items={t('terms.section6Items1', { returnObjects: true }) as string[]} />
-            <p className="text-sm text-muted-foreground mt-1">{t('terms.section6P2')}</p>
-            <ItemList items={t('terms.section6Items2', { returnObjects: true }) as string[]} />
+            <p className="text-sm text-muted-foreground">{t('terms.section6TimerIntro')}</p>
+            <ItemList items={t('terms.section6TimerItems', { returnObjects: true }) as string[]} />
           </SectionCard>
 
-          {/* Section 7 - Termination */}
+          {/* Section 7 - Reliability Score & Account Moderation */}
           <SectionCard icon={sectionIcons[6]} title={t('terms.section7Title')}>
-            <p className="text-sm text-muted-foreground">{t('terms.section7P1')}</p>
-            <ItemList items={t('terms.section7Items', { returnObjects: true }) as string[]} accent="destructive" />
+            <p className="text-sm text-muted-foreground">{t('terms.section7ModerationIntro')}</p>
+            <ItemList items={t('terms.section7ModerationItems', { returnObjects: true }) as string[]} />
           </SectionCard>
 
-          {/* Section 8 - Changes */}
+          {/* Section 8 - Profile & Account Policies */}
           <SectionCard icon={sectionIcons[7]} title={t('terms.section8Title')}>
-            <p className="text-sm text-muted-foreground">{t('terms.section8P1')}</p>
-            <p className="text-sm font-medium">{t('terms.section8P2')}</p>
+            <p className="text-sm text-muted-foreground">{t('terms.section8ProfileIntro')}</p>
+            <ItemList items={t('terms.section8ProfileItems', { returnObjects: true }) as string[]} />
           </SectionCard>
 
-          {/* Bottom spacer */}
+          {/* Section 9 - Rating & Review System */}
+          <SectionCard icon={sectionIcons[8]} title={t('terms.section9Title')}>
+            <p className="text-sm text-muted-foreground">{t('terms.section9RatingIntro')}</p>
+            <ItemList items={t('terms.section9RatingItems', { returnObjects: true }) as string[]} />
+          </SectionCard>
+
+          {/* Section 10 - Platform Limitations */}
+          <SectionCard icon={sectionIcons[9]} title={t('terms.section10Title')}>
+            <p className="text-sm text-muted-foreground">{t('terms.section10P1')}</p>
+            <ItemList items={t('terms.section10Items1', { returnObjects: true }) as string[]} />
+            <p className="text-sm text-muted-foreground mt-1">{t('terms.section10P2')}</p>
+            <ItemList items={t('terms.section10Items2', { returnObjects: true }) as string[]} />
+          </SectionCard>
+
+          {/* Section 11 - Termination */}
+          <SectionCard icon={sectionIcons[10]} title={t('terms.section11Title')}>
+            <p className="text-sm text-muted-foreground">{t('terms.section11P1')}</p>
+            <ItemList items={t('terms.section11Items', { returnObjects: true }) as string[]} accent="destructive" />
+          </SectionCard>
+
+          {/* Section 12 - Changes */}
+          <SectionCard icon={sectionIcons[11]} title={t('terms.section12Title')}>
+            <p className="text-sm text-muted-foreground">{t('terms.section12P1')}</p>
+            <p className="text-sm font-medium">{t('terms.section12P2')}</p>
+          </SectionCard>
+
           <div className="h-4" />
         </div>
       </div>
@@ -117,7 +139,7 @@ function ItemList({ items, accent = 'primary' }: { items: string[]; accent?: str
     <ul className="space-y-1.5">
       {items.map((item, i) => (
         <li key={i} className="flex gap-2.5 text-sm text-muted-foreground">
-          <span className={`text-${accent} shrink-0`}>•</span>
+          <span className={`${accent === 'destructive' ? 'text-destructive' : 'text-primary'} shrink-0`}>•</span>
           <span>{item}</span>
         </li>
       ))}

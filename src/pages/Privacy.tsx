@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Shield, Eye, Share2, Lock, UserCheck, Baby, Globe, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Eye, Shield, Share2, Lock, UserCheck, Baby, Globe, RefreshCw, Database, Edit } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-const sectionIcons = [Eye, Shield, Share2, Lock, UserCheck, Baby, Globe, RefreshCw];
+const sectionIcons = [Eye, Shield, Lock, Share2, UserCheck, Baby, Globe, Database, RefreshCw, Edit];
 
 export default function Privacy() {
   const navigate = useNavigate();
@@ -17,10 +17,12 @@ export default function Privacy() {
     { key: '2', hasIntro: true, hasItems: true, hasNote: true },
     { key: '3', hasIntro: true, hasItems: true, hasNote: true },
     { key: '4', hasIntro: true, hasItems: true, hasNote: true },
-    { key: '5', hasIntro: true, hasItems: true },
-    { key: '6', paragraphs: ['P1', 'P2'] },
-    { key: '7', hasIntro: true, hasItems: true, hasNote: true },
-    { key: '8', paragraphs: ['P1', 'P2'] },
+    { key: '5', hasIntro: true, hasItems: true, hasNote: true },
+    { key: '6', hasIntro: true, hasItems: true },
+    { key: '7', paragraphs: ['P1', 'P2'] },
+    { key: '8', hasIntro: true, hasItems: true, hasNote: true },
+    { key: '9', hasIntro: true, hasItems: true },
+    { key: '10', paragraphs: ['P1', 'P2'] },
   ];
 
   return (
@@ -32,7 +34,6 @@ export default function Privacy() {
           {t('common.back')}
         </Button>
 
-        {/* Hero */}
         <div className="mb-6 sm:mb-10">
           <h1 className="text-2xl sm:text-4xl font-bold text-foreground mb-2">
             {t('privacy.pageTitle')}
@@ -87,7 +88,6 @@ export default function Privacy() {
             );
           })}
 
-          {/* Bottom spacer */}
           <div className="h-4" />
         </div>
       </div>

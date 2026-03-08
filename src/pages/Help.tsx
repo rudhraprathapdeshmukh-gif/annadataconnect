@@ -83,9 +83,12 @@ const Help = () => {
                     { value: 'donate', q: 'howToDonate', intro: 'howToDonateIntro', steps: 'howToDonateSteps', note: 'howToDonateNote', ordered: true },
                     { value: 'request', q: 'howToRequest', intro: 'howToRequestIntro', steps: 'howToRequestSteps', note: 'howToRequestNote', ordered: true },
                     { value: 'otp', q: 'whatIsOTP', intro: 'whatIsOTPIntro', steps: 'whatIsOTPSteps', note: 'whatIsOTPNote', ordered: false },
+                    { value: 'timer', q: 'whatIsTimer', intro: 'whatIsTimerIntro', steps: 'whatIsTimerSteps', note: 'whatIsTimerNote', ordered: false },
                     { value: 'reliability', q: 'howReliabilityWorks', intro: 'howReliabilityIntro', steps: 'howReliabilityLevels', note: null, ordered: false, extra: { intro2: 'howReliabilityFactorsIntro', steps2: 'howReliabilityFactors' } },
                     { value: 'missed', q: 'missedPickup', intro: 'missedPickupIntro', steps: 'missedPickupConsequences', note: null, ordered: false, extra: { intro2: 'missedPickupAlternatives', steps2: 'missedPickupOptions' } },
                     { value: 'rate', q: 'howToRate', intro: 'howToRateIntro', steps: 'howToRateSteps', note: null, ordered: false, extra: { intro2: 'howToRateHelps', steps2: 'howToRateHelpsItems' } },
+                    { value: 'impact', q: 'whatIsImpactTracker', intro: 'whatIsImpactTrackerIntro', steps: 'whatIsImpactTrackerSteps', note: 'whatIsImpactTrackerNote', ordered: false },
+                    { value: 'language', q: 'howToChangeLanguage', intro: 'howToChangeLanguageIntro', steps: 'howToChangeLanguageSteps', note: 'howToChangeLanguageNote', ordered: false },
                   ].map((faq) => (
                     <AccordionItem key={faq.value} value={faq.value} className="border-b last:border-0">
                       <AccordionTrigger className="text-sm sm:text-base px-4 sm:px-5 py-3 sm:py-4 hover:no-underline hover:bg-muted/30 text-left">
@@ -256,6 +259,7 @@ const Help = () => {
                     {[
                       { title: 'locationNotWorking', steps: 'locationSteps' },
                       { title: 'imageUploadFailing', steps: 'imageSteps' },
+                      { title: 'profilePhotoLimit', steps: 'profilePhotoSteps' },
                     ].map(({ title, steps }) => (
                       <div key={title} className="bg-muted/30 rounded-lg p-3">
                         <p className="text-sm font-medium mb-2">{t(`help.technicalGuide.${title}`)}</p>
