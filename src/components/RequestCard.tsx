@@ -463,8 +463,8 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               </p>
             )}
             {request.extension_granted && (
-              <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded">
-                <p className="text-sm text-green-600 dark:text-green-400">
+              <div className="flex items-center justify-between gap-2 p-2 bg-green-50 dark:bg-green-950/20 border border-green-500/30 rounded overflow-hidden">
+                <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 break-words min-w-0">
                   {t('dynamic.extensionGrantedMsg')}
                 </p>
                 <Button
