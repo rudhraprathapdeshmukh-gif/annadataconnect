@@ -20,6 +20,18 @@ import { TimerProgressBar } from './TimerProgressBar';
 import { ReliabilityBadge } from './ReliabilityBadge';
 import { ExtensionRequestDialog } from './ExtensionRequestDialog';
 
+interface DonationItemInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  rating: number | null;
+  image_url: string | null;
+}
+
 interface FoodDonation {
   id: string;
   title: string;
