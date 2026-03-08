@@ -725,7 +725,7 @@ export default function Auth() {
                 </Button>
                 
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Only available if you signed up with email first
+                  {t('auth.googleOnlyExisting')}
                 </p>
               </>
             )}
