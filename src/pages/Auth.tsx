@@ -228,7 +228,7 @@ export default function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Password updated successfully! Please sign in.');
+        toast.success(t('auth.passwordUpdated'));
         setShowResetPassword(false);
         setNewPassword('');
         navigate('/auth');
