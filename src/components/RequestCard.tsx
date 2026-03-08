@@ -458,8 +458,8 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
               </Button>
             )}
             {request.extension_requested_at && !request.extension_granted && (
-              <p className="text-sm text-muted-foreground text-center">
-                Extension requested - {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
+              <p className="text-xs sm:text-sm text-muted-foreground text-center break-words">
+                Extension requested • {t('dynamic.extensionsRemaining', { count: 3 - (request.extension_count || 0) })}
               </p>
             )}
             {request.extension_granted && (
