@@ -344,7 +344,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             )}
           </>
         )}
-        )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{t('dynamic.requested', { date: new Date(request.created_at).toLocaleDateString() })}</span>
