@@ -132,10 +132,7 @@ export default function Auth() {
         if (error || !profile) {
           // User doesn't have a profile, they're trying to sign in without signing up
           await supabase.auth.signOut();
-          toast.error(
-            'No account found. Please sign up with email and password first before using Google sign-in.',
-            { duration: 6000 }
-          );
+          toast.error(t('auth.noAccountFound'), { duration: 6000 });
           return;
         }
 
