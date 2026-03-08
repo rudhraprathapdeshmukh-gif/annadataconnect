@@ -394,9 +394,9 @@ export default function Auth() {
         if (error) {
           const msg = error.message || '';
           if (msg.includes('Email not confirmed')) {
-            toast.error('Your email is not verified yet. Please check your inbox (and spam folder) for the confirmation link we sent during sign-up.');
+            toast.error(t('auth.emailNotVerified'));
           } else if (msg.includes('Invalid login credentials')) {
-            toast.error('Incorrect email or password. Please check your credentials and try again.');
+            toast.error(t('auth.incorrectCredentials'));
           } else {
             toast.error(msg);
           }
