@@ -679,7 +679,7 @@ export default function Auth() {
                     <span className="truncate">{t('auth.receiveFood')}</span>
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Choose carefully - this cannot be changed later.</p>
+                <p className="text-xs text-muted-foreground">{t('auth.chooseCareully')}</p>
               </div>
             )}
             <Button type="submit" className="w-full transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl glow-effect" disabled={loading}>
