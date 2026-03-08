@@ -159,18 +159,18 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('auth.imageSizeTooLarge'));
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('auth.pleaseUploadImage'));
         return;
       }
 
       // Check photo edit limit before allowing selection
       const remaining = getPhotoEditsRemaining();
       if (remaining <= 0) {
-        toast.error('You have reached the maximum of 3 photo changes this month. Try again next month.');
+        toast.error(t('profile.maxPhotoEditsReached'));
         return;
       }
 
@@ -188,7 +188,7 @@ export default function Profile() {
 
     const remaining = getPhotoEditsRemaining();
     if (remaining <= 0) {
-      toast.error('You have reached the maximum of 3 photo changes this month. Try again next month.');
+      toast.error(t('profile.maxPhotoEditsReached'));
       return;
     }
 
@@ -233,10 +233,10 @@ export default function Profile() {
       setUserProfile({ ...userProfile, avatar_url: publicUrl, profile_edit_count: newEditCount, profile_edit_reset_at: newResetAt || userProfile.profile_edit_reset_at });
       setAvatarFile(null);
       setAvatarPreview(null);
-      toast.success(`Photo updated! ${MAX_PHOTO_EDITS_PER_MONTH - newEditCount} photo change${MAX_PHOTO_EDITS_PER_MONTH - newEditCount !== 1 ? 's' : ''} remaining this month.`);
+      toast.success(t('profile.photoUpdatedRemaining', { count: MAX_PHOTO_EDITS_PER_MONTH - newEditCount }));
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to update profile picture');
+      toast.error(t('profile.failedUpdateProfile'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -252,7 +252,7 @@ export default function Profile() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <p>Loading...</p>
+          <p>{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -267,12 +267,12 @@ export default function Profile() {
         {!isOwnProfile && (
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('common.back')}
           </Button>
         )}
         
         <h1 className="text-3xl font-bold">
-          {isOwnProfile ? 'Profile' : `${userProfile?.first_name}'s Profile`}
+          {isOwnProfile ? t('profile.title') : `${userProfile?.first_name}${t('profile.profileOf')}`}
         </h1>
 
         {/* Public Profile View - Show for other users */}
@@ -292,7 +292,7 @@ export default function Profile() {
                   </h2>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge variant="secondary">
-                      {userProfile.user_type === 'both' ? 'Donor & Receiver' : userProfile.user_type === 'donor' ? 'Donor' : 'Receiver'}
+                      {userProfile.user_type === 'both' ? t('profile.donorReceiver') : userProfile.user_type === 'donor' ? t('profile.donor') : t('profile.receiver')}
                     </Badge>
                     {userProfile.reliability_score !== undefined && userProfile.reliability_score !== null && (
                       <ReliabilityBadge score={userProfile.reliability_score} showLabel={true} />
@@ -302,13 +302,13 @@ export default function Profile() {
                     <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg justify-center">
                       <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                       <span className="font-bold text-lg">{averageRating}</span>
-                      <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                      <span className="text-sm text-muted-foreground">({totalRatings} {t('profile.ratings')})</span>
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
                     <div className="text-center">
                       <Calendar className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">Member Since</p>
+                      <p className="text-xs text-muted-foreground">{t('profile.memberSince')}</p>
                       <p className="font-medium">
                         {userProfile.created_at ? new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
                       </p>
@@ -316,7 +316,7 @@ export default function Profile() {
                     <div className="text-center">
                       <User className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
                       <p className="text-xs text-muted-foreground">
-                        {userProfile.user_type === 'receiver' ? 'Accepted Donations' : 'Total Donations'}
+                        {userProfile.user_type === 'receiver' ? t('profile.acceptedDonations') : t('profile.totalDonations')}
                       </p>
                       <p className="font-medium">
                         {userProfile.user_type === 'receiver'
@@ -338,9 +338,9 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Personal Information
+                  {t('profile.personalInfo')}
                 </CardTitle>
-                <CardDescription>Your profile and contact details</CardDescription>
+                <CardDescription>{t('profile.profileAndContactDetails')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Profile Picture */}
@@ -355,21 +355,21 @@ export default function Profile() {
                     {photoEditsRemaining > 0 ? (
                       <Label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors text-sm">
                         <Upload className="h-4 w-4" />
-                        Change Photo
+                        {t('profile.changePhoto')}
                         <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                       </Label>
                     ) : (
-                      <p className="text-sm text-destructive font-medium">Photo change limit reached</p>
+                      <p className="text-sm text-destructive font-medium">{t('profile.photoChangeLimitReached')}</p>
                     )}
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle className={`h-3.5 w-3.5 ${photoEditsRemaining <= 1 ? 'text-destructive' : 'text-muted-foreground'}`} />
                       <span className={`text-xs ${photoEditsRemaining <= 1 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                        {photoEditsRemaining} photo change{photoEditsRemaining !== 1 ? 's' : ''} remaining this month
+                        {t('profile.photoChangesRemaining', { count: photoEditsRemaining })}
                       </span>
                     </div>
                     {avatarFile && (
                       <Button onClick={handleAvatarUpload} disabled={uploadingAvatar} size="sm">
-                        {uploadingAvatar ? 'Uploading...' : 'Save Photo'}
+                        {uploadingAvatar ? t('profile.uploading') : t('profile.savePhoto')}
                       </Button>
                     )}
                   </div>
@@ -378,16 +378,16 @@ export default function Profile() {
                 {/* Name, Email, Phone - All view-only */}
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Name</Label>
+                    <Label className="text-sm text-muted-foreground">{t('profile.name')}</Label>
                     <p className="font-medium">{capitalizeName(userProfile?.first_name)} {capitalizeName(userProfile?.last_name)}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Email</Label>
+                    <Label className="text-sm text-muted-foreground">{t('profile.emailLabel')}</Label>
                     <p className="font-medium">{userProfile?.email}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Phone</Label>
-                    <p className="font-medium">{userProfile?.phone_number || 'Not provided'}</p>
+                    <Label className="text-sm text-muted-foreground">{t('profile.phone')}</Label>
+                    <p className="font-medium">{userProfile?.phone_number || t('profile.notProvided')}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('profile.userType')}</Label>
@@ -406,7 +406,7 @@ export default function Profile() {
                       <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg">
                         <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                         <span className="font-bold text-lg">{averageRating}</span>
-                        <span className="text-sm text-muted-foreground">({totalRatings} ratings)</span>
+                        <span className="text-sm text-muted-foreground">({totalRatings} {t('profile.ratings')})</span>
                       </div>
                     </div>
                   )}

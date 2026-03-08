@@ -140,7 +140,7 @@ export default function Donate() {
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
+      toast.error(t('donate.geolocationNotSupported'));
       return;
     }
 
@@ -162,9 +162,9 @@ export default function Donate() {
             complete_address: address.completeAddress,
           }));
             
-          toast.success('Location detected successfully!');
+          toast.success(t('donate.locationDetected'));
         } catch (error) {
-          toast.error('Failed to get address from location');
+          toast.error(t('donate.failedGetAddress'));
         } finally {
           setLoadingLocation(false);
         }
@@ -172,9 +172,9 @@ export default function Donate() {
       (error) => {
         setLoadingLocation(false);
         if (error.code === error.PERMISSION_DENIED) {
-          toast.error('Location permission denied. Please enable location access.');
+          toast.error(t('donate.locationPermissionDenied'));
         } else {
-          toast.error('Failed to get your location');
+          toast.error(t('donate.failedGetLocation'));
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -200,7 +200,7 @@ export default function Donate() {
         if (data) {
           setUserType(data.user_type);
           if (data.user_type === 'receiver') {
-            toast.error('Only donors can create donations');
+            toast.error(t('donate.onlyDonorsCanDonate'));
             navigate('/dashboard');
           }
         }
@@ -231,11 +231,11 @@ export default function Donate() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
+        toast.error(t('auth.pleaseUploadImage'));
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        toast.error(t('auth.imageSizeTooLarge'));
         return;
       }
       setImageFile(file);
@@ -272,13 +272,13 @@ export default function Donate() {
         const minAllowedTime = new Date(now.getTime() + 5 * 60 * 1000);
         
         if (expiryDateTime < minAllowedTime) {
-          toast.error('Pickup time must be at least 5 minutes in the future.');
+          toast.error(t('donate.pickupTimeMustBeFuture'));
           setSubmitting(false);
           return;
         }
       } else {
         if (!expiryDate) {
-          toast.error('Please select an expiry date');
+          toast.error(t('donate.selectExpiryDate'));
           setSubmitting(false);
           return;
         }
@@ -291,7 +291,7 @@ export default function Donate() {
       }
 
       if (!coordinates) {
-        toast.error('Please detect your current location before submitting');
+        toast.error(t('donate.detectLocationFirst'));
         setSubmitting(false);
         return;
       }
@@ -351,10 +351,10 @@ export default function Donate() {
 
       if (error) throw error;
 
-      toast.success(`Donation created successfully! ID: ${donationData.id.slice(0, 8).toUpperCase()}`);
+      toast.success(t('donate.donationCreated'));
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Failed to create donation');
+      toast.error(t('donate.failedCreateDonation'));
       console.error(error);
     } finally {
       setSubmitting(false);
@@ -379,9 +379,9 @@ export default function Donate() {
       <div className="container mx-auto px-4 py-6 max-w-lg">
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-4">
-            <CardTitle className="text-2xl">Donate Food</CardTitle>
+            <CardTitle className="text-2xl">{t('donate.title')}</CardTitle>
             <CardDescription>
-              Share your surplus food with those in need
+              {t('donate.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
