@@ -354,7 +354,7 @@ export default function Auth() {
             return;
           }
           if (avail.phone_taken) {
-            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            toast.error(t('auth.phoneAlreadyLinked'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
