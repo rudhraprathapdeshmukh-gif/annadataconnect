@@ -401,7 +401,7 @@ export default function Auth() {
             toast.error(msg);
           }
         } else {
-          toast.success('Signed in successfully!');
+          toast.success(t('auth.signedInSuccess'));
           // Explicitly navigate to dashboard after successful login
           navigate('/dashboard');
         }
