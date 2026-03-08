@@ -567,7 +567,16 @@ export default function Dashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMyDonations(data || []);
+      
+      // Fetch donation items for all donations
+      const donationIds = (data || []).map(d => d.id);
+      const itemsMap = await fetchDonationItems(donationIds);
+      const donationsWithItems = (data || []).map(d => ({
+        ...d,
+        items: itemsMap[d.id] || [],
+      }));
+      
+      setMyDonations(donationsWithItems as any);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to load my donations:', error);
