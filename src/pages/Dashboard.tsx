@@ -1417,24 +1417,51 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDonations.map((donation) => (
                     <Card key={donation.id} className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                      {/* Image Section - show first item image or donation image */}
-                      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-                        {(() => {
-                          const displayImage = donation.items && donation.items.length > 0 
-                            ? donation.items[0].image_url 
-                            : donation.image_url;
-                          return displayImage ? (
-                            <img
-                              src={displayImage}
-                              alt={donation.title}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
-                            </div>
-                          );
-                        })()}
+                      {/* Image Section */}
+                      <div className="relative w-full overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                        {donation.items && donation.items.length > 1 ? (
+                          /* Multi-item: show grid of all item images */
+                          <div className={`grid gap-0.5 ${
+                            donation.items.length === 2 ? 'grid-cols-2' : 
+                            donation.items.length === 3 ? 'grid-cols-2 grid-rows-2' :
+                            'grid-cols-2 grid-rows-2'
+                          }`}>
+                            {donation.items.slice(0, 4).map((item, idx) => (
+                              <div key={item.id} className={`relative overflow-hidden ${
+                                donation.items!.length === 3 && idx === 0 ? 'row-span-2' : ''
+                              } ${donation.items!.length === 2 ? 'aspect-[4/3]' : 'aspect-square'}`}>
+                                {item.image_url ? (
+                                  <img src={item.image_url} alt={item.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                                    <Package className="h-8 w-8 text-muted-foreground" />
+                                  </div>
+                                )}
+                                {donation.items!.length > 4 && idx === 3 && (
+                                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <span className="text-white font-semibold text-lg">+{donation.items!.length - 4}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          /* Single item */
+                          <div className="aspect-[4/3]">
+                            {(() => {
+                              const displayImage = donation.items && donation.items.length > 0 
+                                ? donation.items[0].image_url 
+                                : donation.image_url;
+                              return displayImage ? (
+                                <img src={displayImage} alt={donation.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="h-16 w-16 text-orange-300 dark:text-orange-700" />
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
                         
                         {/* Multi-item count badge */}
                         {donation.items && donation.items.length > 1 && (
