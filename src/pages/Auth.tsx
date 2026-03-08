@@ -348,7 +348,7 @@ export default function Auth() {
         if (!checkError && availability) {
           const avail = typeof availability === 'string' ? JSON.parse(availability) : availability;
           if (avail.email_taken) {
-            toast.error('This email is already registered. Please sign in instead, or use a different email.');
+            toast.error(t('auth.emailAlreadyRegistered'));
             clearTimeout(safetyTimeout);
             setLoading(false);
             return;
