@@ -88,10 +88,23 @@ const Index = () => {
           }).limit(6);
           if (error) throw error;
             if (donations) {
-            // Filter out expired donations client-side
             const now = new Date().toISOString();
             const activeDonationsList = donations.filter(d => !d.expiry_date || d.expiry_date > now);
-            // Fetch pending requests count for each donation
+            
+            // Fetch donation items
+            const donationIds = activeDonationsList.map(d => d.id);
+            let itemsMap: Record<string, DonationItemInfo[]> = {};
+            if (donationIds.length > 0) {
+              const { data: items } = await supabase
+                .from('donation_items')
+                .select('id, donation_id, title, quantity, quantity_unit, food_type, diet_type, image_url')
+                .in('donation_id', donationIds);
+              (items || []).forEach((item: any) => {
+                if (!itemsMap[item.donation_id]) itemsMap[item.donation_id] = [];
+                itemsMap[item.donation_id].push(item);
+              });
+            }
+            
             const donationsWithCounts = await Promise.all(activeDonationsList.map(async donation => {
               const { count } = await supabase.from('food_requests').select('*', {
                 count: 'exact',
@@ -99,7 +112,8 @@ const Index = () => {
               }).eq('donation_id', donation.id).eq('status', 'pending');
               return {
                 ...donation,
-                pending_requests: count || 0
+                pending_requests: count || 0,
+                items: itemsMap[donation.id] || [],
               };
             }));
             setActiveDonations(donationsWithCounts);
