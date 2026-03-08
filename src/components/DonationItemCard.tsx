@@ -8,10 +8,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Upload, X, ChevronDown, Trash2, CalendarIcon, Clock } from 'lucide-react';
+import { Upload, X, ChevronDown, Trash2, CalendarIcon, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format, addDays, addMonths, addYears } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import type { DonationItemData } from '@/types/donationItem';
 
 interface DonationItemCardProps {
@@ -25,6 +26,7 @@ interface DonationItemCardProps {
 export function DonationItemCard({ item, index, totalItems, onChange, onRemove }: DonationItemCardProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isCustomQuantity, setIsCustomQuantity] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const num = parseInt(item.quantity);
@@ -70,6 +72,37 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
 
   const handleRemoveImage = () => {
     onChange({ ...item, imageFile: null, imagePreview: null });
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!item.imagePreview) return;
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-food-image', {
+        body: { imageBase64: item.imagePreview },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const updates: Partial<DonationItemData> = {};
+      if (data.title) updates.title = data.title;
+      if (data.food_type) updates.food_type = data.food_type;
+      if (data.diet_type) updates.diet_type = data.diet_type;
+      if (data.quantity) updates.quantity = data.quantity;
+      if (data.quantity_unit) updates.quantity_unit = data.quantity_unit;
+      if (data.rating) updates.rating = data.rating;
+
+      onChange({ ...item, ...updates });
+      toast.success('AI filled the details! Review and adjust if needed.');
+    } catch (err) {
+      console.error('AI analysis failed:', err);
+      toast.error('Could not analyze image. Please fill manually.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getDateConstraints = () => {
@@ -150,15 +183,32 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               {item.imagePreview ? (
                 <div className="relative w-full h-36 rounded-xl overflow-hidden border-2 border-primary/20">
                   <img src={item.imagePreview} alt="Food preview" className="w-full h-full object-cover" />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7"
-                    onClick={handleRemoveImage}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-7 text-xs gap-1 shadow-md"
+                      onClick={handleAnalyzeImage}
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      {isAnalyzing ? 'Analyzing...' : 'AI Fill'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <label
