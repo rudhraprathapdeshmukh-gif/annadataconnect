@@ -365,9 +365,9 @@ export default function Auth() {
         if (error) {
           const msg = error.message || '';
           if (msg.includes('phone_number') || msg.includes('idx_profiles_phone_number_unique')) {
-            toast.error('This phone number is already linked to another account. Please use a different phone number or sign in with the existing account.');
+            toast.error(t('auth.phoneAlreadyLinked'));
           } else if (msg.includes('profiles_email_key') || (msg.includes('email') && msg.includes('unique'))) {
-            toast.error('This email is already registered. Please use a different email or sign in.');
+            toast.error(t('auth.emailAlreadyRegistered'));
           } else if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('already been registered') || msg.includes('already registered')) {
             toast.error('An account with these details already exists. Please sign in instead, or use a different email/phone number.');
           } else if (msg.includes('Database error saving new user') || msg.includes('unexpected_failure')) {
