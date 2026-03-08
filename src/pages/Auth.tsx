@@ -758,7 +758,7 @@ export default function Auth() {
           )}
           
           <p className="text-center text-xs text-muted-foreground pt-4 border-t mt-6">
-            By continuing, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+            {t('auth.agreeTerms')} <Link to="/terms" className="text-primary hover:underline">{t('auth.termsOfService')}</Link> {t('auth.and')} <Link to="/privacy" className="text-primary hover:underline">{t('auth.privacyPolicy')}</Link>
           </p>
         </CardContent>
       </Card>
