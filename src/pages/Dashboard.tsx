@@ -526,16 +526,10 @@ export default function Dashboard() {
           distance_km: d.distance_km,
         }));
       } else {
-        const { data, error } = await supabase.rpc('get_public_donations');
-
-        if (error) throw error;
-        const now = new Date().toISOString();
-        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
-          ...d,
-          pickup_location: d.masked_location,
-          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
-          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
-        }));
+        // No location available, don't fetch donations
+        setDonations([]);
+        setLoadingDonations(false);
+        return;
       }
 
       // Fetch items for all donations
