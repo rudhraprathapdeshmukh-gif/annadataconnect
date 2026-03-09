@@ -649,7 +649,15 @@ export default function History() {
             <Button 
               variant="destructive"
               size="sm"
-              onClick={() => setShowReportConfirm(true)}
+              onClick={() => {
+                setReportTarget({
+                  userId: ratingDialog.otherPersonId,
+                  donationTitle: ratingDialog.donationTitle,
+                  requestId: ratingDialog.requestId,
+                });
+                setRatingDialog({ ...ratingDialog, open: false });
+                setTimeout(() => setShowReportConfirm(true), 150);
+              }}
             >
               <X className="h-4 w-4 mr-1" />
               Report
