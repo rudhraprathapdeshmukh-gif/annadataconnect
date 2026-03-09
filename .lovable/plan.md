@@ -1,69 +1,93 @@
 
 
-## Plan: Fix receiver card info parity, card titles, and rating/report flows
+# Security and Bug Audit Report
 
-### Issues
+After a thorough review of the codebase, database schema, RLS policies, and security scan results, here are the issues found, organized by severity.
 
-1. **Card title shows "2 Food items"** — The parent `food_donations.title` (auto-generated as "2 Food items") is displayed as the card title everywhere. For multi-item donations, the title should instead show the individual item titles joined (e.g., "Biryani, Dal").
+---
 
-2. **Receiver Available Donations card missing info vs Donor card** — The receiver's "Available Donations" card already has full item details. The RequestCard (My Requests tab) also has item details. The main gap is the title display.
+## CRITICAL BUGS
 
-3. **Rating not working** — The Dashboard rating dialog blocks interaction via `onInteractOutside` + `onEscapeKeyDown` with `e.preventDefault()`. If `globalRating === 0` the dialog cannot be closed at all (the `onOpenChange` returns early). This traps users. Need to allow closing after rating is submitted, and ensure the submit flow works.
+### 1. Crash when `user` is null on Dashboard (line 187)
+In `requestLocation()`, the `else` branch at line 186-188 executes when `user` is `null`, but then accesses `user.id`. This will crash with a runtime error.
 
-4. **Report not working in History.tsx** — The report `AlertDialog` opens on top of the rating `Dialog` (line 651: `setShowReportConfirm(true)` without closing the rating dialog). The `Dialog` overlay blocks interaction with the `AlertDialog`. Same fix as Dashboard: close rating dialog first, persist report target info separately.
-
-### Changes
-
-**File: `src/pages/Dashboard.tsx`**
-
-- **Title fix**: For multi-item donations, replace `donation.title` with joined item titles:
-  - Line 1174 (donor Active Donations): `donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title`
-  - Line 1628 (receiver Available Donations): same pattern
-  - Line 2103 (DonorRequestCard): same pattern
-
-- **Rating dialog fix**: The `onOpenChange` at line 1820 blocks closing when `globalRating === 0`. This is intentional to force rating, but it also prevents the dialog from closing after report. The current flow already works for report (closes dialog via `setPendingRating(null)` then opens report). The issue might be that the rating submit itself fails silently. Will add better error logging.
-
-**File: `src/components/RequestCard.tsx`**
-
-- **Title fix**: Line 286, for multi-item show joined item titles instead of `request.food_donations.title`
-
-**File: `src/pages/History.tsx`**
-
-- **Report button fix**: Same pattern as Dashboard — store report target state separately, close rating dialog first, then open report AlertDialog with a small delay.
-- **Title fix** in history cards if applicable.
-
-### Technical Details
-
-Title change pattern (all locations):
-```tsx
-// Before
-<CardTitle>{donation.title}</CardTitle>
-
-// After  
-<CardTitle>
-  {donation.items && donation.items.length > 1
-    ? donation.items.map(i => i.title).join(', ')
-    : donation.title}
-</CardTitle>
+```
+} else {
+  // user is null here, so user.id will throw!
+  await supabase.from('profiles').update(...).eq('id', user.id);
+}
 ```
 
-History.tsx report fix:
-```tsx
-// Add state
-const [reportTarget, setReportTarget] = useState<{...} | null>(null);
+**Fix:** Remove the `else` branch entirely -- it should never run when `user` is null.
 
-// Report button: close dialog first
-onClick={() => {
-  setReportTarget({ userId: ratingDialog.otherPersonId, donationTitle: ratingDialog.donationTitle, requestId: ratingDialog.requestId });
-  setRatingDialog({ ...ratingDialog, open: false });
-  setTimeout(() => setShowReportConfirm(true), 150);
-}}
+### 2. Fallback donation query exposes sensitive data
+When a receiver has no location, `fetchDonations()` (line 473-483) queries `food_donations` directly, exposing `pickup_location` (exact addresses), `latitude`, and `longitude` to anyone. The `get_nearby_donations` and `get_public_donations` RPCs mask this data, but this fallback bypasses that.
 
-// AlertDialog onClick uses reportTarget instead of ratingDialog
-```
+**Fix:** Use `get_public_donations()` RPC instead of direct table query for the fallback.
 
-### Files to modify
-- `src/pages/Dashboard.tsx` — title fixes in 3 locations
-- `src/components/RequestCard.tsx` — title fix
-- `src/pages/History.tsx` — report button fix + title fix if needed
+### 3. ChangePasswordDialog weak password policy
+The change password dialog (line 34) only requires 6 characters minimum, while the signup form requires 8+ with uppercase, lowercase, number, and special character. A user could weaken their password via the change password flow.
+
+**Fix:** Apply the same `passwordSchema` validation from Auth.tsx.
+
+---
+
+## SECURITY VULNERABILITIES
+
+### 4. `insert_user_location` function has no `search_path` set
+The linter flagged this. The function also has no `SECURITY DEFINER` and no RLS check -- any authenticated user could potentially call it with another user's ID.
+
+**Fix:** Add `SET search_path = 'public'` and either add authorization checks or remove it if unused (it appears unused in the client code).
+
+### 5. Notifications INSERT RLS is too restrictive
+The `notifications` table only allows inserting `extension_request` type notifications. But the client code inserts `request_approved`, `extension_granted`, `extension_rejected`, and other types directly from Dashboard.tsx (lines 797-805, 852-860, 890-898). These inserts will silently fail due to RLS.
+
+**Fix:** Either:
+- Move all notification inserts to database triggers/functions (preferred), or
+- Expand the RLS policy to allow authenticated users to insert notifications for users they have active relationships with.
+
+### 6. Auto-reject of expired approved requests done client-side
+In `fetchRequests()` (lines 550-573), the donor's browser auto-rejects expired requests. This means if a donor never opens the dashboard, expired approved requests remain active indefinitely. The server-side `auto_reject_stale_requests` cron only handles pending requests, not approved ones past their timer.
+
+**Fix:** Extend the `auto_reject_stale_requests` database function to also reject approved requests whose `accepted_at + timer_duration` has passed.
+
+---
+
+## MODERATE ISSUES
+
+### 7. Edit donation form has no input validation
+`handleSaveEdit()` (line 917-940) directly submits form values without any validation or sanitization. An attacker could set title/description to excessively long strings or inject content.
+
+**Fix:** Add Zod validation similar to the donation creation form.
+
+### 8. Race condition in request approval
+`handleRequestAction()` checks for existing approved requests using local state (`requests.some(...)` at line 752), not the database. Two donors viewing the same request simultaneously could both approve, or the state could be stale.
+
+**Fix:** Use a database-level check (the trigger `handle_request_status_change` partially handles this, but an explicit database-level guard would be more robust).
+
+### 9. Avatar upload path uses `Math.random()` -- predictable filenames
+Both Auth.tsx (line 326) and Profile.tsx use `Math.random().toString(36)` for avatar filenames. `Math.random()` is not cryptographically random and could be predicted.
+
+**Fix:** Use `crypto.randomUUID()` instead.
+
+---
+
+## PLAN SUMMARY
+
+| # | Issue | Severity | Fix |
+|---|-------|----------|-----|
+| 1 | Null `user` crash in Dashboard | Critical | Remove dead `else` branch |
+| 2 | Fallback query leaks exact locations | Critical | Use `get_public_donations()` RPC |
+| 3 | Weak password change validation | Critical | Reuse `passwordSchema` |
+| 4 | `insert_user_location` insecure | Security | Add search_path + auth check |
+| 5 | Notification INSERT RLS blocks client inserts | Security | Move inserts to DB triggers |
+| 6 | Expired approved requests not auto-rejected server-side | Security | Extend cron function |
+| 7 | No validation on edit donation form | Moderate | Add Zod schema |
+| 8 | Race condition in request approval | Moderate | Add DB-level guard |
+| 9 | Predictable avatar filenames | Moderate | Use `crypto.randomUUID()` |
+
+### Implementation approach:
+1. Fix bugs #1, #2, #3 in the client code
+2. Create a database migration for #4 (secure `insert_user_location`), #5 (add notification insert triggers for extension_granted/rejected and request rejection notifications), #6 (extend `auto_reject_stale_requests` to handle expired approved requests)
+3. Fix #7, #9 in client code
 

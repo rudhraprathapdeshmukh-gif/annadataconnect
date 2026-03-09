@@ -94,6 +94,7 @@ export default function History() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
   const [donationStats, setDonationStats] = useState({
@@ -648,7 +649,15 @@ export default function History() {
             <Button 
               variant="destructive"
               size="sm"
-              onClick={() => setShowReportConfirm(true)}
+              onClick={() => {
+                setReportTarget({
+                  userId: ratingDialog.otherPersonId,
+                  donationTitle: ratingDialog.donationTitle,
+                  requestId: ratingDialog.requestId,
+                });
+                setRatingDialog({ ...ratingDialog, open: false });
+                setTimeout(() => setShowReportConfirm(true), 150);
+              }}
             >
               <X className="h-4 w-4 mr-1" />
               Report
@@ -676,21 +685,22 @@ export default function History() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!user || !ratingDialog.otherPersonId) return;
+                if (!user || !reportTarget) return;
                 setReportSubmitting(true);
                 try {
                   const { error } = await supabase
                     .from('notifications')
                     .insert({
-                      user_id: ratingDialog.otherPersonId,
+                      user_id: reportTarget.userId,
                       type: 'user_report_warning',
                       title: '⚠️ You have been reported',
-                      message: `A user has reported you regarding the donation "${ratingDialog.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
-                      related_id: ratingDialog.requestId
+                      message: `A user has reported you regarding the donation "${reportTarget.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+                      related_id: reportTarget.requestId
                     });
                   if (error) throw error;
                   toast.success('Report submitted successfully');
                   setShowReportConfirm(false);
+                  setReportTarget(null);
                 } catch (error) {
                   console.error('Error reporting user:', error);
                   toast.error('Failed to submit report');

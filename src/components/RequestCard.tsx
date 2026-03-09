@@ -283,7 +283,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       })()}
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
+          <CardTitle className="text-xl">{donationItems.length > 1 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
           <div className="flex gap-2 flex-wrap">
             {donationItems.length <= 1 && request.food_donations.diet_type && (
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
