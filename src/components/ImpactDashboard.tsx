@@ -110,18 +110,46 @@ export function ImpactDashboard() {
 
       // Calculate people helped based on quantity and unit
       const completedDonationDetails = allDonations.filter(d => completedDonationIds.includes(d.id));
+
+      // Fetch individual donation_items for completed donations
+      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string }[]> = {};
+      if (completedDonationIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from('donation_items')
+          .select('donation_id, quantity, quantity_unit')
+          .in('donation_id', completedDonationIds);
+
+        if (itemsData && itemsData.length > 0) {
+          itemsData.forEach(item => {
+            if (!itemsByDonation[item.donation_id]) {
+              itemsByDonation[item.donation_id] = [];
+            }
+            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit });
+          });
+        }
+      }
+
+      const calcPeopleFromQuantity = (qty: string, unit: string) => {
+        const num = parseFloat(qty);
+        if (isNaN(num) || num <= 0) return 0;
+        const u = (unit || 'kg').toLowerCase();
+        if (u === 'kg' || u === 'litre' || u === 'litres' || u === 'l') {
+          return Math.ceil(num * 2);
+        }
+        if (u === 'g' || u === 'grams' || u === 'gram' || u === 'ml') {
+          return num <= 100 ? 1 : Math.ceil(num / 500);
+        }
+        return Math.ceil(num);
+      };
+
       const calcPeopleHelped = completedDonationDetails.reduce((sum, d) => {
-        const num = parseFloat(d.quantity);
-        if (isNaN(num) || num <= 0) return sum;
-        const unit = (d.quantity_unit || 'kg').toLowerCase();
-        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
-          return sum + Math.ceil(num * 2);
+        const items = itemsByDonation[d.id];
+        if (items && items.length > 0) {
+          // Sum people helped from individual items
+          return sum + items.reduce((s, item) => s + calcPeopleFromQuantity(item.quantity, item.quantity_unit), 0);
         }
-        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
-          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
-        }
-        // pieces, servings, plates, boxes, etc.
-        return sum + Math.ceil(num);
+        // Fall back to parent donation quantity
+        return sum + calcPeopleFromQuantity(d.quantity, d.quantity_unit);
       }, 0);
 
       // Monthly data (last 6 months)

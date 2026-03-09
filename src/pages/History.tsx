@@ -667,9 +667,9 @@ export default function History() {
       <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Report {ratingDialog.otherPersonName}?</AlertDialogTitle>
+            <AlertDialogTitle>Report User?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will send a warning to {ratingDialog.otherPersonName} about their behavior regarding this donation. Are you sure?
+              This will send a warning about their behavior regarding this donation. Are you sure?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

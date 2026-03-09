@@ -1902,9 +1902,9 @@ export default function Dashboard() {
       <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Report {pendingRating?.otherUserName}?</AlertDialogTitle>
+            <AlertDialogTitle>Report User?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will send a warning to {pendingRating?.otherUserName} about their behavior regarding this donation. Are you sure you want to proceed?
+              This will send a warning about their behavior regarding this donation. Are you sure you want to proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
