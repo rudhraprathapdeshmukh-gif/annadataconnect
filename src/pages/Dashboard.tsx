@@ -1929,12 +1929,27 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
   const [isVerifying, setIsVerifying] = useState(false);
   const [receiverRating, setReceiverRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
   const [extensionReason, setExtensionReason] = useState<string | null>(null);
+  const [donationItems, setDonationItems] = useState<DonationItem[]>([]);
 
   useEffect(() => {
     if (request.requester_id) {
       loadReceiverRating();
     }
   }, [request.requester_id]);
+
+  // Fetch donation items for this request
+  useEffect(() => {
+    const fetchItems = async () => {
+      const { data, error } = await supabase
+        .from('donation_items')
+        .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+        .eq('donation_id', request.donation_id);
+      if (!error && data) {
+        setDonationItems(data);
+      }
+    };
+    fetchItems();
+  }, [request.donation_id]);
 
   // Fetch extension reason from notifications when extension is requested
   useEffect(() => {
@@ -1968,6 +1983,17 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
     const { fetchUserRating } = await import('@/lib/userRatings');
     const rating = await fetchUserRating(request.requester_id);
     setReceiverRating(rating);
+  };
+
+  const getFreshnessLabel = (rating: number): string => {
+    switch (rating) {
+      case 1: return 'Aged';
+      case 2: return 'Poor';
+      case 3: return 'Okay';
+      case 4: return 'Fresh';
+      case 5: return 'Just-Made';
+      default: return '';
+    }
   };
 
   const handleVerifyOtp = async () => {
