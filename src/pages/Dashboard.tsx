@@ -350,21 +350,22 @@ export default function Dashboard() {
   };
 
   const handleReportUser = async () => {
-    if (!pendingRating || !user) return;
+    if (!reportTarget || !user) return;
     setReportSubmitting(true);
     try {
       const { error } = await supabase
         .from('notifications')
         .insert({
-          user_id: pendingRating.otherUserId,
+          user_id: reportTarget.userId,
           type: 'user_report_warning',
           title: '⚠️ You have been reported',
-          message: `A user has reported you regarding the donation "${pendingRating.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
-          related_id: pendingRating.requestId
+          message: `A user has reported you regarding the donation "${reportTarget.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+          related_id: reportTarget.requestId
         });
       if (error) throw error;
       toast.success('Report submitted successfully');
       setShowReportConfirm(false);
+      setReportTarget(null);
     } catch (error) {
       console.error('Error reporting user:', error);
       toast.error('Failed to submit report');
