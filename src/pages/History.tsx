@@ -685,21 +685,22 @@ export default function History() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!user || !ratingDialog.otherPersonId) return;
+                if (!user || !reportTarget) return;
                 setReportSubmitting(true);
                 try {
                   const { error } = await supabase
                     .from('notifications')
                     .insert({
-                      user_id: ratingDialog.otherPersonId,
+                      user_id: reportTarget.userId,
                       type: 'user_report_warning',
                       title: '⚠️ You have been reported',
-                      message: `A user has reported you regarding the donation "${ratingDialog.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
-                      related_id: ratingDialog.requestId
+                      message: `A user has reported you regarding the donation "${reportTarget.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+                      related_id: reportTarget.requestId
                     });
                   if (error) throw error;
                   toast.success('Report submitted successfully');
                   setShowReportConfirm(false);
+                  setReportTarget(null);
                 } catch (error) {
                   console.error('Error reporting user:', error);
                   toast.error('Failed to submit report');

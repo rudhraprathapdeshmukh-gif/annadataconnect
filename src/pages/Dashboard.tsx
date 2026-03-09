@@ -2100,7 +2100,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
 
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-1">{request.food_donations.title}</CardTitle>
+          <CardTitle className="text-lg line-clamp-1">{donationItems.length > 1 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
           <Badge variant={
             request.status === 'approved' ? 'default' :
             request.status === 'rejected' ? 'destructive' :
