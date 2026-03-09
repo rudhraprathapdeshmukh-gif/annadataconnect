@@ -94,6 +94,7 @@ export default function History() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
   const [donationStats, setDonationStats] = useState({
