@@ -44,6 +44,7 @@ interface DonationItem {
   diet_type: string | null;
   rating: number | null;
   image_url: string | null;
+  expiry_date: string | null;
 }
 
 interface PublicDonation {
