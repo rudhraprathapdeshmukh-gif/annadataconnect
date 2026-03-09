@@ -651,7 +651,7 @@ export default function History() {
               onClick={() => setShowReportConfirm(true)}
             >
               <X className="h-4 w-4 mr-1" />
-              Report {ratingDialog.otherPersonName}
+              Report
             </Button>
             <Button 
               className="flex-1"
