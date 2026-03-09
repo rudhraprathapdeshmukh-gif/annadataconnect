@@ -475,7 +475,7 @@ export default function Dashboard() {
     if (donationIds.length === 0) return {};
     const { data, error } = await supabase
       .from('donation_items')
-      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
+      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
       .in('donation_id', donationIds);
     if (error) {
       console.error('Failed to fetch donation items:', error);
