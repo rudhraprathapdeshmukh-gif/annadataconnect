@@ -1869,11 +1869,23 @@ export default function Dashboard() {
             <Button 
               variant="destructive"
               size="sm"
-              onClick={() => setShowReportConfirm(true)}
+              onClick={() => {
+                if (pendingRating) {
+                  setReportTarget({
+                    userId: pendingRating.otherUserId,
+                    donationTitle: pendingRating.donationTitle,
+                    requestId: pendingRating.requestId,
+                  });
+                  setPendingRating(null);
+                  setGlobalRating(0);
+                  setGlobalHoverRating(0);
+                  setTimeout(() => setShowReportConfirm(true), 150);
+                }
+              }}
               className="transition-all hover:scale-105 active:scale-95"
             >
               <X className="h-4 w-4 mr-1" />
-              Report {pendingRating?.otherUserName}
+              Report
             </Button>
             <Button 
               onClick={handleGlobalRatingSubmit} 
