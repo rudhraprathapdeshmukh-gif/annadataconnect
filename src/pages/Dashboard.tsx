@@ -165,6 +165,7 @@ export default function Dashboard() {
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   // Location state for nearby filtering
@@ -349,21 +350,22 @@ export default function Dashboard() {
   };
 
   const handleReportUser = async () => {
-    if (!pendingRating || !user) return;
+    if (!reportTarget || !user) return;
     setReportSubmitting(true);
     try {
       const { error } = await supabase
         .from('notifications')
         .insert({
-          user_id: pendingRating.otherUserId,
+          user_id: reportTarget.userId,
           type: 'user_report_warning',
           title: '⚠️ You have been reported',
-          message: `A user has reported you regarding the donation "${pendingRating.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
-          related_id: pendingRating.requestId
+          message: `A user has reported you regarding the donation "${reportTarget.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+          related_id: reportTarget.requestId
         });
       if (error) throw error;
       toast.success('Report submitted successfully');
       setShowReportConfirm(false);
+      setReportTarget(null);
     } catch (error) {
       console.error('Error reporting user:', error);
       toast.error('Failed to submit report');
@@ -1867,11 +1869,23 @@ export default function Dashboard() {
             <Button 
               variant="destructive"
               size="sm"
-              onClick={() => setShowReportConfirm(true)}
+              onClick={() => {
+                if (pendingRating) {
+                  setReportTarget({
+                    userId: pendingRating.otherUserId,
+                    donationTitle: pendingRating.donationTitle,
+                    requestId: pendingRating.requestId,
+                  });
+                  setPendingRating(null);
+                  setGlobalRating(0);
+                  setGlobalHoverRating(0);
+                  setTimeout(() => setShowReportConfirm(true), 150);
+                }
+              }}
               className="transition-all hover:scale-105 active:scale-95"
             >
               <X className="h-4 w-4 mr-1" />
-              Report {pendingRating?.otherUserName}
+              Report
             </Button>
             <Button 
               onClick={handleGlobalRatingSubmit} 
@@ -1888,9 +1902,9 @@ export default function Dashboard() {
       <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Report {pendingRating?.otherUserName}?</AlertDialogTitle>
+            <AlertDialogTitle>Report User?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will send a warning to {pendingRating?.otherUserName} about their behavior regarding this donation. Are you sure you want to proceed?
+              This will send a warning about their behavior regarding this donation. Are you sure you want to proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
