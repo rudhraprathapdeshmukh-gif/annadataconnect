@@ -1343,33 +1343,45 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-              {/* Location Status Banners */}
-              {locationStatus === 'loading' && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                   <Loader2 className="h-4 w-4 animate-spin" />
-                   <span>{t('dynamic.detectingLocation')}</span>
-                </div>
+               {/* Location Status Banners */}
+               {locationStatus === 'loading' && (
+                <Card>
+                  <CardContent className="py-12 text-center space-y-3">
+                    <Loader2 className="h-10 w-10 mx-auto animate-spin text-primary" />
+                    <p className="text-muted-foreground font-medium">{t('dynamic.detectingLocation')}</p>
+                    <p className="text-xs text-muted-foreground">Please allow location access to see nearby donations</p>
+                  </CardContent>
+                </Card>
               )}
               {locationStatus === 'denied' && (
-                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
-                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                    <MapPinOff className="h-4 w-4 shrink-0" />
-                    <span>
-                      {receiverDistrict 
-                        ? t('dynamic.locationDeniedWithDistrict', { district: receiverDistrict })
-                        : t('dynamic.locationDeniedGeneral')}
-                    </span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={requestLocation} className="shrink-0">
-                    {t('dynamic.retry')}
-                  </Button>
-                </div>
+                <Card>
+                  <CardContent className="py-12 text-center space-y-4">
+                    <MapPinOff className="h-12 w-12 mx-auto text-amber-500" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Location Required</p>
+                      <p className="text-sm text-muted-foreground">
+                        We need your location to show nearby food donations. Please enable location access and try again.
+                      </p>
+                    </div>
+                    <Button onClick={requestLocation} className="gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {t('dynamic.retry')}
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
               {locationStatus === 'unavailable' && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                  <MapPinOff className="h-4 w-4" />
-                  <span>{t('dynamic.locationUnavailable')}</span>
-                </div>
+                <Card>
+                  <CardContent className="py-12 text-center space-y-4">
+                    <MapPinOff className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Location Unavailable</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your device does not support location services. Location is required to browse donations.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Unified Control Bar (when location granted) */}
