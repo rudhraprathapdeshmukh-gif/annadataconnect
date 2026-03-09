@@ -1637,13 +1637,13 @@ export default function Dashboard() {
                         {donation.items && donation.items.length > 1 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
-                              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
                                 {item.image_url && (
-                                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
                                 )}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 space-y-1">
                                   <p className="text-sm font-medium line-clamp-1">{item.title}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                                     <span>•</span>
                                     <span>{translateFoodType(t, item.food_type)}</span>
@@ -1659,9 +1659,15 @@ export default function Dashboard() {
                                       </>
                                     )}
                                   </div>
+                                  {item.expiry_date && (
+                                    <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                                      <Clock className="h-3 w-3" />
+                                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 {item.rating && (
-                                  <div className="flex items-center gap-1 shrink-0">
+                                  <div className="flex flex-col items-end gap-0.5 shrink-0">
                                     <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
                                     <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
                                   </div>
