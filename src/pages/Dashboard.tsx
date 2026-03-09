@@ -465,7 +465,7 @@ export default function Dashboard() {
 
   // Refetch donations when location becomes available
   useEffect(() => {
-    if (receiverLocation || locationStatus === 'denied' || locationStatus === 'unavailable') {
+    if (receiverLocation) {
       fetchDonations();
     }
   }, [receiverLocation, locationStatus, showAllDonations, searchRadius, receiverDistrict]);
