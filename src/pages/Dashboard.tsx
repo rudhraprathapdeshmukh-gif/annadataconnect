@@ -165,6 +165,7 @@ export default function Dashboard() {
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   // Location state for nearby filtering
