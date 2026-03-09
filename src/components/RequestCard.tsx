@@ -319,13 +319,13 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
         {donationItems.length > 1 ? (
           <div className="space-y-2">
             {donationItems.map((item) => (
-              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
                 {item.image_url && (
-                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 space-y-1">
                   <p className="text-sm font-medium line-clamp-1">{item.title}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                     <span>•</span>
                     <span>{item.food_type}</span>
@@ -341,27 +341,39 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                       </>
                     )}
                   </div>
+                  {item.expiry_date && (
+                    <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                      <Clock className="h-3 w-3" />
+                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                    </div>
+                  )}
                 </div>
                 {item.rating && (
-                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Package className="h-4 w-4" />
-              <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
-            </div>
-            {request.food_donations.rating && (
-              <div className="flex items-center gap-2 text-sm">
-                <div className="flex items-center gap-1">
-                  <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
-                  <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
-                </div>
+            <div className="flex items-center gap-3 text-sm bg-muted/40 rounded-lg px-3 py-2 border border-border/30">
+              <div className="flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-medium">{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
               </div>
-            )}
+              <span className="text-muted-foreground">•</span>
+              <Badge variant="secondary" className="text-xs">{request.food_donations.food_type}</Badge>
+              {request.food_donations.rating && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-yellow-500 text-xs">{'★'.repeat(request.food_donations.rating)}</span>
+                  <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(request.food_donations.rating)}</span>
+                </>
+              )}
+            </div>
           </>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
