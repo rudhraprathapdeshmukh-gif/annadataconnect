@@ -97,7 +97,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const fetchDonationItems = async () => {
     const { data } = await supabase
       .from('donation_items')
-      .select('id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
+      .select('id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
       .eq('donation_id', request.food_donations.id);
     if (data && data.length > 0) {
       setDonationItems(data);
