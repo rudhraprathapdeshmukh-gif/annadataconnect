@@ -664,15 +664,29 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {request.food_donations?.title}
+                              {(request.food_donations as any)?.items?.length > 1
+                                ? (request.food_donations as any).items.map((i: DonationItemInfo) => i.title).join(', ')
+                                : request.food_donations?.title}
                             </h3>
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
-                            </p>
+                            {(request.food_donations as any)?.items?.length > 1 ? (
+                              ((request.food_donations as any).items as DonationItemInfo[]).map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
+                              </p>
+                            )}
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(request.created_at).toLocaleDateString()}
@@ -683,10 +697,10 @@ export default function History() {
                                 <span>{request.food_donations.pickup_location}</span>
                               </p>
                             )}
-                            {request.food_donations?.profiles && (
+                            {(request.food_donations as any)?.profiles && (
                               <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                {t('common.from')} {request.food_donations.profiles.first_name}
+                                {t('common.from')} {(request.food_donations as any).profiles.first_name}
                               </p>
                             )}
                           </div>
