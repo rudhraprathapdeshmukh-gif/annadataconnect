@@ -1703,8 +1703,8 @@ export default function Dashboard() {
                           </div>
                         )}
                         
-                        {/* Expiry Date */}
-                        {donation.expiry_date && (
+                        {/* Expiry Date - only show for single-item donations */}
+                        {donation.expiry_date && (!donation.items || donation.items.length <= 1) && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
                              <span>{t('dynamic.approxExpiry', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], {
