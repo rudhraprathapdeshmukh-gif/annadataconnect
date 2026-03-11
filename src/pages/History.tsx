@@ -349,6 +349,26 @@ export default function History() {
             }
           }
         });
+        // Fetch items for receiver requests
+        const reqDonationIds = [...new Set(requestsData.map(r => r.food_donations?.id).filter(Boolean))];
+        if (reqDonationIds.length > 0) {
+          const { data: reqItemsData } = await supabase
+            .from('donation_items')
+            .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+            .in('donation_id', reqDonationIds);
+          if (reqItemsData) {
+            const reqItemsMap: Record<string, DonationItemInfo[]> = {};
+            reqItemsData.forEach((item: any) => {
+              if (!reqItemsMap[item.donation_id]) reqItemsMap[item.donation_id] = [];
+              reqItemsMap[item.donation_id].push(item);
+            });
+            requestsData.forEach((r: any) => {
+              if (r.food_donations) {
+                r.food_donations.items = reqItemsMap[r.food_donations.id] || [];
+              }
+            });
+          }
+        }
       }
       if (requestsError) throw requestsError;
       setRequests(requestsData || []);
