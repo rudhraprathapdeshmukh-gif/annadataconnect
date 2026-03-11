@@ -15,6 +15,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
 
+interface DonationItemInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  rating: number | null;
+  image_url: string | null;
+  expiry_date: string | null;
+}
+
 interface FoodDonation {
   id: string;
   title: string;
@@ -30,6 +43,7 @@ interface FoodDonation {
   image_url?: string | null;
   donor_id: string;
   deleted_at?: string | null;
+  items?: DonationItemInfo[];
   completed_request?: {
     id: string;
     created_at: string;
