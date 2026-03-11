@@ -594,14 +594,25 @@ export default function History() {
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
+                            <h3 className="font-semibold text-sm md:text-base truncate">
+                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                            </h3>
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                            </p>
+                            {donation.items && donation.items.length > 1 ? (
+                              donation.items.map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                              </p>
+                            )}
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
