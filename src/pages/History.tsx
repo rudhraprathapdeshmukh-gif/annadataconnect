@@ -303,6 +303,24 @@ export default function History() {
           }
         }
       }
+      // Fetch donation items for all donations
+      const allDonationIds = enrichedDonations.map(d => d.id);
+      if (allDonationIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from('donation_items')
+          .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+          .in('donation_id', allDonationIds);
+        if (itemsData) {
+          const itemsMap: Record<string, DonationItemInfo[]> = {};
+          itemsData.forEach((item: any) => {
+            if (!itemsMap[item.donation_id]) itemsMap[item.donation_id] = [];
+            itemsMap[item.donation_id].push(item);
+          });
+          enrichedDonations.forEach((d: any) => {
+            d.items = itemsMap[d.id] || [];
+          });
+        }
+      }
       setDonations(enrichedDonations);
 
       const { data: requestsData, error: requestsError } = await supabase
