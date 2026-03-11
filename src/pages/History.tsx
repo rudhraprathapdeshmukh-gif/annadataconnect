@@ -7,13 +7,26 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
+
+interface DonationItemInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  quantity: string;
+  quantity_unit: string;
+  food_type: string;
+  diet_type: string | null;
+  rating: number | null;
+  image_url: string | null;
+  expiry_date: string | null;
+}
 
 interface FoodDonation {
   id: string;
@@ -30,6 +43,7 @@ interface FoodDonation {
   image_url?: string | null;
   donor_id: string;
   deleted_at?: string | null;
+  items?: DonationItemInfo[];
   completed_request?: {
     id: string;
     created_at: string;
@@ -289,6 +303,24 @@ export default function History() {
           }
         }
       }
+      // Fetch donation items for all donations
+      const allDonationIds = enrichedDonations.map(d => d.id);
+      if (allDonationIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from('donation_items')
+          .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+          .in('donation_id', allDonationIds);
+        if (itemsData) {
+          const itemsMap: Record<string, DonationItemInfo[]> = {};
+          itemsData.forEach((item: any) => {
+            if (!itemsMap[item.donation_id]) itemsMap[item.donation_id] = [];
+            itemsMap[item.donation_id].push(item);
+          });
+          enrichedDonations.forEach((d: any) => {
+            d.items = itemsMap[d.id] || [];
+          });
+        }
+      }
       setDonations(enrichedDonations);
 
       const { data: requestsData, error: requestsError } = await supabase
@@ -317,6 +349,26 @@ export default function History() {
             }
           }
         });
+        // Fetch items for receiver requests
+        const reqDonationIds = [...new Set(requestsData.map(r => r.food_donations?.id).filter(Boolean))];
+        if (reqDonationIds.length > 0) {
+          const { data: reqItemsData } = await supabase
+            .from('donation_items')
+            .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+            .in('donation_id', reqDonationIds);
+          if (reqItemsData) {
+            const reqItemsMap: Record<string, DonationItemInfo[]> = {};
+            reqItemsData.forEach((item: any) => {
+              if (!reqItemsMap[item.donation_id]) reqItemsMap[item.donation_id] = [];
+              reqItemsMap[item.donation_id].push(item);
+            });
+            requestsData.forEach((r: any) => {
+              if (r.food_donations) {
+                r.food_donations.items = reqItemsMap[r.food_donations.id] || [];
+              }
+            });
+          }
+        }
       }
       if (requestsError) throw requestsError;
       setRequests(requestsData || []);
@@ -458,14 +510,28 @@ export default function History() {
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
+                            <h3 className="font-semibold text-sm md:text-base truncate">
+                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                            </h3>
                             <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                            </p>
+                            {donation.items && donation.items.length > 1 ? (
+                              donation.items.map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                              </p>
+                            )}
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
@@ -528,14 +594,25 @@ export default function History() {
                         )}
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
+                            <h3 className="font-semibold text-sm md:text-base truncate">
+                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                            </h3>
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                            </p>
+                            {donation.items && donation.items.length > 1 ? (
+                              donation.items.map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                              </p>
+                            )}
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
@@ -587,15 +664,29 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {request.food_donations?.title}
+                              {(request.food_donations as any)?.items?.length > 1
+                                ? (request.food_donations as any).items.map((i: DonationItemInfo) => i.title).join(', ')
+                                : request.food_donations?.title}
                             </h3>
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            <p className="flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
-                            </p>
+                            {(request.food_donations as any)?.items?.length > 1 ? (
+                              ((request.food_donations as any).items as DonationItemInfo[]).map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
+                              </p>
+                            )}
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(request.created_at).toLocaleDateString()}
@@ -606,10 +697,10 @@ export default function History() {
                                 <span>{request.food_donations.pickup_location}</span>
                               </p>
                             )}
-                            {request.food_donations?.profiles && (
+                            {(request.food_donations as any)?.profiles && (
                               <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                {t('common.from')} {request.food_donations.profiles.first_name}
+                                {t('common.from')} {(request.food_donations as any).profiles.first_name}
                               </p>
                             )}
                           </div>
