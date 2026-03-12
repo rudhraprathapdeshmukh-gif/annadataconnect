@@ -664,7 +664,7 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {(request.food_donations as any)?.items?.length > 1
+                              {(request.food_donations as any)?.items?.length > 0
                                 ? (request.food_donations as any).items.map((i: DonationItemInfo) => i.title).join(', ')
                                 : request.food_donations?.title}
                             </h3>
