@@ -671,7 +671,7 @@ export default function History() {
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            {(request.food_donations as any)?.items?.length > 1 ? (
+                            {(request.food_donations as any)?.items?.length > 0 ? (
                               ((request.food_donations as any).items as DonationItemInfo[]).map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
                                   <Package className="h-3 w-3 shrink-0" />
