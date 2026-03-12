@@ -511,7 +511,7 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                              {donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}
                             </h3>
                             <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
