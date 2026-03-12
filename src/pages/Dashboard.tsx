@@ -1171,12 +1171,12 @@ export default function Dashboard() {
                       )}
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
+                          <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
                           <Badge variant={donation.status === 'available' ? 'default' : 'secondary'} className="shrink-0">
                             {translateStatus(t, donation.status)}
                           </Badge>
                         </div>
-                        {(!donation.items || donation.items.length <= 1) && donation.description && (
+                        {(!donation.items || donation.items.length === 0) && donation.description && (
                           <CardDescription className="line-clamp-2">
                             {donation.description}
                           </CardDescription>
@@ -1184,7 +1184,7 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1">
                         {/* Multi-item list */}
-                        {donation.items && donation.items.length > 1 ? (
+                        {donation.items && donation.items.length > 0 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
                               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
@@ -1235,13 +1235,13 @@ export default function Dashboard() {
                           <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
                           <span className="line-clamp-2 break-words">{donation.pickup_location}</span>
                         </div>
-                        {donation.expiry_date && (!donation.items || donation.items.length <= 1) && (
+                        {donation.expiry_date && (!donation.items || donation.items.length === 0) && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4 shrink-0" />
                             <span className="break-words">{t('dynamic.expiresAt', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) })}</span>
                           </div>
                         )}
-                        {(!donation.items || donation.items.length <= 1) && donation.rating && (
+                        {(!donation.items || donation.items.length === 0) && donation.rating && (
                           <div className="flex items-center gap-1 text-sm">
                             <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                             <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
@@ -1586,7 +1586,7 @@ export default function Dashboard() {
                         )}
                         
                         {/* Diet Type Badge */}
-                        {donation.items && donation.items.length <= 1 && donation.diet_type && (
+                        {(!donation.items || donation.items.length === 0) && donation.diet_type && (
                           <span className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
                             donation.diet_type === 'veg' 
                               ? 'bg-green-500/90 text-white' 
@@ -1625,8 +1625,8 @@ export default function Dashboard() {
                       
                       {/* Header Section */}
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
-                        {donation.description && (!donation.items || donation.items.length <= 1) && (
+                        <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
+                        {donation.description && (!donation.items || donation.items.length === 0) && (
                           <CardDescription className="line-clamp-2 text-sm">
                             {donation.description}
                           </CardDescription>
@@ -1636,7 +1636,7 @@ export default function Dashboard() {
                       {/* Content Section */}
                       <CardContent className="flex-1 space-y-3 pt-0">
                         {/* Individual Items List for multi-item donations */}
-                        {donation.items && donation.items.length > 1 ? (
+                        {donation.items && donation.items.length > 0 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
                               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
@@ -1678,7 +1678,7 @@ export default function Dashboard() {
                             ))}
                           </div>
                         ) : (
-                          /* Single item - show as before */
+                          /* No items - show parent data as fallback */
                           <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-1.5">
                               <Package className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1704,7 +1704,7 @@ export default function Dashboard() {
                         )}
                         
                         {/* Expiry Date - only show for single-item donations */}
-                        {donation.expiry_date && (!donation.items || donation.items.length <= 1) && (
+                        {donation.expiry_date && (!donation.items || donation.items.length === 0) && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
                              <span>{t('dynamic.approxExpiry', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], {

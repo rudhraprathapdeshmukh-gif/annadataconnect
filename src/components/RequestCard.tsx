@@ -283,9 +283,9 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       })()}
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-xl">{donationItems.length > 1 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
+          <CardTitle className="text-xl">{donationItems.length > 0 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
           <div className="flex gap-2 flex-wrap">
-            {donationItems.length <= 1 && request.food_donations.diet_type && (
+            {donationItems.length === 0 && request.food_donations.diet_type && (
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                 request.food_donations.diet_type === 'veg' 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
@@ -308,7 +308,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </Badge>
           </div>
         </div>
-        {donationItems.length <= 1 && request.food_donations.description && (
+        {donationItems.length === 0 && request.food_donations.description && (
           <CardDescription className="line-clamp-2">
             {request.food_donations.description}
           </CardDescription>
@@ -316,7 +316,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       </CardHeader>
       <CardContent className="space-y-2">
         {/* Individual items for multi-item donations */}
-        {donationItems.length > 1 ? (
+        {donationItems.length > 0 ? (
           <div className="space-y-2">
             {donationItems.map((item) => (
               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">

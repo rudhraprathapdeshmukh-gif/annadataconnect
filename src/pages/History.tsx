@@ -511,12 +511,12 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                              {donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}
                             </h3>
                             <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            {donation.items && donation.items.length > 1 ? (
+                            {donation.items && donation.items.length > 0 ? (
                               donation.items.map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
                                   <Package className="h-3 w-3 shrink-0" />
@@ -595,12 +595,12 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}
+                              {donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}
                             </h3>
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            {donation.items && donation.items.length > 1 ? (
+                            {donation.items && donation.items.length > 0 ? (
                               donation.items.map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
                                   <Package className="h-3 w-3 shrink-0" />
@@ -664,14 +664,14 @@ export default function History() {
                         <div className="flex-1 p-3 md:p-4 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-semibold text-sm md:text-base truncate">
-                              {(request.food_donations as any)?.items?.length > 1
+                              {(request.food_donations as any)?.items?.length > 0
                                 ? (request.food_donations as any).items.map((i: DonationItemInfo) => i.title).join(', ')
                                 : request.food_donations?.title}
                             </h3>
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            {(request.food_donations as any)?.items?.length > 1 ? (
+                            {(request.food_donations as any)?.items?.length > 0 ? (
                               ((request.food_donations as any).items as DonationItemInfo[]).map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
                                   <Package className="h-3 w-3 shrink-0" />
