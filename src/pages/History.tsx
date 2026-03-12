@@ -516,7 +516,7 @@ export default function History() {
                             <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
-                            {donation.items && donation.items.length > 1 ? (
+                            {donation.items && donation.items.length > 0 ? (
                               donation.items.map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
                                   <Package className="h-3 w-3 shrink-0" />
