@@ -323,18 +323,23 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 <Label
                   htmlFor={`non-veg-${item.id}`}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition-all",
-                    item.diet_type === 'non-veg'
+                    "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all",
+                    isVegOnly
+                      ? "opacity-40 cursor-not-allowed border-muted"
+                      : "cursor-pointer",
+                    !isVegOnly && item.diet_type === 'non-veg'
                       ? "border-red-500 bg-red-50 dark:bg-red-950"
-                      : "border-muted hover:border-red-300"
+                      : !isVegOnly ? "border-muted hover:border-red-300" : ""
                   )}
                 >
-                  <RadioGroupItem value="non-veg" id={`non-veg-${item.id}`} className="sr-only" />
+                  <RadioGroupItem value="non-veg" id={`non-veg-${item.id}`} className="sr-only" disabled={isVegOnly} />
                   <span className="w-5 h-5 rounded-full bg-red-500 border-2 border-red-700" />
                   <span className="text-xs font-medium">Non-Veg</span>
                 </Label>
               </RadioGroup>
             </div>
+              );
+            })()}
 
             {/* Expiry Date & Time */}
             <div className="space-y-2">
