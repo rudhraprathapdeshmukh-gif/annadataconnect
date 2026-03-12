@@ -1636,7 +1636,7 @@ export default function Dashboard() {
                       {/* Content Section */}
                       <CardContent className="flex-1 space-y-3 pt-0">
                         {/* Individual Items List for multi-item donations */}
-                        {donation.items && donation.items.length > 1 ? (
+                        {donation.items && donation.items.length > 0 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
                               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
@@ -1678,7 +1678,7 @@ export default function Dashboard() {
                             ))}
                           </div>
                         ) : (
-                          /* Single item - show as before */
+                          /* No items - show parent data as fallback */
                           <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-1.5">
                               <Package className="h-3.5 w-3.5 text-muted-foreground" />
