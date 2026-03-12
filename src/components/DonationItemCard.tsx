@@ -279,7 +279,10 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Food Type *</Label>
               <Select
                 value={item.food_type}
-                onValueChange={(value) => onChange({ ...item, food_type: value })}
+                onValueChange={(value) => {
+                  const vegOnly = ['Vegetables', 'Fruits', 'Grains', 'Dairy'];
+                  onChange({ ...item, food_type: value, ...(vegOnly.includes(value) ? { diet_type: 'veg' } : {}) });
+                }}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Select food type" />
