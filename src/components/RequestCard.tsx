@@ -316,7 +316,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       </CardHeader>
       <CardContent className="space-y-2">
         {/* Individual items for multi-item donations */}
-        {donationItems.length > 1 ? (
+        {donationItems.length > 0 ? (
           <div className="space-y-2">
             {donationItems.map((item) => (
               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
