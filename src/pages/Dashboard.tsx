@@ -1171,7 +1171,7 @@ export default function Dashboard() {
                       )}
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 1 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
+                          <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
                           <Badge variant={donation.status === 'available' ? 'default' : 'secondary'} className="shrink-0">
                             {translateStatus(t, donation.status)}
                           </Badge>
