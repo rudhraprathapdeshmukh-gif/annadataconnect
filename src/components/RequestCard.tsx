@@ -308,7 +308,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </Badge>
           </div>
         </div>
-        {donationItems.length <= 1 && request.food_donations.description && (
+        {donationItems.length === 0 && request.food_donations.description && (
           <CardDescription className="line-clamp-2">
             {request.food_donations.description}
           </CardDescription>
