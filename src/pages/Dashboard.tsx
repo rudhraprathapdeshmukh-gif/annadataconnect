@@ -1184,7 +1184,7 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1">
                         {/* Multi-item list */}
-                        {donation.items && donation.items.length > 1 ? (
+                        {donation.items && donation.items.length > 0 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
                               <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
