@@ -1626,7 +1626,7 @@ export default function Dashboard() {
                       {/* Header Section */}
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
-                        {donation.description && (!donation.items || donation.items.length <= 1) && (
+                        {donation.description && (!donation.items || donation.items.length === 0) && (
                           <CardDescription className="line-clamp-2 text-sm">
                             {donation.description}
                           </CardDescription>
