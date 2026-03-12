@@ -296,11 +296,15 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
             </div>
 
             {/* Diet Type */}
+            {(() => {
+              const vegOnlyTypes = ['Vegetables', 'Fruits', 'Grains', 'Dairy'];
+              const isVegOnly = vegOnlyTypes.includes(item.food_type);
+              return (
             <div className="space-y-1">
               <Label className="text-sm font-semibold">Diet Type *</Label>
               <RadioGroup
                 value={item.diet_type}
-                onValueChange={(value) => onChange({ ...item, diet_type: value })}
+                onValueChange={(value) => !isVegOnly && onChange({ ...item, diet_type: value })}
                 className="grid grid-cols-2 gap-2"
               >
                 <Label
