@@ -1176,7 +1176,7 @@ export default function Dashboard() {
                             {translateStatus(t, donation.status)}
                           </Badge>
                         </div>
-                        {(!donation.items || donation.items.length <= 1) && donation.description && (
+                        {(!donation.items || donation.items.length === 0) && donation.description && (
                           <CardDescription className="line-clamp-2">
                             {donation.description}
                           </CardDescription>
