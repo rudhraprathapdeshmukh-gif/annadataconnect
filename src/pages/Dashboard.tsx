@@ -1586,7 +1586,7 @@ export default function Dashboard() {
                         )}
                         
                         {/* Diet Type Badge */}
-                        {donation.items && donation.items.length <= 1 && donation.diet_type && (
+                        {(!donation.items || donation.items.length === 0) && donation.diet_type && (
                           <span className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
                             donation.diet_type === 'veg' 
                               ? 'bg-green-500/90 text-white' 
