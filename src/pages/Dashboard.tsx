@@ -1882,28 +1882,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (pendingRating) {
-                  setReportTarget({
-                    userId: pendingRating.otherUserId,
-                    donationTitle: pendingRating.donationTitle,
-                    requestId: pendingRating.requestId,
-                  });
-                  setPendingRating(null);
-                  setGlobalRating(0);
-                  setGlobalHoverRating(0);
-                  setTimeout(() => setShowReportConfirm(true), 150);
-                }
-              }}
-              className="transition-all hover:scale-105 active:scale-95"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Report
-            </Button>
+          <DialogFooter>
             <Button 
               onClick={handleGlobalRatingSubmit} 
               disabled={globalRating === 0} 
@@ -1912,30 +1891,6 @@ export default function Dashboard() {
               {t('dynamic.submitRating')}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Report Confirmation Dialog */}
-      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Report User?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will send a warning about their behavior regarding this donation. Are you sure you want to proceed?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleReportUser}
-              disabled={reportSubmitting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
