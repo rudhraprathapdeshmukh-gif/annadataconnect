@@ -577,35 +577,22 @@ export default function History() {
                     <Card key={donation.id} className="overflow-hidden opacity-75">
                       <div className="flex">
                         {donation.image_url && (
-                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
+                          <div className="w-20 h-20 md:w-28 md:h-28 shrink-0 grayscale">
                             <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                        <div className="flex-1 p-2.5 md:p-3 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">
+                            <h3 className="font-semibold text-sm truncate">
                               {donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}
                             </h3>
-                            <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
+                            <Badge variant="destructive" className="shrink-0 text-[10px]">{t('history.deleted')}</Badge>
                           </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            {donation.items && donation.items.length > 0 ? (
-                              donation.items.map(item => (
-                                <div key={item.id} className="flex items-center gap-1">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="flex items-center gap-1">
-                                <Package className="h-3 w-3" />
-                                {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                              </p>
-                            )}
-                            <p className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
-                            </p>
+                            </span>
                           </div>
                         </div>
                       </div>
