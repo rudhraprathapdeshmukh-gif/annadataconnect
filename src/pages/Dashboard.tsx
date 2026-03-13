@@ -535,9 +535,9 @@ export default function Dashboard() {
         return;
       }
 
-      // Fetch items for all donations
+      // Fetch items for all donations using RPC to bypass RLS
       const donationIds = rawDonations.map(d => d.id);
-      const itemsMap = await fetchDonationItems(donationIds);
+      const itemsMap = await fetchDonationItemsPublic(donationIds);
       const donationsWithItems = rawDonations.map(d => ({
         ...d,
         items: itemsMap[d.id] || [],
