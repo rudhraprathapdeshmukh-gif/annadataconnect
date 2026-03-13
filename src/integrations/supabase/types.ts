@@ -495,6 +495,22 @@ export type Database = {
           title: string
         }[]
       }
+      get_donation_items_for_available: {
+        Args: { p_donation_ids: string[] }
+        Returns: {
+          description: string
+          diet_type: string
+          donation_id: string
+          expiry_date: string
+          food_type: string
+          id: string
+          image_url: string
+          quantity: string
+          quantity_unit: string
+          rating: number
+          title: string
+        }[]
+      }
       get_donor_active_requester_ids: {
         Args: { p_donor_id: string }
         Returns: {

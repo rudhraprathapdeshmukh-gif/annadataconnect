@@ -491,6 +491,23 @@ export default function Dashboard() {
     return map;
   };
 
+  const fetchDonationItemsPublic = async (donationIds: string[]): Promise<Record<string, DonationItem[]>> => {
+    if (donationIds.length === 0) return {};
+    const { data, error } = await supabase.rpc('get_donation_items_for_available' as any, {
+      p_donation_ids: donationIds,
+    });
+    if (error) {
+      console.error('Failed to fetch donation items via RPC:', error);
+      return {};
+    }
+    const map: Record<string, DonationItem[]> = {};
+    (data || []).forEach((item: any) => {
+      if (!map[item.donation_id]) map[item.donation_id] = [];
+      map[item.donation_id].push(item);
+    });
+    return map;
+  };
+
   const fetchDonations = async () => {
     try {
       let rawDonations: PublicDonation[] = [];
@@ -535,9 +552,9 @@ export default function Dashboard() {
         return;
       }
 
-      // Fetch items for all donations
+      // Fetch items for all donations using RPC to bypass RLS
       const donationIds = rawDonations.map(d => d.id);
-      const itemsMap = await fetchDonationItems(donationIds);
+      const itemsMap = await fetchDonationItemsPublic(donationIds);
       const donationsWithItems = rawDonations.map(d => ({
         ...d,
         items: itemsMap[d.id] || [],
