@@ -745,6 +745,8 @@ export default function History() {
               {submittingRating ? t('common.submitting') : t('common.submit')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

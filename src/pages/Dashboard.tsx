@@ -1891,6 +1891,8 @@ export default function Dashboard() {
               {t('dynamic.submitRating')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
