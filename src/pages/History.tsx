@@ -687,62 +687,72 @@ export default function History() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  {sortedRequests.map(request => (
-                    <Card key={request.id} className="overflow-hidden">
-                      <div className="flex">
-                        {request.food_donations?.image_url && (
-                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
-                            <img src={request.food_donations.image_url} alt={request.food_donations.title} className="w-full h-full object-cover" />
+                <div className="space-y-4">
+                  {sortedRequests.map(request => {
+                    const donation = request.food_donations;
+                    const items = (donation as any)?.items?.length > 0 ? ((donation as any).items as DonationItemInfo[]) : null;
+                    const allImages = items
+                      ? items.map(i => i.image_url).filter(Boolean) as string[]
+                      : donation?.image_url ? [donation.image_url] : [];
+                    const displayTitle = items ? items.map(i => i.title).join(', ') : donation?.title;
+
+                    return (
+                      <Card key={request.id} className="overflow-hidden">
+                        {allImages.length > 0 && (
+                          <div className={`grid gap-0.5 ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                            {allImages.map((url, idx) => (
+                              <div key={idx} className="aspect-[4/3] overflow-hidden">
+                                <img src={url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
-                        <div className="flex-1 p-3 md:p-4 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">
-                              {(request.food_donations as any)?.items?.length > 0
-                                ? (request.food_donations as any).items.map((i: DonationItemInfo) => i.title).join(', ')
-                                : request.food_donations?.title}
-                            </h3>
+
+                        <div className="p-3 sm:p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">{displayTitle}</h3>
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            {(request.food_donations as any)?.items?.length > 0 ? (
-                              ((request.food_donations as any).items as DonationItemInfo[]).map(item => (
-                                <div key={item.id} className="flex items-center gap-1">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                  {item.diet_type && (
-                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <p className="flex items-center gap-1">
-                                <Package className="h-3 w-3" />
-                                {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
-                              </p>
+
+                          <div className="space-y-1">
+                            {items ? items.map(item => (
+                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Package className="h-3 w-3 shrink-0" />
+                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                                {item.diet_type && (
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                )}
+                              </div>
+                            )) : (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Package className="h-3 w-3 shrink-0" />
+                                <span>{donation?.quantity} {donation?.quantity_unit} • {donation?.food_type}</span>
+                              </div>
                             )}
-                            <p className="flex items-center gap-1">
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                            <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(request.created_at).toLocaleDateString()}
-                            </p>
-                            {request.food_donations?.pickup_location && (
-                              <p className="flex items-start gap-1">
-                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span>{request.food_donations.pickup_location}</span>
-                              </p>
+                            </span>
+                            {donation?.pickup_location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate max-w-[200px]">{getApproxLocation(donation.pickup_location)}</span>
+                              </span>
                             )}
-                            {(request.food_donations as any)?.profiles && (
-                              <p className="flex items-center gap-1 text-primary">
+                            {(donation as any)?.profiles && (
+                              <span className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                {t('common.from')} {(request.food_donations as any).profiles.first_name}
-                              </p>
+                                {t('common.from')} {(donation as any).profiles.first_name}
+                              </span>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
