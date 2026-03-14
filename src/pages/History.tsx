@@ -607,45 +607,56 @@ export default function History() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  {deletedDonations.map(donation => (
-                    <Card key={donation.id} className="overflow-hidden opacity-75">
-                      <div className="flex">
-                        {donation.image_url && (
-                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
-                            <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
+                <div className="space-y-4">
+                  {deletedDonations.map(donation => {
+                    const items = donation.items && donation.items.length > 0 ? donation.items : null;
+                    const allImages = items
+                      ? items.map(i => i.image_url).filter(Boolean) as string[]
+                      : donation.image_url ? [donation.image_url] : [];
+                    const displayTitle = items ? items.map(i => i.title).join(', ') : donation.title;
+
+                    return (
+                      <Card key={donation.id} className="overflow-hidden opacity-75">
+                        {allImages.length > 0 && (
+                          <div className={`grid gap-0.5 grayscale ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                            {allImages.map((url, idx) => (
+                              <div key={idx} className="aspect-[4/3] overflow-hidden">
+                                <img src={url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
-                        <div className="flex-1 p-3 md:p-4 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm md:text-base truncate">
-                              {donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}
-                            </h3>
+
+                        <div className="p-3 sm:p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">{displayTitle}</h3>
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            {donation.items && donation.items.length > 0 ? (
-                              donation.items.map(item => (
-                                <div key={item.id} className="flex items-center gap-1">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="flex items-center gap-1">
-                                <Package className="h-3 w-3" />
-                                {donation.quantity} {donation.quantity_unit} • {donation.food_type}
-                              </p>
+
+                          <div className="space-y-1">
+                            {items ? items.map(item => (
+                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Package className="h-3 w-3 shrink-0" />
+                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                              </div>
+                            )) : (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Package className="h-3 w-3 shrink-0" />
+                                <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                              </div>
                             )}
-                            <p className="flex items-center gap-1">
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                            <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
-                            </p>
+                            </span>
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
