@@ -141,6 +141,15 @@ export default function History() {
     }
   };
 
+  const getApproxLocation = (location: string): string => {
+    if (!location) return '';
+    const parts = location.split(',').map(p => p.trim());
+    // Extract city/state/country - skip first part (exact address) and last parts if they're just numbers
+    const meaningful = parts.filter(p => p && !/^\d{6}$/.test(p) && !/^\d+[\s/]/.test(p));
+    // Take last 2-3 meaningful parts (city, state, country)
+    if (meaningful.length <= 2) return meaningful.join(', ');
+    return meaningful.slice(-3).join(', ');
+
   const sortDonations = (donations: FoodDonation[], sortType: string) => {
     const sorted = [...donations];
     switch (sortType) {
