@@ -178,11 +178,19 @@ export function ImpactDashboard() {
 
       setMonthlyData(Object.entries(monthlyMap).map(([month, donations]) => ({ month, donations })));
 
-      // Food type breakdown
+      // Food type breakdown - use individual items when available
       const typeMap: Record<string, number> = {};
       completedDonationDetails.forEach(d => {
-        const type = d.food_type || 'Other';
-        typeMap[type] = (typeMap[type] || 0) + 1;
+        const items = itemsByDonation[d.id];
+        if (items && items.length > 0) {
+          items.forEach(item => {
+            const type = item.food_type || 'Other';
+            typeMap[type] = (typeMap[type] || 0) + 1;
+          });
+        } else {
+          const type = d.food_type || 'Other';
+          typeMap[type] = (typeMap[type] || 0) + 1;
+        }
       });
       setFoodTypeData(
         Object.entries(typeMap)
