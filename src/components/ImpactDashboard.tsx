@@ -112,11 +112,11 @@ export function ImpactDashboard() {
       const completedDonationDetails = allDonations.filter(d => completedDonationIds.includes(d.id));
 
       // Fetch individual donation_items for completed donations
-      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string }[]> = {};
+      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string; food_type: string }[]> = {};
       if (completedDonationIds.length > 0) {
         const { data: itemsData } = await supabase
           .from('donation_items')
-          .select('donation_id, quantity, quantity_unit')
+          .select('donation_id, quantity, quantity_unit, food_type')
           .in('donation_id', completedDonationIds);
 
         if (itemsData && itemsData.length > 0) {
@@ -124,7 +124,7 @@ export function ImpactDashboard() {
             if (!itemsByDonation[item.donation_id]) {
               itemsByDonation[item.donation_id] = [];
             }
-            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit });
+            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit, food_type: item.food_type });
           });
         }
       }
@@ -178,11 +178,19 @@ export function ImpactDashboard() {
 
       setMonthlyData(Object.entries(monthlyMap).map(([month, donations]) => ({ month, donations })));
 
-      // Food type breakdown
+      // Food type breakdown - use individual items when available
       const typeMap: Record<string, number> = {};
       completedDonationDetails.forEach(d => {
-        const type = d.food_type || 'Other';
-        typeMap[type] = (typeMap[type] || 0) + 1;
+        const items = itemsByDonation[d.id];
+        if (items && items.length > 0) {
+          items.forEach(item => {
+            const type = item.food_type || 'Other';
+            typeMap[type] = (typeMap[type] || 0) + 1;
+          });
+        } else {
+          const type = d.food_type || 'Other';
+          typeMap[type] = (typeMap[type] || 0) + 1;
+        }
       });
       setFoodTypeData(
         Object.entries(typeMap)
