@@ -149,7 +149,7 @@ export default function History() {
     // Take last 2-3 meaningful parts (city, state, country)
     if (meaningful.length <= 2) return meaningful.join(', ');
     return meaningful.slice(-3).join(', ');
-
+  };
   const sortDonations = (donations: FoodDonation[], sortType: string) => {
     const sorted = [...donations];
     switch (sortType) {
