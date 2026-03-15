@@ -211,19 +211,42 @@ export default function History() {
         .is('deleted_at', null);
       
       if (completedError) throw completedError;
-      
-      // Calculate people helped using weighted logic (same as Impact Tracker)
+
+      const completedIds = (completedData || []).map(d => d.id);
+
+      // Fetch individual items for completed donations (same as Impact Tracker)
+      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string }[]> = {};
+      if (completedIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from('donation_items')
+          .select('donation_id, quantity, quantity_unit')
+          .in('donation_id', completedIds);
+
+        if (itemsData && itemsData.length > 0) {
+          itemsData.forEach(item => {
+            if (!itemsByDonation[item.donation_id]) {
+              itemsByDonation[item.donation_id] = [];
+            }
+            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit });
+          });
+        }
+      }
+
+      const calcPeople = (qty: string, unit: string) => {
+        const num = parseFloat(qty);
+        if (isNaN(num) || num <= 0) return 0;
+        const u = (unit || 'kg').toLowerCase();
+        if (u === 'kg' || u === 'litre' || u === 'litres' || u === 'l') return Math.ceil(num * 2);
+        if (u === 'g' || u === 'grams' || u === 'gram' || u === 'ml') return num <= 100 ? 1 : Math.ceil(num / 500);
+        return Math.ceil(num);
+      };
+
       const calcPeopleHelped = (completedData || []).reduce((sum, d) => {
-        const num = parseFloat(d.quantity);
-        if (isNaN(num) || num <= 0) return sum;
-        const unit = (d.quantity_unit || 'kg').toLowerCase();
-        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
-          return sum + Math.ceil(num * 2);
+        const items = itemsByDonation[d.id];
+        if (items && items.length > 0) {
+          return sum + items.reduce((s, item) => s + calcPeople(item.quantity, item.quantity_unit), 0);
         }
-        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
-          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
-        }
-        return sum + Math.ceil(num);
+        return sum + calcPeople(d.quantity, d.quantity_unit);
       }, 0);
       
       const { data: profileData, error: profileError } = await supabase
@@ -539,28 +562,38 @@ export default function History() {
                           {/* Items list */}
                           <div className="space-y-1">
                             {items ? items.map(item => (
-                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                {item.diet_type && (
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                )}
+                              <div key={item.id} className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{item.title}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="shrink-0">{item.quantity} {item.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
                                 {item.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )) : (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{donation.quantity} {donation.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{donation.food_type}</span>
+                                </div>
                                 {donation.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -647,25 +680,35 @@ export default function History() {
 
                           <div className="space-y-1">
                             {items ? items.map(item => (
-                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
+                              <div key={item.id} className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{item.title}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="shrink-0">{item.quantity} {item.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{item.food_type}</span>
+                                </div>
                                 {item.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )) : (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{donation.quantity} {donation.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{donation.food_type}</span>
+                                </div>
                                 {donation.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -740,28 +783,38 @@ export default function History() {
 
                           <div className="space-y-1">
                             {items ? items.map(item => (
-                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                {item.diet_type && (
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                )}
+                              <div key={item.id} className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{item.title}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="shrink-0">{item.quantity} {item.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
                                 {item.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )) : (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{donation?.quantity} {donation?.quantity_unit} • {donation?.food_type}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{donation?.quantity} {donation?.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{donation?.food_type}</span>
+                                </div>
                                 {donation?.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )}
