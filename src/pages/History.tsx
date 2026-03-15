@@ -211,19 +211,42 @@ export default function History() {
         .is('deleted_at', null);
       
       if (completedError) throw completedError;
-      
-      // Calculate people helped using weighted logic (same as Impact Tracker)
+
+      const completedIds = (completedData || []).map(d => d.id);
+
+      // Fetch individual items for completed donations (same as Impact Tracker)
+      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string }[]> = {};
+      if (completedIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from('donation_items')
+          .select('donation_id, quantity, quantity_unit')
+          .in('donation_id', completedIds);
+
+        if (itemsData && itemsData.length > 0) {
+          itemsData.forEach(item => {
+            if (!itemsByDonation[item.donation_id]) {
+              itemsByDonation[item.donation_id] = [];
+            }
+            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit });
+          });
+        }
+      }
+
+      const calcPeople = (qty: string, unit: string) => {
+        const num = parseFloat(qty);
+        if (isNaN(num) || num <= 0) return 0;
+        const u = (unit || 'kg').toLowerCase();
+        if (u === 'kg' || u === 'litre' || u === 'litres' || u === 'l') return Math.ceil(num * 2);
+        if (u === 'g' || u === 'grams' || u === 'gram' || u === 'ml') return num <= 100 ? 1 : Math.ceil(num / 500);
+        return Math.ceil(num);
+      };
+
       const calcPeopleHelped = (completedData || []).reduce((sum, d) => {
-        const num = parseFloat(d.quantity);
-        if (isNaN(num) || num <= 0) return sum;
-        const unit = (d.quantity_unit || 'kg').toLowerCase();
-        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
-          return sum + Math.ceil(num * 2);
+        const items = itemsByDonation[d.id];
+        if (items && items.length > 0) {
+          return sum + items.reduce((s, item) => s + calcPeople(item.quantity, item.quantity_unit), 0);
         }
-        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
-          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
-        }
-        return sum + Math.ceil(num);
+        return sum + calcPeople(d.quantity, d.quantity_unit);
       }, 0);
       
       const { data: profileData, error: profileError } = await supabase
