@@ -1210,20 +1210,18 @@ export default function Dashboard() {
                                 )}
                                 <div className="flex-1 min-w-0 space-y-1">
                                   <p className="text-sm font-medium line-clamp-1">{item.title}</p>
-                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                    <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
-                                    <span>•</span>
-                                    <span>{translateFoodType(t, item.food_type)}</span>
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span className="shrink-0">{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
+                                    <span className="shrink-0">•</span>
+                                    <span className="truncate">{translateFoodType(t, item.food_type)}</span>
                                     {item.diet_type && (
-                                      <>
-                                        <span>•</span>
-                                        <span className={`inline-flex items-center gap-1 ${
-                                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                        }`}>
-                                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                          {item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
-                                        </span>
-                                      </>
+                                      <span className={`shrink-0 inline-flex items-center gap-1 ${
+                                        item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                      }`}>
+                                        <span className="shrink-0">•</span>
+                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                        <span className="shrink-0">{item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}</span>
+                                      </span>
                                     )}
                                   </div>
                                   {item.expiry_date && (
