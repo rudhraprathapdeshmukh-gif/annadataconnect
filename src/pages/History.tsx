@@ -522,7 +522,7 @@ export default function History() {
                         {allImages.length > 0 && (
                           <div className={`grid gap-0.5 ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
                             {allImages.map((url, idx) => (
-                              <div key={idx} className="aspect-[4/3] overflow-hidden">
+                              <div key={idx} className={`overflow-hidden ${allImages.length === 1 ? 'h-48' : 'h-32'}`}>
                                 <img src={url} alt="" className="w-full h-full object-cover" />
                               </div>
                             ))}
@@ -545,11 +545,23 @@ export default function History() {
                                 {item.diet_type && (
                                   <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
                                 )}
+                                {item.expiry_date && (
+                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </span>
+                                )}
                               </div>
                             )) : (
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Package className="h-3 w-3 shrink-0" />
                                 <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                                {donation.expiry_date && (
+                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
