@@ -562,28 +562,38 @@ export default function History() {
                           {/* Items list */}
                           <div className="space-y-1">
                             {items ? items.map(item => (
-                              <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{item.title} • {item.quantity} {item.quantity_unit} • {item.food_type}</span>
-                                {item.diet_type && (
-                                  <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                )}
+                              <div key={item.id} className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{item.title}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="shrink-0">{item.quantity} {item.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{item.food_type}</span>
+                                  {item.diet_type && (
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  )}
+                                </div>
                                 {item.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )) : (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Package className="h-3 w-3 shrink-0" />
-                                <span>{donation.quantity} {donation.quantity_unit} • {donation.food_type}</span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Package className="h-3 w-3 shrink-0" />
+                                  <span className="shrink-0">{donation.quantity} {donation.quantity_unit}</span>
+                                  <span className="shrink-0">•</span>
+                                  <span className="truncate">{donation.food_type}</span>
+                                </div>
                                 {donation.expiry_date && (
-                                  <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                                    <Clock className="h-3 w-3" />
-                                    {new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                    <Clock className="h-2.5 w-2.5 shrink-0" />
+                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                  </div>
                                 )}
                               </div>
                             )}
