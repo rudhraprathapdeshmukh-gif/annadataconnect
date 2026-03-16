@@ -204,6 +204,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 rows={2}
                 className="resize-none"
               />
+              <span className="text-[11px] text-muted-foreground text-right">{item.description.length}/30</span>
             </div>
 
             {/* Quantity */}
