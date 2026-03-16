@@ -198,8 +198,9 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Description</Label>
               <Textarea
                 value={item.description}
-                onChange={(e) => onChange({ ...item, description: e.target.value })}
+                onChange={(e) => onChange({ ...item, description: e.target.value.slice(0, 30) })}
                 placeholder="Details about this item..."
+                maxLength={30}
                 rows={2}
                 className="resize-none"
               />
