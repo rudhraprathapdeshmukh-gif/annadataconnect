@@ -185,10 +185,12 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Title *</Label>
               <Input
                 value={item.title}
-                onChange={(e) => onChange({ ...item, title: e.target.value })}
+                onChange={(e) => onChange({ ...item, title: e.target.value.slice(0, 20) })}
                 placeholder="e.g., Fresh vegetables"
+                maxLength={20}
                 className="h-11"
               />
+              <span className="text-[11px] text-muted-foreground text-right">{item.title.length}/20</span>
             </div>
 
             {/* Description */}
@@ -196,11 +198,13 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Description</Label>
               <Textarea
                 value={item.description}
-                onChange={(e) => onChange({ ...item, description: e.target.value })}
+                onChange={(e) => onChange({ ...item, description: e.target.value.slice(0, 30) })}
                 placeholder="Details about this item..."
+                maxLength={30}
                 rows={2}
                 className="resize-none"
               />
+              <span className="text-[11px] text-muted-foreground text-right">{item.description.length}/30</span>
             </div>
 
             {/* Quantity */}
