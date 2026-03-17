@@ -681,13 +681,13 @@ export default function History() {
                           <div className="space-y-1">
                             {items ? items.map(item => (
                               <div key={item.id} className="space-y-0.5">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                                   <Package className="h-3 w-3 shrink-0" />
-                                  <span className="shrink-0">{item.title}</span>
-                                  <span className="shrink-0">•</span>
-                                  <span className="shrink-0">{item.quantity} {item.quantity_unit}</span>
-                                  <span className="shrink-0">•</span>
-                                  <span className="truncate">{item.food_type}</span>
+                                  <span className="break-words">{item.title}</span>
+                                  <span>•</span>
+                                  <span>{item.quantity} {item.quantity_unit}</span>
+                                  <span>•</span>
+                                  <span>{item.food_type}</span>
                                 </div>
                                 {item.expiry_date && (
                                   <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
