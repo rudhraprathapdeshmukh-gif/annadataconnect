@@ -267,7 +267,11 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 )}
                 <Select
                   value={item.quantity_unit}
-                  onValueChange={(value) => onChange({ ...item, quantity_unit: value })}
+                  onValueChange={(value) => {
+                    const newQuantity = value === 'grams' ? '100' : '1';
+                    setIsCustomQuantity(false);
+                    onChange({ ...item, quantity_unit: value, quantity: newQuantity });
+                  }}
                 >
                   <SelectTrigger className="w-[110px] h-11">
                     <SelectValue />
