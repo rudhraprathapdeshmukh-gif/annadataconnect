@@ -324,15 +324,13 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                   <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
                 )}
                 <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium line-clamp-2 break-words">{item.title}</p>
-                    {item.rating && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
-                        <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-sm font-medium break-words">{item.title}</p>
+                  {item.rating && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                      <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                     <span>•</span>
@@ -341,7 +339,6 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
                       <span className={`inline-flex items-center gap-1 ${
                         item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
-                        <span>•</span>
                         <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
                         <span>{item.diet_type === 'veg' ? t('donate.dietTypes.veg') : t('donate.dietTypes.nonVeg')}</span>
                       </span>
