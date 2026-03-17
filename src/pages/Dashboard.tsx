@@ -2100,7 +2100,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
                 )}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                    <p className="text-sm font-medium line-clamp-2 break-words">{item.title}</p>
                     {item.rating && (
                       <div className="flex items-center gap-1 shrink-0">
                         <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
