@@ -216,13 +216,13 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                     <Input
                       type="number"
                       min="1"
-                      max="99"
+                      max="9999"
                       value={item.quantity}
                       onChange={(e) => {
-                        const val = Math.min(99, Math.max(1, parseInt(e.target.value) || 0));
+                        const val = Math.min(9999, Math.max(1, parseInt(e.target.value) || 0));
                         onChange({ ...item, quantity: val.toString() });
                       }}
-                      placeholder="10-99"
+                      placeholder="Custom"
                       className="flex-1 h-11"
                     />
                     <Button
@@ -231,7 +231,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                       className="h-11 text-xs"
                       onClick={() => {
                         setIsCustomQuantity(false);
-                        onChange({ ...item, quantity: '1' });
+                        onChange({ ...item, quantity: item.quantity_unit === 'grams' ? '100' : '1' });
                       }}
                     >
                       Presets
@@ -253,10 +253,15 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                        <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                      ))}
-                      <SelectItem value="custom">Custom (10-99)...</SelectItem>
+                      {item.quantity_unit === 'grams' 
+                        ? [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map((n) => (
+                            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                          ))
+                        : [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                          ))
+                      }
+                      <SelectItem value="custom">Custom...</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
