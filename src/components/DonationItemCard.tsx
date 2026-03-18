@@ -259,7 +259,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                         ? [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map((n) => (
                             <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
                           ))
-                        : [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                        : Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
                             <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
                           ))
                       }
