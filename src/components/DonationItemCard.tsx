@@ -215,11 +215,13 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                   <div className="flex-1 flex gap-2">
                     <Input
                       type="number"
-                      min="1"
-                      max="9999"
+                      min={item.quantity_unit === 'grams' ? '100' : '1'}
+                      max={item.quantity_unit === 'grams' ? '1000' : '100'}
                       value={item.quantity}
                       onChange={(e) => {
-                        const val = Math.min(9999, Math.max(1, parseInt(e.target.value) || 0));
+                        const minVal = item.quantity_unit === 'grams' ? 100 : 1;
+                        const maxVal = item.quantity_unit === 'grams' ? 1000 : 100;
+                        const val = Math.min(maxVal, Math.max(minVal, parseInt(e.target.value) || minVal));
                         onChange({ ...item, quantity: val.toString() });
                       }}
                       placeholder="Custom"
