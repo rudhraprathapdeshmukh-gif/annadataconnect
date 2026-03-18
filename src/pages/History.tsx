@@ -682,34 +682,35 @@ export default function History() {
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
 
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             {items ? items.map(item => (
-                              <div key={item.id} className="space-y-0.5">
-                                <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span className="break-words">{item.title}</span>
-                                  <span>•</span>
+                              <div key={item.id} className="rounded-lg bg-muted/40 p-2 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Package className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                  <span className="text-xs font-medium break-words">{item.title}</span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground pl-[18px]">
                                   <span>{item.quantity} {item.quantity_unit}</span>
                                   <span>•</span>
                                   <span>{item.food_type}</span>
                                 </div>
                                 {item.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
                                     <Clock className="h-2.5 w-2.5 shrink-0" />
                                     <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                                   </div>
                                 )}
                               </div>
                             )) : (
-                              <div className="space-y-0.5">
+                              <div className="rounded-lg bg-muted/40 p-2 space-y-1">
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <Package className="h-3 w-3 shrink-0" />
-                                  <span className="shrink-0">{donation.quantity} {donation.quantity_unit}</span>
-                                  <span className="shrink-0">•</span>
-                                  <span className="truncate">{donation.food_type}</span>
+                                  <span>{donation.quantity} {donation.quantity_unit}</span>
+                                  <span>•</span>
+                                  <span>{donation.food_type}</span>
                                 </div>
                                 {donation.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 ml-[18px]">
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
                                     <Clock className="h-2.5 w-2.5 shrink-0" />
                                     <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                                   </div>
