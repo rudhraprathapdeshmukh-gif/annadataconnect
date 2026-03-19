@@ -436,6 +436,8 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">{getDateHelpText()}</p>
+              </>
+              )}
             </div>
 
             {/* Rating */}
