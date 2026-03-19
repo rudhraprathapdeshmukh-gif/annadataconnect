@@ -366,6 +366,10 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 <Label className="text-sm font-semibold">Approx Expiry Date & Time *</Label>
               </div>
 
+              {!item.food_type ? (
+                <p className="text-xs text-muted-foreground italic py-2">Please select a food type first to set expiry date</p>
+              ) : (
+              <>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
