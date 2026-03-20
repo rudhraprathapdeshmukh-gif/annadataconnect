@@ -1,13 +1,1 @@
-project_id = "ipinrucukkciyqprzkmu"
-
-[functions.help-chatbot]
-verify_jwt = false
-
-[functions.send-completion-email]
-verify_jwt = false
-
-[functions.notify-nearby-users]
-verify_jwt = false
-
-[functions.get-vapid-key]
-verify_jwt = false
+project_id = "oxgighgreboexnzeqilo"
