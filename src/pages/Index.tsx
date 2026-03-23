@@ -289,9 +289,9 @@ const Index = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Package className="h-4 w-4" />
-                          <span>{donation.quantity} {donation.quantity_unit}</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                          <Package className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{donation.quantity} {donation.quantity_unit}</span>
                         </div>
                       )}
                       <div className="flex items-start gap-2 text-sm text-muted-foreground">
