@@ -899,7 +899,7 @@ export default function Dashboard() {
       if (import.meta.env.DEV) {
         console.error('Failed to update request:', error);
       }
-      toast.error(`Failed to ${action} request`);
+      toast.error(`Failed to ${action === 'rejected' ? 'reject' : action} request`);
     }
   };
 
