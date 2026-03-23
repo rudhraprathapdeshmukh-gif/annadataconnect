@@ -1301,6 +1301,7 @@ export default function Dashboard() {
                       onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
                       onGrantExtension={() => handleGrantExtension(request.id)}
                       onRejectExtension={() => handleRejectExtension(request.id)}
+                      isActionLoading={actionLoadingIds.has(request.id)}
                       isAcceptDisabled={requests.some(r => r.donation_id === request.donation_id && r.status === 'approved' && r.id !== request.id)}
                       onRequestCompleted={(requestId, receiverName, donationTitle) => {
                         setPendingRating({
