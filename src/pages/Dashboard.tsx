@@ -1903,10 +1903,11 @@ interface DonorRequestCardProps {
   onGrantExtension: () => void;
   onRejectExtension: () => void;
   isAcceptDisabled?: boolean;
+  isActionLoading?: boolean;
   onRequestCompleted?: (requestId: string, receiverName: string, donationTitle: string) => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, isActionLoading, onRequestCompleted }: DonorRequestCardProps) {
   const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
