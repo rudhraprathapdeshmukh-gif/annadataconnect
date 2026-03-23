@@ -880,26 +880,25 @@ export default function Dashboard() {
 
       if (error) {
         console.error('RPC error:', error);
-        // Read-back verification: did the status actually change despite the error?
         const currentStatus = await verifyRequestStatus(requestId);
         if (currentStatus === action) {
-          toast({ title: `Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}` });
+          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
           refreshRequestState();
           return;
         }
         if (currentStatus && currentStatus !== 'pending') {
-          toast({ title: `This request was already ${currentStatus}.` });
+          toast.info(`This request was already ${currentStatus}.`);
           refreshRequestState();
           return;
         }
-        toast({ title: `Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`, variant: 'destructive' });
+        toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         return;
       }
 
       const result = parseDonorActionResult(data);
 
       if (result.success === true) {
-        toast({ title: `Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}` });
+        toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
         refreshRequestState();
         return;
       }
@@ -908,21 +907,21 @@ export default function Dashboard() {
       const reason = result.reason;
       if (reason === 'already_handled') {
         if (result.current_status === action) {
-          toast({ title: `Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!` });
+          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!`);
         } else {
-          toast({ title: `This request was already ${result.current_status || 'processed'}.` });
+          toast.info(`This request was already ${result.current_status || 'processed'}.`);
         }
       } else if (reason === 'not_found') {
-        toast({ title: 'Request not found. It may have been removed.' });
+        toast.error('Request not found. It may have been removed.');
       } else if (reason === 'not_authorized') {
-        toast({ title: 'You are not authorized to update this request.', variant: 'destructive' });
+        toast.error('You are not authorized to update this request.');
       } else {
         // Unknown failure — read-back to confirm
         const currentStatus = await verifyRequestStatus(requestId);
         if (currentStatus === action) {
-          toast({ title: `Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!` });
+          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!`);
         } else {
-          toast({ title: `Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`, variant: 'destructive' });
+          toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         }
       }
       refreshRequestState();
@@ -930,7 +929,7 @@ export default function Dashboard() {
       if (import.meta.env.DEV) {
         console.error('Failed to update request:', error);
       }
-      toast({ title: `Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`, variant: 'destructive' });
+      toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
     } finally {
       setActionLoadingIds(prev => {
         const next = new Set(prev);
