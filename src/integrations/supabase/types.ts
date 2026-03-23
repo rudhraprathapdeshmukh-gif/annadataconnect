@@ -475,6 +475,14 @@ export type Database = {
         Args: { p_email: string; p_phone: string }
         Returns: Json
       }
+      donor_set_request_status: {
+        Args: {
+          _new_status: string
+          _request_id: string
+          _timer_duration?: number
+        }
+        Returns: Json
+      }
       get_district_donations: {
         Args: { p_district: string }
         Returns: {
