@@ -831,67 +831,42 @@ export default function Dashboard() {
 
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     try {
-      // Find the request to get donation_id
-      const targetRequest = requests.find(r => r.id === requestId);
+      const newStatus = action; // 'approved' or 'rejected'
 
-      if (action === 'approved' && targetRequest) {
-        // Guard: check if another request for this donation is already approved
-        const alreadyApproved = requests.some(
-          r => r.donation_id === targetRequest.donation_id && r.status === 'approved' && r.id !== requestId
-        );
-        if (alreadyApproved) {
-          toast.error('This donation already has an accepted request');
-          return;
-        }
-      }
-
-      const updateData: any = { status: action };
-      
-      if (action === 'approved') {
-        updateData.accepted_at = new Date().toISOString();
-        updateData.timer_duration = 30; // Base timer is always 30 minutes
-      }
-
-      console.log('Updating request:', requestId, 'action:', action, 'data:', updateData);
-      const { error, data } = await supabase
-        .from('food_requests')
-        .update(updateData)
-        .eq('id', requestId)
-        .select();
-
-      console.log('Update result:', { error, data, rowsReturned: data?.length });
+      const { data, error } = await supabase.rpc('donor_set_request_status', {
+        _request_id: requestId,
+        _new_status: newStatus,
+        _timer_duration: 30,
+      });
 
       if (error) {
-        console.error('Error updating request:', error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
-        console.error('No rows updated - RLS policy may be blocking. Request ID:', requestId);
-        toast.error('Unable to update request. Please refresh and try again.');
+        console.error('RPC error:', error);
+        toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         return;
       }
-      
-      toast.success(`Request ${action} successfully!${action === 'approved' ? ` Timer: ${updateData.timer_duration} minutes` : ''}`);
 
-      // Auto-reject other pending requests for the same donation
-      if (action === 'approved' && targetRequest) {
-        const otherPending = requests.filter(
-          r => r.donation_id === targetRequest.donation_id && r.status === 'pending' && r.id !== requestId
-        );
-        
-        if (otherPending.length > 0) {
-          const otherIds = otherPending.map(r => r.id);
-          await supabase
-            .from('food_requests')
-            .update({ status: 'rejected' })
-            .in('id', otherIds);
+      const result = data as { success: boolean; reason?: string; status?: string; current_status?: string };
 
-          // Notification for rejected requesters is handled by DB trigger
-
-          toast.info(`${otherPending.length} other pending request(s) auto-rejected`);
+      if (!result.success) {
+        switch (result.reason) {
+          case 'not_found':
+            toast.error('Request not found. It may have been removed.');
+            break;
+          case 'not_authorized':
+            toast.error('You are not authorized to update this request.');
+            break;
+          case 'already_handled':
+            toast.info(`This request was already ${result.current_status || 'processed'}.`);
+            break;
+          default:
+            toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         }
+        fetchRequests();
+        fetchMyRequests();
+        return;
       }
+
+      toast.success(`Request ${action} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
 
       fetchRequests();
       fetchMyRequests();
@@ -899,7 +874,7 @@ export default function Dashboard() {
       if (import.meta.env.DEV) {
         console.error('Failed to update request:', error);
       }
-      toast.error(`Failed to ${action === 'rejected' ? 'reject' : action} request`);
+      toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
     }
   };
 
