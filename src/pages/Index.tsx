@@ -272,7 +272,7 @@ const Index = () => {
                     )}
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
+                        <CardTitle className="text-lg line-clamp-1 break-words overflow-hidden">{donation.title}</CardTitle>
                         <Badge variant={donation.status === 'available' ? 'default' : 'secondary'}>
                           {donation.status}
                         </Badge>
