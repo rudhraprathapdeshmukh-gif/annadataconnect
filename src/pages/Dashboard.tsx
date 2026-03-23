@@ -1514,6 +1514,15 @@ export default function Dashboard() {
               {(() => {
                 const filteredDonations = donations.filter(d => {
                   if (dietFilter === 'all') return true;
+                  // For multi-item donations, check ALL items' diet types
+                  if (d.items && d.items.length > 0) {
+                    if (dietFilter === 'veg') {
+                      return d.items.every(item => item.diet_type === 'veg');
+                    }
+                    if (dietFilter === 'non-veg') {
+                      return d.items.every(item => item.diet_type === 'non-veg');
+                    }
+                  }
                   return d.diet_type === dietFilter;
                 });
 
