@@ -831,6 +831,62 @@ export default function Dashboard() {
 
   const [actionLoadingIds, setActionLoadingIds] = useState<Set<string>>(new Set());
 
+  const parseDonorActionResult = (raw: unknown): { success?: boolean; reason?: string; status?: string; current_status?: string } => {
+    if (!raw) return {};
+
+    if (Array.isArray(raw)) {
+      return parseDonorActionResult(raw[0]);
+    }
+
+    if (typeof raw === 'string') {
+      try {
+        return parseDonorActionResult(JSON.parse(raw));
+      } catch {
+        return {};
+      }
+    }
+
+    if (typeof raw === 'object') {
+      return raw as { success?: boolean; reason?: string; status?: string; current_status?: string };
+    }
+
+    return {};
+  };
+
+  const fallbackRejectRequest = async (requestId: string) => {
+    const { data, error } = await supabase
+      .from('food_requests')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .select('id, status')
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false as const, reason: 'error' as const, message: error.message };
+    }
+
+    if (data?.status === 'rejected') {
+      return { ok: true as const };
+    }
+
+    const { data: currentRow } = await supabase
+      .from('food_requests')
+      .select('status')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (!currentRow) {
+      return { ok: false as const, reason: 'not_found' as const };
+    }
+
+    if (currentRow.status === 'rejected') {
+      return { ok: true as const, idempotent: true };
+    }
+
+    return { ok: false as const, reason: 'already_handled' as const, currentStatus: currentRow.status };
+  };
+
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     if (actionLoadingIds.has(requestId)) return;
     setActionLoadingIds(prev => new Set(prev).add(requestId));
@@ -843,14 +899,40 @@ export default function Dashboard() {
 
       if (error) {
         console.error('RPC error:', error);
+
+        if (action === 'rejected') {
+          const fallback = await fallbackRejectRequest(requestId);
+
+          if (fallback.ok) {
+            toast.success('Request rejected successfully!');
+            fetchRequests();
+            fetchMyRequests();
+            fetchMyDonations();
+            return;
+          }
+
+          if (fallback.reason === 'already_handled') {
+            toast.info(`This request was already ${fallback.currentStatus || 'processed'}.`);
+            fetchRequests();
+            fetchMyRequests();
+            fetchMyDonations();
+            return;
+          }
+
+          if (fallback.reason === 'not_found') {
+            toast.info('Request no longer exists.');
+            fetchRequests();
+            fetchMyRequests();
+            fetchMyDonations();
+            return;
+          }
+        }
+
         toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         return;
       }
 
-      // Safely parse result - handle object, array, or null
-      const raw = data as any;
-      const result: { success?: boolean; reason?: string; status?: string; current_status?: string } =
-        raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+      const result = parseDonorActionResult(data);
 
       if (!result.success) {
         if (result.reason === 'already_handled' && result.current_status === action) {
