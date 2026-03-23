@@ -887,10 +887,38 @@ export default function Dashboard() {
     return { ok: false as const, reason: 'already_handled' as const, currentStatus: currentRow.status };
   };
 
+  const refreshRequestState = () => {
+    fetchRequests();
+    fetchMyRequests();
+    fetchMyDonations();
+  };
+
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     if (actionLoadingIds.has(requestId)) return;
     setActionLoadingIds(prev => new Set(prev).add(requestId));
     try {
+      if (action === 'rejected') {
+        const directReject = await fallbackRejectRequest(requestId);
+
+        if (directReject.ok) {
+          toast.success('Request rejected successfully!');
+          refreshRequestState();
+          return;
+        }
+
+        if (directReject.reason === 'already_handled') {
+          toast.info(`This request was already ${directReject.currentStatus || 'processed'}.`);
+          refreshRequestState();
+          return;
+        }
+
+        if (directReject.reason === 'not_found') {
+          toast.info('Request no longer exists.');
+          refreshRequestState();
+          return;
+        }
+      }
+
       const { data, error } = await supabase.rpc('donor_set_request_status', {
         _request_id: requestId,
         _new_status: action,
@@ -905,25 +933,19 @@ export default function Dashboard() {
 
           if (fallback.ok) {
             toast.success('Request rejected successfully!');
-            fetchRequests();
-            fetchMyRequests();
-            fetchMyDonations();
+            refreshRequestState();
             return;
           }
 
           if (fallback.reason === 'already_handled') {
             toast.info(`This request was already ${fallback.currentStatus || 'processed'}.`);
-            fetchRequests();
-            fetchMyRequests();
-            fetchMyDonations();
+            refreshRequestState();
             return;
           }
 
           if (fallback.reason === 'not_found') {
             toast.info('Request no longer exists.');
-            fetchRequests();
-            fetchMyRequests();
-            fetchMyDonations();
+            refreshRequestState();
             return;
           }
         }
@@ -947,16 +969,13 @@ export default function Dashboard() {
         } else {
           toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         }
-        fetchRequests();
-        fetchMyRequests();
+        refreshRequestState();
         return;
       }
 
       toast.success(`Request ${action} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
 
-      fetchRequests();
-      fetchMyRequests();
-      fetchMyDonations();
+      refreshRequestState();
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error('Failed to update request:', error);
