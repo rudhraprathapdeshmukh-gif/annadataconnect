@@ -2292,18 +2292,19 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             variant="default" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onAccept}
-            disabled={isAcceptDisabled}
+            disabled={isAcceptDisabled || isActionLoading}
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
-            <Check className="h-4 w-4 mr-2" />
+            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
             {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
           <Button 
             variant="destructive" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onReject}
+            disabled={isActionLoading}
           >
-            <X className="h-4 w-4 mr-2" />
+            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
              {t('dashboard.reject')}
           </Button>
         </CardFooter>
