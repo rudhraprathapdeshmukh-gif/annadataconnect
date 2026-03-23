@@ -852,16 +852,24 @@ export default function Dashboard() {
         updateData.timer_duration = 30; // Base timer is always 30 minutes
       }
 
-      const { error } = await supabase
+      console.log('Updating request:', requestId, 'action:', action, 'data:', updateData);
+      const { error, data } = await supabase
         .from('food_requests')
         .update(updateData)
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
+
+      console.log('Update result:', { error, data, rowsReturned: data?.length });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error updating request:', error);
-        }
+        console.error('Error updating request:', error);
         throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.error('No rows updated - RLS policy may be blocking. Request ID:', requestId);
+        toast.error('Unable to update request. Please refresh and try again.');
+        return;
       }
       
       toast.success(`Request ${action} successfully!${action === 'approved' ? ` Timer: ${updateData.timer_duration} minutes` : ''}`);
