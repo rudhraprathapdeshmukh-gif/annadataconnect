@@ -601,6 +601,10 @@ export type Database = {
         Returns: undefined
       }
       is_donation_claimed: { Args: { _donation_id: string }; Returns: boolean }
+      is_donation_requestable: {
+        Args: { _donation_id: string }
+        Returns: boolean
+      }
       soft_delete_donation: {
         Args: { _donation_id: string }
         Returns: undefined
