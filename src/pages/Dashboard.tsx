@@ -829,13 +829,15 @@ export default function Dashboard() {
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
-    try {
-      const newStatus = action; // 'approved' or 'rejected'
+  const [actionLoadingIds, setActionLoadingIds] = useState<Set<string>>(new Set());
 
+  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
+    if (actionLoadingIds.has(requestId)) return;
+    setActionLoadingIds(prev => new Set(prev).add(requestId));
+    try {
       const { data, error } = await supabase.rpc('donor_set_request_status', {
         _request_id: requestId,
-        _new_status: newStatus,
+        _new_status: action,
         _timer_duration: 30,
       });
 
@@ -845,21 +847,23 @@ export default function Dashboard() {
         return;
       }
 
-      const result = data as { success: boolean; reason?: string; status?: string; current_status?: string };
+      // Safely parse result - handle object, array, or null
+      const raw = data as any;
+      const result: { success?: boolean; reason?: string; status?: string; current_status?: string } =
+        raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
 
       if (!result.success) {
-        switch (result.reason) {
-          case 'not_found':
-            toast.error('Request not found. It may have been removed.');
-            break;
-          case 'not_authorized':
-            toast.error('You are not authorized to update this request.');
-            break;
-          case 'already_handled':
-            toast.info(`This request was already ${result.current_status || 'processed'}.`);
-            break;
-          default:
-            toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
+        if (result.reason === 'already_handled' && result.current_status === action) {
+          // Idempotent - already in desired state, treat as success
+          toast.success(`Request ${action} successfully!`);
+        } else if (result.reason === 'already_handled') {
+          toast.info(`This request was already ${result.current_status || 'processed'}.`);
+        } else if (result.reason === 'not_found') {
+          toast.error('Request not found. It may have been removed.');
+        } else if (result.reason === 'not_authorized') {
+          toast.error('You are not authorized to update this request.');
+        } else {
+          toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
         }
         fetchRequests();
         fetchMyRequests();
@@ -870,11 +874,18 @@ export default function Dashboard() {
 
       fetchRequests();
       fetchMyRequests();
+      fetchMyDonations();
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error('Failed to update request:', error);
       }
       toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
+    } finally {
+      setActionLoadingIds(prev => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
     }
   };
 
@@ -1290,6 +1301,7 @@ export default function Dashboard() {
                       onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
                       onGrantExtension={() => handleGrantExtension(request.id)}
                       onRejectExtension={() => handleRejectExtension(request.id)}
+                      isActionLoading={actionLoadingIds.has(request.id)}
                       isAcceptDisabled={requests.some(r => r.donation_id === request.donation_id && r.status === 'approved' && r.id !== request.id)}
                       onRequestCompleted={(requestId, receiverName, donationTitle) => {
                         setPendingRating({
@@ -1892,10 +1904,11 @@ interface DonorRequestCardProps {
   onGrantExtension: () => void;
   onRejectExtension: () => void;
   isAcceptDisabled?: boolean;
+  isActionLoading?: boolean;
   onRequestCompleted?: (requestId: string, receiverName: string, donationTitle: string) => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, isActionLoading, onRequestCompleted }: DonorRequestCardProps) {
   const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -2279,18 +2292,19 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             variant="default" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onAccept}
-            disabled={isAcceptDisabled}
+            disabled={isAcceptDisabled || isActionLoading}
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
-            <Check className="h-4 w-4 mr-2" />
+            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
             {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
           <Button 
             variant="destructive" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onReject}
+            disabled={isActionLoading}
           >
-            <X className="h-4 w-4 mr-2" />
+            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
              {t('dashboard.reject')}
           </Button>
         </CardFooter>
