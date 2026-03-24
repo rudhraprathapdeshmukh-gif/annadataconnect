@@ -871,65 +871,105 @@ export default function Dashboard() {
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
     if (actionLoadingIds.has(requestId)) return;
     setActionLoadingIds(prev => new Set(prev).add(requestId));
+    
+    const actionLabel = action === 'rejected' ? 'reject' : 'approve';
+    const successMsg = action === 'rejected' ? 'Request rejected successfully!' : 'Request approved successfully! Timer: 30 minutes';
+    
     try {
+      console.log(`[ReqAction] ${action} request ${requestId}`);
+      
+      // Primary path: RPC call
       const { data, error } = await supabase.rpc('donor_set_request_status', {
         _request_id: requestId,
         _new_status: action,
         _timer_duration: 30,
       });
 
-      if (error) {
-        console.error('RPC error:', error);
-        const currentStatus = await verifyRequestStatus(requestId);
-        if (currentStatus === action) {
-          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
+      console.log(`[ReqAction] RPC result:`, { data, error: error?.message });
+
+      if (!error) {
+        const result = parseDonorActionResult(data);
+        console.log(`[ReqAction] Parsed result:`, result);
+
+        if (result.success === true) {
+          toast.success(successMsg);
           refreshRequestState();
           return;
         }
-        if (currentStatus && currentStatus !== 'pending') {
-          toast.info(`This request was already ${currentStatus}.`);
+
+        // RPC returned success=false with a reason
+        const reason = result.reason;
+        if (reason === 'already_handled') {
+          if (result.current_status === action) {
+            toast.success(successMsg);
+          } else {
+            toast.info(`This request was already ${result.current_status || 'processed'}.`);
+          }
+          refreshRequestState();
+          return;
+        } else if (reason === 'not_found') {
+          toast.error('Request not found. It may have been removed.');
+          refreshRequestState();
+          return;
+        } else if (reason === 'not_authorized') {
+          toast.error('You are not authorized to update this request.');
           refreshRequestState();
           return;
         }
-        toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
-        return;
+        // For update_failed, exception, or unknown reasons — fall through to read-back + fallback
       }
 
-      const result = parseDonorActionResult(data);
-
-      if (result.success === true) {
-        toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!${action === 'approved' ? ' Timer: 30 minutes' : ''}`);
+      // Read-back verification
+      const currentStatus = await verifyRequestStatus(requestId);
+      console.log(`[ReqAction] Read-back status: ${currentStatus}`);
+      
+      if (currentStatus === action) {
+        toast.success(successMsg);
+        refreshRequestState();
+        return;
+      }
+      if (currentStatus && currentStatus !== 'pending') {
+        toast.info(`This request was already ${currentStatus}.`);
         refreshRequestState();
         return;
       }
 
-      // RPC returned success=false
-      const reason = result.reason;
-      if (reason === 'already_handled') {
-        if (result.current_status === action) {
-          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!`);
-        } else {
-          toast.info(`This request was already ${result.current_status || 'processed'}.`);
-        }
-      } else if (reason === 'not_found') {
-        toast.error('Request not found. It may have been removed.');
-      } else if (reason === 'not_authorized') {
-        toast.error('You are not authorized to update this request.');
+      // Emergency fallback: direct update (RLS enforces donor ownership)
+      console.log(`[ReqAction] Attempting direct update fallback for ${requestId}`);
+      const { error: fallbackError } = await supabase
+        .from('food_requests')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+        .eq('status', 'pending');
+
+      if (fallbackError) {
+        console.error(`[ReqAction] Fallback error:`, fallbackError);
+      }
+
+      // Final read-back after fallback
+      const finalStatus = await verifyRequestStatus(requestId);
+      console.log(`[ReqAction] Final status after fallback: ${finalStatus}`);
+      
+      if (finalStatus === action) {
+        toast.success(successMsg);
+      } else if (finalStatus && finalStatus !== 'pending') {
+        toast.info(`This request was already ${finalStatus}.`);
       } else {
-        // Unknown failure — read-back to confirm
-        const currentStatus = await verifyRequestStatus(requestId);
-        if (currentStatus === action) {
-          toast.success(`Request ${action === 'rejected' ? 'rejected' : 'approved'} successfully!`);
-        } else {
-          toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
-        }
+        toast.error(`Failed to ${actionLabel} request. Please try again.`);
       }
       refreshRequestState();
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to update request:', error);
-      }
-      toast.error(`Failed to ${action === 'rejected' ? 'reject' : 'approve'} request`);
+      console.error(`[ReqAction] Exception:`, error);
+      // Last-chance read-back even on exception
+      try {
+        const catchStatus = await verifyRequestStatus(requestId);
+        if (catchStatus === action) {
+          toast.success(successMsg);
+          refreshRequestState();
+          return;
+        }
+      } catch {}
+      toast.error(`Failed to ${actionLabel} request. Please try again.`);
     } finally {
       setActionLoadingIds(prev => {
         const next = new Set(prev);
