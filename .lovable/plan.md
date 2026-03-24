@@ -1,46 +1,55 @@
 
-Goal: make donor reject action actually update `food_requests.status` from `pending` → `rejected` (not just suppress the toast).
+Goal: make donor “Reject” reliably change `food_requests.status` from `pending` → `rejected` (no false failure, no no-op).
 
-Issue rephrased:
-- Reject click currently shows failure and the request stays `pending`, so the mutation is not being applied.
-- This is now a true state-change failure (not only a toast-mapping issue).
-
-Do I know what the issue is?
-- Yes: the reject path is currently split between a direct table update + RPC fallback, and this can still end in ambiguous/no-op outcomes (especially with RLS-style silent no-row updates), while UI falls back to generic failure handling.
+What I found
+- `Dashboard.tsx` is calling `donor_set_request_status` for reject, but when RPC errors/returns unexpected payload, UI falls back to generic failure and request stays pending.
+- The DB function exists and is security-definer, but current flow still depends on ambiguous runtime outcomes (especially in error path).
+- This needs a stricter backend contract + a safer frontend failover path.
 
 Implementation plan
 
-1) Make reject path single-source-of-truth (frontend)
-- In `src/pages/Dashboard.tsx`, remove “direct update first” behavior for reject.
-- Always call `donor_set_request_status` for both approve/reject.
-- Keep per-request loading lock to prevent double clicks.
+1) Harden reject logic in backend function (migration)
+- Update `public.donor_set_request_status` so reject uses one atomic mutation tied to donor ownership:
+  - `UPDATE food_requests fr ... FROM food_donations fd ... WHERE fr.id=_request_id AND fr.status='pending' AND fd.donor_id=auth.uid() RETURNING ...`
+- Return a consistent JSON contract for every path:
+  - `success, reason, request_id, donation_id, current_status, requested_status, error_code`
+- Add `EXCEPTION WHEN OTHERS` block that returns structured failure JSON (instead of opaque RPC error) so frontend can map it correctly.
 
-2) Harden RPC result parsing + status verification (frontend)
-- Expand parser to handle nested/unexpected payload shapes safely.
-- If RPC response is malformed or `success !== true`, do an immediate read-back of that request’s current status:
-  - if now `rejected`, treat as success (idempotent),
-  - if still `pending`, show actionable error (not generic).
+2) Tighten auth/permission surface for this RPC (migration)
+- Ensure function remains `SECURITY DEFINER` with `SET search_path = public`.
+- Ensure execute is explicitly intended for signed-in users (authenticated role).
+- Keep RLS ownership enforcement in place for direct update fallback safety.
 
-3) Add explicit backend diagnostics in RPC return (DB migration)
-- Update `public.donor_set_request_status` to return a richer JSON contract:
-  `success, reason, current_status, requested_status, donation_id, request_id`.
-- Keep `FOR UPDATE`, ownership check, allowed statuses, and pending-only transitions.
-- For reject branch, use `UPDATE ... WHERE id=_request_id AND status='pending' RETURNING id` so success is tied to actual row mutation.
+3) Make reject handling deterministic in `src/pages/Dashboard.tsx`
+- Keep one primary path: RPC call for reject.
+- Parse result defensively (object/array/string payloads).
+- Map reasons explicitly:
+  - `not_authorized`, `not_found`, `already_handled`, `update_failed`, `exception`.
+- If result is unclear or RPC-level error occurs, immediately read back request status:
+  - if `rejected` => treat as success/idempotent
+  - if still `pending` => true failure toast.
 
-4) Tighten UI error mapping (frontend)
-- Map backend reasons distinctly:
-  - `not_authorized` → permission message
-  - `already_handled` → info/idempotent
-  - `not_found` → info
-  - unknown + still pending after read-back → true failure toast.
-- Add temporary dev logs around requestId/action/RPC payload/result for one release cycle.
+4) Add last-resort donor-safe fallback when RPC hard-fails
+- If RPC throws and read-back is still `pending`, do one emergency direct update:
+  - `.update({ status: 'rejected' }).eq('id', requestId).eq('status','pending')`
+- Rely on donor UPDATE RLS policy to enforce ownership.
+- Re-read status after fallback and show final toast from actual state (not guessed state).
 
-5) Validation
-- Donor rejects pending request: card leaves pending list and receiver sees rejected/cancelled outcome as designed.
-- Repeat reject on same request: no hard failure (idempotent info/success).
-- Approve flow still works (claim + competing pending auto-reject unchanged).
-- End-to-end test on desktop + mobile viewport.
+5) Keep UX race-safe and traceable
+- Retain per-request loading lock (`actionLoadingIds`) so reject can’t double-fire.
+- Add temporary dev logs around:
+  - requestId, action, rpc payload/result, read-back status, fallback result.
+- Remove verbose logs after one stable cycle.
 
-Technical details (files)
-- `supabase/migrations/<new>.sql` (update `donor_set_request_status` contract/logic)
-- `src/pages/Dashboard.tsx` (single RPC path, parser hardening, read-back verification, toast mapping)
+Technical scope
+- `supabase/migrations/<new>.sql`  
+  (harden `donor_set_request_status` contract + exception-safe result + auth execute scope)
+- `src/pages/Dashboard.tsx`  
+  (deterministic reject handling + read-back verification + emergency fallback + precise toasts)
+
+Validation checklist
+1. Donor rejects a fresh pending request → status becomes `rejected`, no “Failed to reject request” toast.
+2. Reject same request again → idempotent “already handled” behavior (no hard failure).
+3. Pending request truly updates in DB (not just UI toast suppression).
+4. Approve flow still works (claim donation + reject competing pending requests).
+5. Verify end-to-end on desktop and mobile, and confirm behavior after publish.
