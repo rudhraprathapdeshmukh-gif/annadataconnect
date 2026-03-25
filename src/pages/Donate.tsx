@@ -128,8 +128,8 @@ export default function Donate() {
         try {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          setCoordinates({ lat, lng });
           const address = await reverseGeocode(lat, lng);
+          setCoordinates({ lat, lng });
           setSharedData(prev => ({
             ...prev,
             city: address.city,
@@ -138,6 +138,7 @@ export default function Donate() {
           }));
           toast.success(t('donate.locationDetected'));
         } catch {
+          setCoordinates(null);
           toast.error(t('donate.failedGetAddress'));
         } finally {
           setLoadingLocation(false);
