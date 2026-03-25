@@ -402,18 +402,10 @@ export default function Dashboard() {
   const pendingRefreshes = useRef<Set<string>>(new Set());
 
   // Use refs to always call the latest versions of fetch functions
-  const fetchRequestsRef = useRef(fetchRequests);
-  const fetchMyRequestsRef = useRef(fetchMyRequests);
-  const fetchMyDonationsRef = useRef(fetchMyDonations);
-  const fetchDonationsRef = useRef(fetchDonations);
-  
-  // Update refs on every render so scheduleRefresh always uses current functions
-  useEffect(() => {
-    fetchRequestsRef.current = fetchRequests;
-    fetchMyRequestsRef.current = fetchMyRequests;
-    fetchMyDonationsRef.current = fetchMyDonations;
-    fetchDonationsRef.current = fetchDonations;
-  });
+  const fetchRequestsRef = useRef<() => void>(() => {});
+  const fetchMyRequestsRef = useRef<() => void>(() => {});
+  const fetchMyDonationsRef = useRef<() => void>(() => {});
+  const fetchDonationsRef = useRef<() => void>(() => {});
 
   const scheduleRefresh = useCallback((targets: string[]) => {
     targets.forEach(t => pendingRefreshes.current.add(t));
