@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { compressImage } from '@/lib/imageCompression';
 import { addYears, isAfter, isBefore } from 'date-fns';
 
 import { DonateStepIndicator } from '@/components/DonateStepIndicator';
