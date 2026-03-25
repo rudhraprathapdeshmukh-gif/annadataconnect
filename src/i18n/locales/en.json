@@ -765,7 +765,10 @@
     "send": "Send",
     "shareLocation": "Share Location",
     "locationShared": "Location shared",
-    "viewOnMap": "View on Map"
+    "viewOnMap": "View on Map",
+    "openInGoogleMaps": "Open in Google Maps",
+    "copyCoordinates": "Copy Coordinates",
+    "coordinatesCopied": "Coordinates copied"
   },
   "email": {
     "donorSubject": "🎉 Donation Completed! Thank you for sharing food",
