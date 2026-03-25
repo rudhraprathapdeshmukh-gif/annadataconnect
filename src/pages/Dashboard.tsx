@@ -401,16 +401,30 @@ export default function Dashboard() {
   const realtimeRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRefreshes = useRef<Set<string>>(new Set());
 
+  // Use refs to always call the latest versions of fetch functions
+  const fetchRequestsRef = useRef(fetchRequests);
+  const fetchMyRequestsRef = useRef(fetchMyRequests);
+  const fetchMyDonationsRef = useRef(fetchMyDonations);
+  const fetchDonationsRef = useRef(fetchDonations);
+  
+  // Update refs on every render so scheduleRefresh always uses current functions
+  useEffect(() => {
+    fetchRequestsRef.current = fetchRequests;
+    fetchMyRequestsRef.current = fetchMyRequests;
+    fetchMyDonationsRef.current = fetchMyDonations;
+    fetchDonationsRef.current = fetchDonations;
+  });
+
   const scheduleRefresh = useCallback((targets: string[]) => {
     targets.forEach(t => pendingRefreshes.current.add(t));
     if (realtimeRefreshTimer.current) clearTimeout(realtimeRefreshTimer.current);
     realtimeRefreshTimer.current = setTimeout(() => {
       const pending = new Set(pendingRefreshes.current);
       pendingRefreshes.current.clear();
-      if (pending.has('requests')) fetchRequests();
-      if (pending.has('myRequests')) fetchMyRequests();
-      if (pending.has('myDonations')) fetchMyDonations();
-      if (pending.has('donations')) fetchDonations();
+      if (pending.has('requests')) fetchRequestsRef.current();
+      if (pending.has('myRequests')) fetchMyRequestsRef.current();
+      if (pending.has('myDonations')) fetchMyDonationsRef.current();
+      if (pending.has('donations')) fetchDonationsRef.current();
     }, 300);
   }, []);
 
@@ -872,6 +886,7 @@ export default function Dashboard() {
     fetchRequests();
     fetchMyRequests();
     fetchMyDonations();
+    fetchDonations();
   };
 
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
