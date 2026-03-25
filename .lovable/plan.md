@@ -1,78 +1,55 @@
 
-Goal: make request lifecycle reliable across 3 cases:
-1) donor rejects receiver request without false failure toast,
-2) donor deleting a donation cancels all open receiver requests,
-3) once claimed, donation is removed from available list and blocked from new requests.
+Goal: make donor “Reject” reliably change `food_requests.status` from `pending` → `rejected` (no false failure, no no-op).
 
 What I found
-- `notify_receivers_on_donation_delete()` currently cancels only `approved` requests, not `pending`.
-- `donor_set_request_status()` is in place, but frontend handling is brittle (JSON response shape assumptions can still fall into generic “failed to reject”).
-- Request creation protections rely heavily on claimed status checks; we should harden “requestable donation” conditions to prevent stale/edge-case inserts.
+- `Dashboard.tsx` is calling `donor_set_request_status` for reject, but when RPC errors/returns unexpected payload, UI falls back to generic failure and request stays pending.
+- The DB function exists and is security-definer, but current flow still depends on ambiguous runtime outcomes (especially in error path).
+- This needs a stricter backend contract + a safer frontend failover path.
 
 Implementation plan
 
-1) Backend migration: make deletion + claim state transitions deterministic
-- Update `public.notify_receivers_on_donation_delete()` to cancel all non-final requests for that donation (`pending`, `approved`) when `deleted_at` is set.
-- Keep `completed/rejected/cancelled` unchanged.
-- Insert cancellation notifications for affected receivers (same messaging model as existing flow).
+1) Harden reject logic in backend function (migration)
+- Update `public.donor_set_request_status` so reject uses one atomic mutation tied to donor ownership:
+  - `UPDATE food_requests fr ... FROM food_donations fd ... WHERE fr.id=_request_id AND fr.status='pending' AND fd.donor_id=auth.uid() RETURNING ...`
+- Return a consistent JSON contract for every path:
+  - `success, reason, request_id, donation_id, current_status, requested_status, error_code`
+- Add `EXCEPTION WHEN OTHERS` block that returns structured failure JSON (instead of opaque RPC error) so frontend can map it correctly.
 
-2) Backend migration: harden donor action RPC (`donor_set_request_status`)
-- Keep `SECURITY DEFINER` + `SET search_path = public`.
-- Add row lock (`FOR UPDATE`) on target request to avoid race conditions.
-- Validate:
-  - request exists,
-  - caller owns the donation,
-  - `_new_status` is `approved|rejected`,
-  - transition allowed only from `pending`.
-- On `approved`:
-  - set request `approved` + `accepted_at` + `timer_duration`,
-  - mark donation `claimed`,
-  - auto-reject other pending requests for same donation.
-- On `rejected`:
-  - set request `rejected`.
-- Return structured JSON (`success`, `reason`, `current_status`, `status`, `donation_id`) so UI can map outcomes reliably.
+2) Tighten auth/permission surface for this RPC (migration)
+- Ensure function remains `SECURITY DEFINER` with `SET search_path = public`.
+- Ensure execute is explicitly intended for signed-in users (authenticated role).
+- Keep RLS ownership enforcement in place for direct update fallback safety.
 
-3) Backend migration: tighten receiver request creation guard
-- Introduce/replace a helper check (e.g. `is_donation_requestable`) used by the insert policy so new requests are allowed only when donation is truly requestable:
-  - exists,
-  - `status = 'available'`,
-  - `deleted_at IS NULL`,
-  - not expired.
-- Keep existing anti-abuse checks (`has_completed_request`, active-approved guard, requester ownership).
-- This ensures claimed/deleted donations cannot accept new requests even in stale UI scenarios.
+3) Make reject handling deterministic in `src/pages/Dashboard.tsx`
+- Keep one primary path: RPC call for reject.
+- Parse result defensively (object/array/string payloads).
+- Map reasons explicitly:
+  - `not_authorized`, `not_found`, `already_handled`, `update_failed`, `exception`.
+- If result is unclear or RPC-level error occurs, immediately read back request status:
+  - if `rejected` => treat as success/idempotent
+  - if still `pending` => true failure toast.
 
-4) Frontend update: fix false “Failed to reject request” toast
-- In `src/pages/Dashboard.tsx` `handleRequestAction`:
-  - normalize RPC payload robustly (handle object/array/null safely),
-  - map backend reasons to actionable toasts.
-- Key behavior:
-  - true backend error => failure toast,
-  - already-handled stale state => info toast,
-  - already `rejected` while action is reject => treat as successful/idempotent (no failure toast).
+4) Add last-resort donor-safe fallback when RPC hard-fails
+- If RPC throws and read-back is still `pending`, do one emergency direct update:
+  - `.update({ status: 'rejected' }).eq('id', requestId).eq('status','pending')`
+- Rely on donor UPDATE RLS policy to enforce ownership.
+- Re-read status after fallback and show final toast from actual state (not guessed state).
 
-5) Frontend update: prevent double-action races + reflect cancellation clearly
-- Add per-request loading state (by request id) and disable Accept/Reject while request is processing.
-- Keep current refresh hooks (`fetchRequests`, `fetchMyRequests`, `fetchMyDonations`) after mutation.
-- Align receiver request list filtering so cancelled-by-deletion requests remain visible as cancelled (instead of silently disappearing), matching the existing cancelled-card UX intent.
+5) Keep UX race-safe and traceable
+- Retain per-request loading lock (`actionLoadingIds`) so reject can’t double-fire.
+- Add temporary dev logs around:
+  - requestId, action, rpc payload/result, read-back status, fallback result.
+- Remove verbose logs after one stable cycle.
 
-Technical details (implementation scope)
-- Files:
-  - `supabase/migrations/<new>.sql` (functions/policy updates)
-  - `src/pages/Dashboard.tsx` (RPC result handling + loading/disabled states + receiver cancelled visibility alignment)
-- No direct edits to generated integration client/types files.
+Technical scope
+- `supabase/migrations/<new>.sql`  
+  (harden `donor_set_request_status` contract + exception-safe result + auth execute scope)
+- `src/pages/Dashboard.tsx`  
+  (deterministic reject handling + read-back verification + emergency fallback + precise toasts)
 
 Validation checklist
-1. Donor rejects a pending request:
-   - request status changes to rejected,
-   - no false “Failed to reject request” toast.
-2. Donor deletes a donation with pending/approved requests:
-   - all those requests become cancelled automatically,
-   - receivers see cancellation state/message.
-3. One receiver gets approved:
-   - donation becomes claimed immediately,
-   - donation disappears from available list,
-   - other users cannot create new request on it.
-4. Approve flow regression check:
-   - auto-reject of other pending requests still works,
-   - timer + pickup flow remains unchanged.
-5. End-to-end verification on desktop and mobile viewport.
+1. Donor rejects a fresh pending request → status becomes `rejected`, no “Failed to reject request” toast.
+2. Reject same request again → idempotent “already handled” behavior (no hard failure).
+3. Pending request truly updates in DB (not just UI toast suppression).
+4. Approve flow still works (claim donation + reject competing pending requests).
+5. Verify end-to-end on desktop and mobile, and confirm behavior after publish.
