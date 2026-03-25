@@ -742,6 +742,12 @@ export default function Dashboard() {
     }
   };
 
+  // Keep refs updated so scheduleRefresh always calls latest versions
+  fetchRequestsRef.current = fetchRequests;
+  fetchMyRequestsRef.current = fetchMyRequests;
+  fetchMyDonationsRef.current = fetchMyDonations;
+  fetchDonationsRef.current = fetchDonations;
+
   const requestFood = async (donationId: string) => {
     if (!user) return;
 
