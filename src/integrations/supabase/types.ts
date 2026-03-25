@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -475,14 +475,6 @@ export type Database = {
         Args: { p_email: string; p_phone: string }
         Returns: Json
       }
-      donor_set_request_status: {
-        Args: {
-          _new_status: string
-          _request_id: string
-          _timer_duration?: number
-        }
-        Returns: Json
-      }
       get_district_donations: {
         Args: { p_district: string }
         Returns: {
@@ -500,22 +492,6 @@ export type Database = {
           quantity_unit: string
           rating: number
           status: string
-          title: string
-        }[]
-      }
-      get_donation_items_for_available: {
-        Args: { p_donation_ids: string[] }
-        Returns: {
-          description: string
-          diet_type: string
-          donation_id: string
-          expiry_date: string
-          food_type: string
-          id: string
-          image_url: string
-          quantity: string
-          quantity_unit: string
-          rating: number
           title: string
         }[]
       }
@@ -601,10 +577,6 @@ export type Database = {
         Returns: undefined
       }
       is_donation_claimed: { Args: { _donation_id: string }; Returns: boolean }
-      is_donation_requestable: {
-        Args: { _donation_id: string }
-        Returns: boolean
-      }
       soft_delete_donation: {
         Args: { _donation_id: string }
         Returns: undefined

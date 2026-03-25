@@ -765,10 +765,7 @@
     "send": "पाठवा",
     "shareLocation": "स्थान शेअर करा",
     "locationShared": "स्थान शेअर केले",
-    "viewOnMap": "नकाशावर पहा",
-    "openInGoogleMaps": "Google Maps मध्ये उघडा",
-    "copyCoordinates": "निर्देशांक कॉपी करा",
-    "coordinatesCopied": "निर्देशांक कॉपी केले"
+    "viewOnMap": "नकाशावर पहा"
   },
   "email": {
     "donorSubject": "🎉 दान पूर्ण! अन्न वाटल्याबद्दल धन्यवाद",

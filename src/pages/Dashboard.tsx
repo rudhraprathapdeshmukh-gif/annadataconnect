@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +44,6 @@ interface DonationItem {
   diet_type: string | null;
   rating: number | null;
   image_url: string | null;
-  expiry_date: string | null;
 }
 
 interface PublicDonation {
@@ -165,7 +164,6 @@ export default function Dashboard() {
   const [globalHoverRating, setGlobalHoverRating] = useState(0);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const checkedRatingRequests = useRef<Set<string>>(new Set());
 
   // Location state for nearby filtering
@@ -234,6 +232,7 @@ export default function Dashboard() {
   }, [user, userProfile?.user_type]);
 
   useEffect(() => {
+    fetchDonations();
     if (user) {
       fetchUserProfile();
       fetchMyDonations();
@@ -350,22 +349,21 @@ export default function Dashboard() {
   };
 
   const handleReportUser = async () => {
-    if (!reportTarget || !user) return;
+    if (!pendingRating || !user) return;
     setReportSubmitting(true);
     try {
       const { error } = await supabase
         .from('notifications')
         .insert({
-          user_id: reportTarget.userId,
+          user_id: pendingRating.otherUserId,
           type: 'user_report_warning',
           title: '⚠️ You have been reported',
-          message: `A user has reported you regarding the donation "${reportTarget.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
-          related_id: reportTarget.requestId
+          message: `A user has reported you regarding the donation "${pendingRating.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+          related_id: pendingRating.requestId
         });
       if (error) throw error;
       toast.success('Report submitted successfully');
       setShowReportConfirm(false);
-      setReportTarget(null);
     } catch (error) {
       console.error('Error reporting user:', error);
       toast.error('Failed to submit report');
@@ -397,29 +395,6 @@ export default function Dashboard() {
   };
 
 
-  // Debounced realtime refresh to prevent cascading refetches
-  const realtimeRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRefreshes = useRef<Set<string>>(new Set());
-
-  // Use refs to always call the latest versions of fetch functions
-  const fetchRequestsRef = useRef<() => void>(() => {});
-  const fetchMyRequestsRef = useRef<() => void>(() => {});
-  const fetchMyDonationsRef = useRef<() => void>(() => {});
-  const fetchDonationsRef = useRef<() => void>(() => {});
-
-  const scheduleRefresh = useCallback((targets: string[]) => {
-    targets.forEach(t => pendingRefreshes.current.add(t));
-    if (realtimeRefreshTimer.current) clearTimeout(realtimeRefreshTimer.current);
-    realtimeRefreshTimer.current = setTimeout(() => {
-      const pending = new Set(pendingRefreshes.current);
-      pendingRefreshes.current.clear();
-      if (pending.has('requests')) fetchRequestsRef.current();
-      if (pending.has('myRequests')) fetchMyRequestsRef.current();
-      if (pending.has('myDonations')) fetchMyDonationsRef.current();
-      if (pending.has('donations')) fetchDonationsRef.current();
-    }, 300);
-  }, []);
-
   // Real-time subscription for food_requests updates
   useEffect(() => {
     if (!user) return;
@@ -434,17 +409,23 @@ export default function Dashboard() {
           table: 'food_requests'
         },
         (payload) => {
+          if (import.meta.env.DEV) {
+            console.log('Real-time request update:', payload);
+          }
+          
           // Show toast when request becomes completed
           if (payload.eventType === 'UPDATE' && 
               payload.new && 
               payload.old && 
-              (payload.new as any).status === 'completed' && 
-              (payload.old as any).status === 'approved') {
+              payload.new.status === 'completed' && 
+              payload.old.status === 'approved') {
             toast.success('Pickup completed! Please rate your experience.');
           }
           
-          // Debounced refresh
-          scheduleRefresh(['requests', 'myRequests', 'myDonations']);
+          // Refresh requests when any change occurs
+          fetchRequests();
+          fetchMyRequests();
+          fetchMyDonations();
         }
       )
       .subscribe();
@@ -452,7 +433,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(requestsChannel);
     };
-  }, [user, scheduleRefresh]);
+  }, [user]);
 
   // Real-time subscription for food_donations updates
   useEffect(() => {
@@ -467,8 +448,13 @@ export default function Dashboard() {
           schema: 'public',
           table: 'food_donations'
         },
-        () => {
-          scheduleRefresh(['donations', 'myDonations']);
+        (payload) => {
+          if (import.meta.env.DEV) {
+            console.log('Real-time donation update:', payload);
+          }
+          // Refresh all donation lists when any donation changes
+          fetchDonations();
+          fetchMyDonations();
         }
       )
       .subscribe();
@@ -476,11 +462,11 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(donationsChannel);
     };
-  }, [user, scheduleRefresh]);
+  }, [user]);
 
   // Refetch donations when location becomes available
   useEffect(() => {
-    if (receiverLocation) {
+    if (receiverLocation || locationStatus === 'denied' || locationStatus === 'unavailable') {
       fetchDonations();
     }
   }, [receiverLocation, locationStatus, showAllDonations, searchRadius, receiverDistrict]);
@@ -489,27 +475,10 @@ export default function Dashboard() {
     if (donationIds.length === 0) return {};
     const { data, error } = await supabase
       .from('donation_items')
-      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+      .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
       .in('donation_id', donationIds);
     if (error) {
       console.error('Failed to fetch donation items:', error);
-      return {};
-    }
-    const map: Record<string, DonationItem[]> = {};
-    (data || []).forEach((item: any) => {
-      if (!map[item.donation_id]) map[item.donation_id] = [];
-      map[item.donation_id].push(item);
-    });
-    return map;
-  };
-
-  const fetchDonationItemsPublic = async (donationIds: string[]): Promise<Record<string, DonationItem[]>> => {
-    if (donationIds.length === 0) return {};
-    const { data, error } = await supabase.rpc('get_donation_items_for_available' as any, {
-      p_donation_ids: donationIds,
-    });
-    if (error) {
-      console.error('Failed to fetch donation items via RPC:', error);
       return {};
     }
     const map: Record<string, DonationItem[]> = {};
@@ -558,15 +527,21 @@ export default function Dashboard() {
           distance_km: d.distance_km,
         }));
       } else {
-        // No location available, don't fetch donations
-        setDonations([]);
-        setLoadingDonations(false);
-        return;
+        const { data, error } = await supabase.rpc('get_public_donations');
+
+        if (error) throw error;
+        const now = new Date().toISOString();
+        rawDonations = (data || []).filter((d: any) => !d.expiry_date || d.expiry_date > now).map((d: any) => ({
+          ...d,
+          pickup_location: d.masked_location,
+          latitude: d.approx_latitude ? Number(d.approx_latitude) : undefined,
+          longitude: d.approx_longitude ? Number(d.approx_longitude) : undefined,
+        }));
       }
 
-      // Fetch items for all donations using RPC to bypass RLS
+      // Fetch items for all donations
       const donationIds = rawDonations.map(d => d.id);
-      const itemsMap = await fetchDonationItemsPublic(donationIds);
+      const itemsMap = await fetchDonationItems(donationIds);
       const donationsWithItems = rawDonations.map(d => ({
         ...d,
         items: itemsMap[d.id] || [],
@@ -742,12 +717,6 @@ export default function Dashboard() {
     }
   };
 
-  // Keep refs updated so scheduleRefresh always calls latest versions
-  fetchRequestsRef.current = fetchRequests;
-  fetchMyRequestsRef.current = fetchMyRequests;
-  fetchMyDonationsRef.current = fetchMyDonations;
-  fetchDonationsRef.current = fetchDonations;
-
   const requestFood = async (donationId: string) => {
     if (!user) return;
 
@@ -847,154 +816,69 @@ export default function Dashboard() {
     }
   };
 
-  const [actionLoadingIds, setActionLoadingIds] = useState<Set<string>>(new Set());
-
-  const parseDonorActionResult = (raw: unknown): { success?: boolean; reason?: string; status?: string; current_status?: string } => {
-    if (!raw) return {};
-
-    if (Array.isArray(raw)) {
-      return parseDonorActionResult(raw[0]);
-    }
-
-    if (typeof raw === 'string') {
-      try {
-        return parseDonorActionResult(JSON.parse(raw));
-      } catch {
-        return {};
-      }
-    }
-
-    if (typeof raw === 'object') {
-      return raw as { success?: boolean; reason?: string; status?: string; current_status?: string };
-    }
-
-    return {};
-  };
-
-  const verifyRequestStatus = async (requestId: string): Promise<string | null> => {
-    const { data } = await supabase
-      .from('food_requests')
-      .select('status')
-      .eq('id', requestId)
-      .maybeSingle();
-    return data?.status ?? null;
-  };
-
-  const refreshRequestState = () => {
-    fetchRequests();
-    fetchMyRequests();
-    fetchMyDonations();
-    fetchDonations();
-  };
-
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
-    if (actionLoadingIds.has(requestId)) return;
-    setActionLoadingIds(prev => new Set(prev).add(requestId));
-    
-    const actionLabel = action === 'rejected' ? 'reject' : 'approve';
-    const successMsg = action === 'rejected' ? 'Request rejected successfully!' : 'Request approved successfully! Timer: 30 minutes';
-    
     try {
-      console.log(`[ReqAction] ${action} request ${requestId}`);
-      
-      // Primary path: RPC call
-      const { data, error } = await supabase.rpc('donor_set_request_status', {
-        _request_id: requestId,
-        _new_status: action,
-        _timer_duration: 30,
-      });
+      // Find the request to get donation_id
+      const targetRequest = requests.find(r => r.id === requestId);
 
-      console.log(`[ReqAction] RPC result:`, { data, error: error?.message });
-
-      if (!error) {
-        const result = parseDonorActionResult(data);
-        console.log(`[ReqAction] Parsed result:`, result);
-
-        if (result.success === true) {
-          toast.success(successMsg);
-          refreshRequestState();
+      if (action === 'approved' && targetRequest) {
+        // Guard: check if another request for this donation is already approved
+        const alreadyApproved = requests.some(
+          r => r.donation_id === targetRequest.donation_id && r.status === 'approved' && r.id !== requestId
+        );
+        if (alreadyApproved) {
+          toast.error('This donation already has an accepted request');
           return;
         }
-
-        // RPC returned success=false with a reason
-        const reason = result.reason;
-        if (reason === 'already_handled') {
-          if (result.current_status === action) {
-            toast.success(successMsg);
-          } else {
-            toast.info(`This request was already ${result.current_status || 'processed'}.`);
-          }
-          refreshRequestState();
-          return;
-        } else if (reason === 'not_found') {
-          toast.error('Request not found. It may have been removed.');
-          refreshRequestState();
-          return;
-        } else if (reason === 'not_authorized') {
-          toast.error('You are not authorized to update this request.');
-          refreshRequestState();
-          return;
-        }
-        // For update_failed, exception, or unknown reasons — fall through to read-back + fallback
       }
 
-      // Read-back verification
-      const currentStatus = await verifyRequestStatus(requestId);
-      console.log(`[ReqAction] Read-back status: ${currentStatus}`);
+      const updateData: any = { status: action };
       
-      if (currentStatus === action) {
-        toast.success(successMsg);
-        refreshRequestState();
-        return;
-      }
-      if (currentStatus && currentStatus !== 'pending') {
-        toast.info(`This request was already ${currentStatus}.`);
-        refreshRequestState();
-        return;
+      if (action === 'approved') {
+        updateData.accepted_at = new Date().toISOString();
+        updateData.timer_duration = 30; // Base timer is always 30 minutes
       }
 
-      // Emergency fallback: direct update (RLS enforces donor ownership)
-      console.log(`[ReqAction] Attempting direct update fallback for ${requestId}`);
-      const { error: fallbackError } = await supabase
+      const { error } = await supabase
         .from('food_requests')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', requestId)
-        .eq('status', 'pending');
+        .update(updateData)
+        .eq('id', requestId);
 
-      if (fallbackError) {
-        console.error(`[ReqAction] Fallback error:`, fallbackError);
-      }
-
-      // Final read-back after fallback
-      const finalStatus = await verifyRequestStatus(requestId);
-      console.log(`[ReqAction] Final status after fallback: ${finalStatus}`);
-      
-      if (finalStatus === action) {
-        toast.success(successMsg);
-      } else if (finalStatus && finalStatus !== 'pending') {
-        toast.info(`This request was already ${finalStatus}.`);
-      } else {
-        toast.error(`Failed to ${actionLabel} request. Please try again.`);
-      }
-      refreshRequestState();
-    } catch (error: any) {
-      console.error(`[ReqAction] Exception:`, error);
-      // Last-chance read-back even on exception
-      try {
-        const catchStatus = await verifyRequestStatus(requestId);
-        if (catchStatus === action) {
-          toast.success(successMsg);
-          refreshRequestState();
-          return;
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error updating request:', error);
         }
-      } catch {}
-      toast.error(`Failed to ${actionLabel} request. Please try again.`);
-    } finally {
-      setActionLoadingIds(prev => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
+        throw error;
+      }
+      
+      toast.success(`Request ${action} successfully!${action === 'approved' ? ` Timer: ${updateData.timer_duration} minutes` : ''}`);
+
+      // Auto-reject other pending requests for the same donation
+      if (action === 'approved' && targetRequest) {
+        const otherPending = requests.filter(
+          r => r.donation_id === targetRequest.donation_id && r.status === 'pending' && r.id !== requestId
+        );
+        
+        if (otherPending.length > 0) {
+          const otherIds = otherPending.map(r => r.id);
+          await supabase
+            .from('food_requests')
+            .update({ status: 'rejected' })
+            .in('id', otherIds);
+
+          // Notification for rejected requesters is handled by DB trigger
+
+          toast.info(`${otherPending.length} other pending request(s) auto-rejected`);
+        }
+      }
+
+      fetchRequests();
+      fetchMyRequests();
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to update request:', error);
+      }
+      toast.error(`Failed to ${action} request`);
     }
   };
 
@@ -1291,12 +1175,12 @@ export default function Dashboard() {
                       )}
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
+                          <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
                           <Badge variant={donation.status === 'available' ? 'default' : 'secondary'} className="shrink-0">
                             {translateStatus(t, donation.status)}
                           </Badge>
                         </div>
-                        {(!donation.items || donation.items.length === 0) && donation.description && (
+                        {(!donation.items || donation.items.length <= 1) && donation.description && (
                           <CardDescription className="line-clamp-2">
                             {donation.description}
                           </CardDescription>
@@ -1304,41 +1188,38 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1">
                         {/* Multi-item list */}
-                        {donation.items && donation.items.length > 0 ? (
+                        {donation.items && donation.items.length > 1 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
-                              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
+                              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                                 {item.image_url && (
-                                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
+                                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                                 )}
-                                <div className="flex-1 min-w-0 space-y-1">
-                                  <p className="text-sm font-medium break-words">{item.title}</p>
-                                  {item.rating && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
-                                      <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                                     <span>•</span>
                                     <span>{translateFoodType(t, item.food_type)}</span>
                                     {item.diet_type && (
-                                      <span className={`inline-flex items-center gap-1 ${
-                                        item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                      }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                        <span>{item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}</span>
-                                      </span>
+                                      <>
+                                        <span>•</span>
+                                        <span className={`inline-flex items-center gap-1 ${
+                                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                          {item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
+                                        </span>
+                                      </>
                                     )}
                                   </div>
-                                  {item.expiry_date && (
-                                    <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-                                      <Clock className="h-3 w-3 shrink-0" />
-                                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                    </div>
-                                  )}
                                 </div>
+                                {item.rating && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1352,13 +1233,13 @@ export default function Dashboard() {
                           <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
                           <span className="line-clamp-2 break-words">{donation.pickup_location}</span>
                         </div>
-                        {donation.expiry_date && (!donation.items || donation.items.length === 0) && (
+                        {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4 shrink-0" />
                             <span className="break-words">{t('dynamic.expiresAt', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) })}</span>
                           </div>
                         )}
-                        {(!donation.items || donation.items.length === 0) && donation.rating && (
+                        {(!donation.items || donation.items.length <= 1) && donation.rating && (
                           <div className="flex items-center gap-1 text-sm">
                             <span className="text-yellow-500">{'★'.repeat(donation.rating)}</span>
                             <span className="text-muted-foreground">{'★'.repeat(5 - donation.rating)}</span>
@@ -1410,7 +1291,6 @@ export default function Dashboard() {
                       onRefresh={() => { fetchRequests(); fetchMyDonations(); }}
                       onGrantExtension={() => handleGrantExtension(request.id)}
                       onRejectExtension={() => handleRejectExtension(request.id)}
-                      isActionLoading={actionLoadingIds.has(request.id)}
                       isAcceptDisabled={requests.some(r => r.donation_id === request.donation_id && r.status === 'approved' && r.id !== request.id)}
                       onRequestCompleted={(requestId, receiverName, donationTitle) => {
                         setPendingRating({
@@ -1470,45 +1350,33 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="list" className="space-y-4">
-               {/* Location Status Banners */}
-               {locationStatus === 'loading' && (
-                <Card>
-                  <CardContent className="py-12 text-center space-y-3">
-                    <Loader2 className="h-10 w-10 mx-auto animate-spin text-primary" />
-                    <p className="text-muted-foreground font-medium">{t('dynamic.detectingLocation')}</p>
-                    <p className="text-xs text-muted-foreground">Please allow location access to see nearby donations</p>
-                  </CardContent>
-                </Card>
+              {/* Location Status Banners */}
+              {locationStatus === 'loading' && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                   <Loader2 className="h-4 w-4 animate-spin" />
+                   <span>{t('dynamic.detectingLocation')}</span>
+                </div>
               )}
               {locationStatus === 'denied' && (
-                <Card>
-                  <CardContent className="py-12 text-center space-y-4">
-                    <MapPinOff className="h-12 w-12 mx-auto text-amber-500" />
-                    <div className="space-y-1">
-                      <p className="font-semibold text-foreground">Location Required</p>
-                      <p className="text-sm text-muted-foreground">
-                        We need your location to show nearby food donations. Please enable location access and try again.
-                      </p>
-                    </div>
-                    <Button onClick={requestLocation} className="gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {t('dynamic.retry')}
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <MapPinOff className="h-4 w-4 shrink-0" />
+                    <span>
+                      {receiverDistrict 
+                        ? t('dynamic.locationDeniedWithDistrict', { district: receiverDistrict })
+                        : t('dynamic.locationDeniedGeneral')}
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={requestLocation} className="shrink-0">
+                    {t('dynamic.retry')}
+                  </Button>
+                </div>
               )}
               {locationStatus === 'unavailable' && (
-                <Card>
-                  <CardContent className="py-12 text-center space-y-4">
-                    <MapPinOff className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <div className="space-y-1">
-                      <p className="font-semibold text-foreground">Location Unavailable</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your device does not support location services. Location is required to browse donations.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <MapPinOff className="h-4 w-4" />
+                  <span>{t('dynamic.locationUnavailable')}</span>
+                </div>
               )}
 
               {/* Unified Control Bar (when location granted) */}
@@ -1610,15 +1478,6 @@ export default function Dashboard() {
               {(() => {
                 const filteredDonations = donations.filter(d => {
                   if (dietFilter === 'all') return true;
-                  // For multi-item donations, check ALL items' diet types
-                  if (d.items && d.items.length > 0) {
-                    if (dietFilter === 'veg') {
-                      return d.items.every(item => item.diet_type === 'veg');
-                    }
-                    if (dietFilter === 'non-veg') {
-                      return d.items.every(item => item.diet_type === 'non-veg');
-                    }
-                  }
                   return d.diet_type === dietFilter;
                 });
 
@@ -1713,7 +1572,7 @@ export default function Dashboard() {
                         )}
                         
                         {/* Diet Type Badge */}
-                        {(!donation.items || donation.items.length === 0) && donation.diet_type && (
+                        {donation.items && donation.items.length <= 1 && donation.diet_type && (
                           <span className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
                             donation.diet_type === 'veg' 
                               ? 'bg-green-500/90 text-white' 
@@ -1752,8 +1611,8 @@ export default function Dashboard() {
                       
                       {/* Header Section */}
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-lg line-clamp-1">{donation.items && donation.items.length > 0 ? donation.items.map(i => i.title).join(', ') : donation.title}</CardTitle>
-                        {donation.description && (!donation.items || donation.items.length === 0) && (
+                        <CardTitle className="text-lg line-clamp-1">{donation.title}</CardTitle>
+                        {donation.description && (!donation.items || donation.items.length <= 1) && (
                           <CardDescription className="line-clamp-2 text-sm">
                             {donation.description}
                           </CardDescription>
@@ -1763,46 +1622,43 @@ export default function Dashboard() {
                       {/* Content Section */}
                       <CardContent className="flex-1 space-y-3 pt-0">
                         {/* Individual Items List for multi-item donations */}
-                        {donation.items && donation.items.length > 0 ? (
+                        {donation.items && donation.items.length > 1 ? (
                           <div className="space-y-2">
                             {donation.items.map((item) => (
-                              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
+                              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                                 {item.image_url && (
-                                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
+                                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                                 )}
-                                <div className="flex-1 min-w-0 space-y-1">
-                                  <p className="text-sm font-medium break-words">{item.title}</p>
-                                  {item.rating && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
-                                      <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                                     <span>•</span>
                                     <span>{translateFoodType(t, item.food_type)}</span>
                                     {item.diet_type && (
-                                      <span className={`inline-flex items-center gap-1 ${
-                                        item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                      }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                        <span>{item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}</span>
-                                      </span>
+                                      <>
+                                        <span>•</span>
+                                        <span className={`inline-flex items-center gap-1 ${
+                                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                          {item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}
+                                        </span>
+                                      </>
                                     )}
                                   </div>
-                                  {item.expiry_date && (
-                                    <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-                                      <Clock className="h-3 w-3 shrink-0" />
-                                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                    </div>
-                                  )}
                                 </div>
+                                {item.rating && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         ) : (
-                          /* No items - show parent data as fallback */
+                          /* Single item - show as before */
                           <div className="flex items-center gap-3 text-sm bg-muted/50 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-1.5">
                               <Package className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1827,8 +1683,8 @@ export default function Dashboard() {
                           </div>
                         )}
                         
-                        {/* Expiry Date - only show for single-item donations */}
-                        {donation.expiry_date && (!donation.items || donation.items.length === 0) && (
+                        {/* Expiry Date */}
+                        {donation.expiry_date && (
                           <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                             <Clock className="h-4 w-4 shrink-0" />
                              <span>{t('dynamic.approxExpiry', { date: new Date(donation.expiry_date).toLocaleDateString(), time: new Date(donation.expiry_date).toLocaleTimeString([], {
@@ -1989,7 +1845,16 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
+              className="transition-all hover:scale-105 active:scale-95"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Report {pendingRating?.otherUserName}
+            </Button>
             <Button 
               onClick={handleGlobalRatingSubmit} 
               disabled={globalRating === 0} 
@@ -2000,6 +1865,28 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Report Confirmation Dialog */}
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report {pendingRating?.otherUserName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a warning to {pendingRating?.otherUserName} about their behavior regarding this donation. Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReportUser}
+              disabled={reportSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -2013,11 +1900,10 @@ interface DonorRequestCardProps {
   onGrantExtension: () => void;
   onRejectExtension: () => void;
   isAcceptDisabled?: boolean;
-  isActionLoading?: boolean;
   onRequestCompleted?: (requestId: string, receiverName: string, donationTitle: string) => void;
 }
 
-function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, isActionLoading, onRequestCompleted }: DonorRequestCardProps) {
+function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, onGrantExtension, onRejectExtension, isAcceptDisabled, onRequestCompleted }: DonorRequestCardProps) {
   const { t } = useTranslation();
   const countdown = useCountdown(expiryTime);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -2025,27 +1911,12 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
   const [isVerifying, setIsVerifying] = useState(false);
   const [receiverRating, setReceiverRating] = useState<{ average: number | null; count: number }>({ average: null, count: 0 });
   const [extensionReason, setExtensionReason] = useState<string | null>(null);
-  const [donationItems, setDonationItems] = useState<DonationItem[]>([]);
 
   useEffect(() => {
     if (request.requester_id) {
       loadReceiverRating();
     }
   }, [request.requester_id]);
-
-  // Fetch donation items for this request
-  useEffect(() => {
-    const fetchItems = async () => {
-      const { data, error } = await supabase
-        .from('donation_items')
-        .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
-        .eq('donation_id', request.donation_id);
-      if (!error && data) {
-        setDonationItems(data);
-      }
-    };
-    fetchItems();
-  }, [request.donation_id]);
 
   // Fetch extension reason from notifications when extension is requested
   useEffect(() => {
@@ -2079,17 +1950,6 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
     const { fetchUserRating } = await import('@/lib/userRatings');
     const rating = await fetchUserRating(request.requester_id);
     setReceiverRating(rating);
-  };
-
-  const getFreshnessLabel = (rating: number): string => {
-    switch (rating) {
-      case 1: return 'Aged';
-      case 2: return 'Poor';
-      case 3: return 'Okay';
-      case 4: return 'Fresh';
-      case 5: return 'Just-Made';
-      default: return '';
-    }
   };
 
   const handleVerifyOtp = async () => {
@@ -2145,122 +2005,34 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
 
   return (
     <>
-      <Card className="overflow-hidden">
-        {/* Image Grid for Multi-item or Single Image */}
-        {donationItems.length > 1 ? (
-          <div className={`grid gap-0.5 ${
-            donationItems.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
-          }`}>
-            {donationItems.slice(0, 4).map((item, idx) => (
-              <div key={item.id} className={`relative overflow-hidden ${
-                donationItems.length === 3 && idx === 0 ? 'row-span-2' : ''
-              } ${donationItems.length === 2 ? 'aspect-[4/3]' : 'aspect-square'}`}>
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted">
-                    <Package className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
-                {donationItems.length > 4 && idx === 3 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white font-semibold text-lg">+{donationItems.length - 4}</span>
-                  </div>
-                )}
-              </div>
-            ))}
+      <Card>
+        {request.food_donations.image_url && (
+          <div className="w-full h-48 overflow-hidden">
+            <img
+              src={request.food_donations.image_url}
+              alt={request.food_donations.title}
+              className="w-full h-full object-cover"
+            />
           </div>
-        ) : donationItems.length === 1 && donationItems[0].image_url ? (
-          <div className="w-full aspect-[4/3] overflow-hidden">
-            <img src={donationItems[0].image_url} alt={donationItems[0].title} className="w-full h-full object-cover" />
-          </div>
-        ) : request.food_donations.image_url ? (
-          <div className="w-full aspect-[4/3] overflow-hidden">
-            <img src={request.food_donations.image_url} alt={request.food_donations.title} className="w-full h-full object-cover" />
-          </div>
-        ) : null}
-
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-1">{donationItems.length > 1 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
+        )}
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
           <Badge variant={
             request.status === 'approved' ? 'default' :
             request.status === 'rejected' ? 'destructive' :
             'secondary'
-          } className="shrink-0">
+          }>
             {translateStatus(t, request.status)}
           </Badge>
         </div>
-        {donationItems.length <= 1 && request.food_donations.description && (
-          <CardDescription className="line-clamp-2">
-            {request.food_donations.description}
-          </CardDescription>
-        )}
+        <CardDescription className="line-clamp-2">
+          {request.food_donations.description}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Multi-item details list */}
-        {donationItems.length > 1 && (
-          <div className="space-y-2">
-            {donationItems.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
-                )}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-sm font-medium break-words">{item.title}</p>
-                  {item.rating && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
-                      <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                    <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
-                    <span>•</span>
-                    <span>{translateFoodType(t, item.food_type)}</span>
-                    {item.diet_type && (
-                      <span className={`inline-flex items-center gap-1 ${
-                        item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <span>{item.diet_type === 'veg' ? t('dashboard.veg') : t('dashboard.nonVeg')}</span>
-                      </span>
-                    )}
-                  </div>
-                  {item.expiry_date && (
-                    <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Single item quantity display */}
-        {donationItems.length <= 1 && (
-          <div className="flex items-center gap-3 text-sm bg-muted/40 rounded-lg px-3 py-2 border border-border/30">
-            <div className="flex items-center gap-1.5">
-              <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
-            </div>
-            <span className="text-muted-foreground">•</span>
-            <Badge variant="secondary" className="text-xs">{translateFoodType(t, request.food_donations.food_type)}</Badge>
-            {request.food_donations.rating && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-yellow-500 text-xs">{'★'.repeat(request.food_donations.rating)}</span>
-                <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(request.food_donations.rating)}</span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Requester details */}
+      <CardContent className="space-y-2">
         {request.profiles && (
-          <div className="p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20">
+          <div className="mb-3 p-3 bg-primary/5 rounded-lg space-y-2 border border-primary/20 animate-fade-in">
             <p className="text-sm font-semibold text-primary">{t('dynamic.requestDetails')}:</p>
             <div className="space-y-1 text-sm">
               <div className="flex items-center gap-2">
@@ -2294,8 +2066,16 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             </div>
           </div>
         )}
-        {request.message && (
-          <p className="text-sm text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">"{request.message}"</p>
+        <p className="text-sm text-muted-foreground italic">{request.message}</p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Package className="h-4 w-4" />
+          <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
+        </div>
+        {request.food_donations.rating && (
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+            <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+          </div>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
@@ -2401,19 +2181,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             variant="default" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onAccept}
-            disabled={isAcceptDisabled || isActionLoading}
+            disabled={isAcceptDisabled}
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
           >
-            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+            <Check className="h-4 w-4 mr-2" />
             {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
           <Button 
             variant="destructive" 
             className="flex-1 transition-all hover:scale-105 active:scale-95" 
             onClick={onReject}
-            disabled={isActionLoading}
           >
-            {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
+            <X className="h-4 w-4 mr-2" />
              {t('dashboard.reject')}
           </Button>
         </CardFooter>

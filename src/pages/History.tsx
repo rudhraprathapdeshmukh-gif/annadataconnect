@@ -7,26 +7,13 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2, X } from 'lucide-react';
+import { Calendar, MapPin, Package, Star, User, ArrowUpDown, Trophy, Heart, TrendingUp, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ImpactScoreCard } from '@/components/ImpactScoreCard';
-
-interface DonationItemInfo {
-  id: string;
-  title: string;
-  description: string | null;
-  quantity: string;
-  quantity_unit: string;
-  food_type: string;
-  diet_type: string | null;
-  rating: number | null;
-  image_url: string | null;
-  expiry_date: string | null;
-}
 
 interface FoodDonation {
   id: string;
@@ -43,7 +30,6 @@ interface FoodDonation {
   image_url?: string | null;
   donor_id: string;
   deleted_at?: string | null;
-  items?: DonationItemInfo[];
   completed_request?: {
     id: string;
     created_at: string;
@@ -108,7 +94,6 @@ export default function History() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ userId: string; donationTitle: string; requestId: string } | null>(null);
   const [donationSort, setDonationSort] = useState('date-newest');
   const [requestSort, setRequestSort] = useState('date-newest');
   const [donationStats, setDonationStats] = useState({
@@ -141,15 +126,6 @@ export default function History() {
     }
   };
 
-  const getApproxLocation = (location: string): string => {
-    if (!location) return '';
-    const parts = location.split(',').map(p => p.trim());
-    // Extract city/state/country - skip first part (exact address) and last parts if they're just numbers
-    const meaningful = parts.filter(p => p && !/^\d{6}$/.test(p) && !/^\d+[\s/]/.test(p));
-    // Take last 2-3 meaningful parts (city, state, country)
-    if (meaningful.length <= 2) return meaningful.join(', ');
-    return meaningful.slice(-3).join(', ');
-  };
   const sortDonations = (donations: FoodDonation[], sortType: string) => {
     const sorted = [...donations];
     switch (sortType) {
@@ -211,42 +187,19 @@ export default function History() {
         .is('deleted_at', null);
       
       if (completedError) throw completedError;
-
-      const completedIds = (completedData || []).map(d => d.id);
-
-      // Fetch individual items for completed donations (same as Impact Tracker)
-      let itemsByDonation: Record<string, { quantity: string; quantity_unit: string }[]> = {};
-      if (completedIds.length > 0) {
-        const { data: itemsData } = await supabase
-          .from('donation_items')
-          .select('donation_id, quantity, quantity_unit')
-          .in('donation_id', completedIds);
-
-        if (itemsData && itemsData.length > 0) {
-          itemsData.forEach(item => {
-            if (!itemsByDonation[item.donation_id]) {
-              itemsByDonation[item.donation_id] = [];
-            }
-            itemsByDonation[item.donation_id].push({ quantity: item.quantity, quantity_unit: item.quantity_unit });
-          });
-        }
-      }
-
-      const calcPeople = (qty: string, unit: string) => {
-        const num = parseFloat(qty);
-        if (isNaN(num) || num <= 0) return 0;
-        const u = (unit || 'kg').toLowerCase();
-        if (u === 'kg' || u === 'litre' || u === 'litres' || u === 'l') return Math.ceil(num * 2);
-        if (u === 'g' || u === 'grams' || u === 'gram' || u === 'ml') return num <= 100 ? 1 : Math.ceil(num / 500);
-        return Math.ceil(num);
-      };
-
+      
+      // Calculate people helped using weighted logic (same as Impact Tracker)
       const calcPeopleHelped = (completedData || []).reduce((sum, d) => {
-        const items = itemsByDonation[d.id];
-        if (items && items.length > 0) {
-          return sum + items.reduce((s, item) => s + calcPeople(item.quantity, item.quantity_unit), 0);
+        const num = parseFloat(d.quantity);
+        if (isNaN(num) || num <= 0) return sum;
+        const unit = (d.quantity_unit || 'kg').toLowerCase();
+        if (unit === 'kg' || unit === 'litre' || unit === 'litres' || unit === 'l') {
+          return sum + Math.ceil(num * 2);
         }
-        return sum + calcPeople(d.quantity, d.quantity_unit);
+        if (unit === 'g' || unit === 'grams' || unit === 'gram' || unit === 'ml') {
+          return sum + (num <= 100 ? 1 : Math.ceil(num / 500));
+        }
+        return sum + Math.ceil(num);
       }, 0);
       
       const { data: profileData, error: profileError } = await supabase
@@ -335,24 +288,6 @@ export default function History() {
           }
         }
       }
-      // Fetch donation items for all donations
-      const allDonationIds = enrichedDonations.map(d => d.id);
-      if (allDonationIds.length > 0) {
-        const { data: itemsData } = await supabase
-          .from('donation_items')
-          .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
-          .in('donation_id', allDonationIds);
-        if (itemsData) {
-          const itemsMap: Record<string, DonationItemInfo[]> = {};
-          itemsData.forEach((item: any) => {
-            if (!itemsMap[item.donation_id]) itemsMap[item.donation_id] = [];
-            itemsMap[item.donation_id].push(item);
-          });
-          enrichedDonations.forEach((d: any) => {
-            d.items = itemsMap[d.id] || [];
-          });
-        }
-      }
       setDonations(enrichedDonations);
 
       const { data: requestsData, error: requestsError } = await supabase
@@ -381,26 +316,6 @@ export default function History() {
             }
           }
         });
-        // Fetch items for receiver requests
-        const reqDonationIds = [...new Set(requestsData.map(r => r.food_donations?.id).filter(Boolean))];
-        if (reqDonationIds.length > 0) {
-          const { data: reqItemsData } = await supabase
-            .from('donation_items')
-            .select('id, donation_id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
-            .in('donation_id', reqDonationIds);
-          if (reqItemsData) {
-            const reqItemsMap: Record<string, DonationItemInfo[]> = {};
-            reqItemsData.forEach((item: any) => {
-              if (!reqItemsMap[item.donation_id]) reqItemsMap[item.donation_id] = [];
-              reqItemsMap[item.donation_id].push(item);
-            });
-            requestsData.forEach((r: any) => {
-              if (r.food_donations) {
-                r.food_donations.items = reqItemsMap[r.food_donations.id] || [];
-              }
-            });
-          }
-        }
       }
       if (requestsError) throw requestsError;
       setRequests(requestsData || []);
@@ -531,101 +446,46 @@ export default function History() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
-                  {completedDonations.map(donation => {
-                    const items = donation.items && donation.items.length > 0 ? donation.items : null;
-                    const allImages = items 
-                      ? items.map(i => i.image_url).filter(Boolean) as string[]
-                      : donation.image_url ? [donation.image_url] : [];
-                    const displayTitle = items ? items.map(i => i.title).join(', ') : donation.title;
-
-                    return (
-                      <Card key={donation.id} className="overflow-hidden">
-                        {/* Image gallery */}
-                        {allImages.length > 0 && (
-                          <div className={`grid gap-0.5 ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                            {allImages.map((url, idx) => (
-                              <div key={idx} className={`overflow-hidden ${allImages.length === 1 ? 'h-48' : 'h-32'}`}>
-                                <img src={url} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            ))}
+                <div className="space-y-3">
+                  {completedDonations.map(donation => (
+                    <Card key={donation.id} className="overflow-hidden">
+                      <div className="flex">
+                        {donation.image_url && (
+                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
+                            <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
                           </div>
                         )}
-
-                        <div className="p-3 sm:p-4 space-y-2.5">
-                          {/* Title + badge */}
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">{displayTitle}</h3>
+                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
                             <Badge variant="secondary" className="shrink-0 text-xs">{t('history.completed')}</Badge>
                           </div>
-
-                          {/* Items list */}
-                          <div className="space-y-2">
-                            {items ? items.map(item => (
-                              <div key={item.id} className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Package className="h-3 w-3 shrink-0 text-primary" />
-                                  <span className="text-xs font-medium break-words">{item.title}</span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground pl-[18px]">
-                                  <span>{item.quantity} {item.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{item.food_type}</span>
-                                  {item.diet_type && (
-                                    <span className="inline-flex items-center gap-1">
-                                      <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                      <span>{item.diet_type === 'veg' ? 'Veg' : 'Non-Veg'}</span>
-                                    </span>
-                                  )}
-                                </div>
-                                {item.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )) : (
-                              <div className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span>{donation.quantity} {donation.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{donation.food_type}</span>
-                                </div>
-                                {donation.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Meta info */}
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
-                            <span className="flex items-center gap-1">
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                            </p>
+                            <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
-                            </span>
+                            </p>
                             {donation.pickup_location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3 shrink-0" />
-                                <span className="truncate max-w-[200px]">{getApproxLocation(donation.pickup_location)}</span>
-                              </span>
+                              <p className="flex items-start gap-1">
+                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span>{donation.pickup_location}</span>
+                              </p>
                             )}
                             {donation.completed_request?.requester_profile && (
-                              <span className="flex items-center gap-1 text-primary">
+                              <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
                                 {t('common.to')} {donation.completed_request.requester_profile.first_name}
-                              </span>
+                              </p>
                             )}
                           </div>
                         </div>
-                      </Card>
-                    );
-                  })}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -656,79 +516,34 @@ export default function History() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
-                  {deletedDonations.map(donation => {
-                    const items = donation.items && donation.items.length > 0 ? donation.items : null;
-                    const allImages = items
-                      ? items.map(i => i.image_url).filter(Boolean) as string[]
-                      : donation.image_url ? [donation.image_url] : [];
-                    const displayTitle = items ? items.map(i => i.title).join(', ') : donation.title;
-
-                    return (
-                      <Card key={donation.id} className="overflow-hidden opacity-75">
-                        {allImages.length > 0 && (
-                          <div className={`grid gap-0.5 grayscale ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                            {allImages.map((url, idx) => (
-                              <div key={idx} className={`overflow-hidden ${allImages.length === 1 ? 'h-48' : 'h-32'}`}>
-                                <img src={url} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            ))}
+                <div className="space-y-3">
+                  {deletedDonations.map(donation => (
+                    <Card key={donation.id} className="overflow-hidden opacity-75">
+                      <div className="flex">
+                        {donation.image_url && (
+                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 grayscale">
+                            <img src={donation.image_url} alt={donation.title} className="w-full h-full object-cover" />
                           </div>
                         )}
-
-                        <div className="p-3 sm:p-4 space-y-2.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">{displayTitle}</h3>
+                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm md:text-base truncate">{donation.title}</h3>
                             <Badge variant="destructive" className="shrink-0 text-xs">{t('history.deleted')}</Badge>
                           </div>
-
-                          <div className="space-y-2">
-                            {items ? items.map(item => (
-                              <div key={item.id} className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Package className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                  <span className="text-xs font-medium break-words">{item.title}</span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground pl-[18px]">
-                                  <span>{item.quantity} {item.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{item.food_type}</span>
-                                </div>
-                                {item.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )) : (
-                              <div className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span>{donation.quantity} {donation.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{donation.food_type}</span>
-                                </div>
-                                {donation.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
-                            <span className="flex items-center gap-1">
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              {donation.quantity} {donation.quantity_unit} • {donation.food_type}
+                            </p>
+                            <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(donation.created_at).toLocaleDateString()}
-                            </span>
+                            </p>
                           </div>
                         </div>
-                      </Card>
-                    );
-                  })}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -759,98 +574,48 @@ export default function History() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
-                  {sortedRequests.map(request => {
-                    const donation = request.food_donations;
-                    const items = (donation as any)?.items?.length > 0 ? ((donation as any).items as DonationItemInfo[]) : null;
-                    const allImages = items
-                      ? items.map(i => i.image_url).filter(Boolean) as string[]
-                      : donation?.image_url ? [donation.image_url] : [];
-                    const displayTitle = items ? items.map(i => i.title).join(', ') : donation?.title;
-
-                    return (
-                      <Card key={request.id} className="overflow-hidden">
-                        {allImages.length > 0 && (
-                          <div className={`grid gap-0.5 ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : allImages.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                            {allImages.map((url, idx) => (
-                              <div key={idx} className={`overflow-hidden ${allImages.length === 1 ? 'h-48' : 'h-32'}`}>
-                                <img src={url} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            ))}
+                <div className="space-y-3">
+                  {sortedRequests.map(request => (
+                    <Card key={request.id} className="overflow-hidden">
+                      <div className="flex">
+                        {request.food_donations?.image_url && (
+                          <div className="w-24 h-24 md:w-32 md:h-32 shrink-0">
+                            <img src={request.food_donations.image_url} alt={request.food_donations.title} className="w-full h-full object-cover" />
                           </div>
                         )}
-
-                        <div className="p-3 sm:p-4 space-y-2.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-sm sm:text-base leading-snug line-clamp-2">{displayTitle}</h3>
+                        <div className="flex-1 p-3 md:p-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm md:text-base truncate">
+                              {request.food_donations?.title}
+                            </h3>
                             <Badge variant="default" className="shrink-0 text-xs">{t('history.received')}</Badge>
                           </div>
-
-                          <div className="space-y-2">
-                            {items ? items.map(item => (
-                              <div key={item.id} className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Package className="h-3 w-3 shrink-0 text-primary" />
-                                  <span className="text-xs font-medium break-words">{item.title}</span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground pl-[18px]">
-                                  <span>{item.quantity} {item.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{item.food_type}</span>
-                                  {item.diet_type && (
-                                    <span className="inline-flex items-center gap-1">
-                                      <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                                      <span>{item.diet_type === 'veg' ? 'Veg' : 'Non-Veg'}</span>
-                                    </span>
-                                  )}
-                                </div>
-                                {item.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )) : (
-                              <div className="rounded-lg bg-muted/40 p-2 space-y-1">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Package className="h-3 w-3 shrink-0" />
-                                  <span>{donation?.quantity} {donation?.quantity_unit}</span>
-                                  <span>•</span>
-                                  <span>{donation?.food_type}</span>
-                                </div>
-                                {donation?.expiry_date && (
-                                  <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pl-[18px]">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    <span>{new Date(donation.expiry_date).toLocaleDateString()} {new Date(donation.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
-                            <span className="flex items-center gap-1">
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              {request.food_donations?.quantity} {request.food_donations?.quantity_unit} • {request.food_donations?.food_type}
+                            </p>
+                            <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(request.created_at).toLocaleDateString()}
-                            </span>
-                            {donation?.pickup_location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3 shrink-0" />
-                                <span className="truncate max-w-[200px]">{getApproxLocation(donation.pickup_location)}</span>
-                              </span>
+                            </p>
+                            {request.food_donations?.pickup_location && (
+                              <p className="flex items-start gap-1">
+                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span>{request.food_donations.pickup_location}</span>
+                              </p>
                             )}
-                            {(donation as any)?.profiles && (
-                              <span className="flex items-center gap-1 text-primary">
+                            {request.food_donations?.profiles && (
+                              <p className="flex items-center gap-1 text-primary">
                                 <User className="h-3 w-3" />
-                                {t('common.from')} {(donation as any).profiles.first_name}
-                              </span>
+                                {t('common.from')} {request.food_donations.profiles.first_name}
+                              </p>
                             )}
                           </div>
                         </div>
-                      </Card>
-                    );
-                  })}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               )}
             </TabsContent>
@@ -879,7 +644,15 @@ export default function History() {
             ))}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowReportConfirm(true)}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Report {ratingDialog.otherPersonName}
+            </Button>
             <Button 
               className="flex-1"
               onClick={submitRating} 
@@ -890,6 +663,49 @@ export default function History() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report {ratingDialog.otherPersonName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will send a warning to {ratingDialog.otherPersonName} about their behavior regarding this donation. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!user || !ratingDialog.otherPersonId) return;
+                setReportSubmitting(true);
+                try {
+                  const { error } = await supabase
+                    .from('notifications')
+                    .insert({
+                      user_id: ratingDialog.otherPersonId,
+                      type: 'user_report_warning',
+                      title: '⚠️ You have been reported',
+                      message: `A user has reported you regarding the donation "${ratingDialog.donationTitle}". Please ensure you follow community guidelines. Repeated reports may lead to account suspension.`,
+                      related_id: ratingDialog.requestId
+                    });
+                  if (error) throw error;
+                  toast.success('Report submitted successfully');
+                  setShowReportConfirm(false);
+                } catch (error) {
+                  console.error('Error reporting user:', error);
+                  toast.error('Failed to submit report');
+                } finally {
+                  setReportSubmitting(false);
+                }
+              }}
+              disabled={reportSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {reportSubmitting ? 'Reporting...' : 'Yes, Report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

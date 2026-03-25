@@ -156,7 +156,7 @@ export default function Chat({ donationId, otherUserId, otherUserName, donationT
   const [autoScroll, setAutoScroll] = useState(true);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const presenceChannelRef = useRef<any>(null);
   // Fetch existing messages
   useEffect(() => {

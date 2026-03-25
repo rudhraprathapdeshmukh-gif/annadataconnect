@@ -30,7 +30,6 @@ interface DonationItemInfo {
   diet_type: string | null;
   rating: number | null;
   image_url: string | null;
-  expiry_date: string | null;
 }
 
 interface FoodDonation {
@@ -97,7 +96,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
   const fetchDonationItems = async () => {
     const { data } = await supabase
       .from('donation_items')
-      .select('id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url, expiry_date')
+      .select('id, title, description, quantity, quantity_unit, food_type, diet_type, rating, image_url')
       .eq('donation_id', request.food_donations.id);
     if (data && data.length > 0) {
       setDonationItems(data);
@@ -283,9 +282,9 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       })()}
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-xl">{donationItems.length > 0 ? donationItems.map(i => i.title).join(', ') : request.food_donations.title}</CardTitle>
+          <CardTitle className="text-xl">{request.food_donations.title}</CardTitle>
           <div className="flex gap-2 flex-wrap">
-            {donationItems.length === 0 && request.food_donations.diet_type && (
+            {donationItems.length <= 1 && request.food_donations.diet_type && (
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                 request.food_donations.diet_type === 'veg' 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
@@ -308,7 +307,7 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
             </Badge>
           </div>
         </div>
-        {donationItems.length === 0 && request.food_donations.description && (
+        {donationItems.length <= 1 && request.food_donations.description && (
           <CardDescription className="line-clamp-2">
             {request.food_donations.description}
           </CardDescription>
@@ -316,61 +315,52 @@ export default function RequestCard({ request, expiryTime }: RequestCardProps) {
       </CardHeader>
       <CardContent className="space-y-2">
         {/* Individual items for multi-item donations */}
-        {donationItems.length > 0 ? (
+        {donationItems.length > 1 ? (
           <div className="space-y-2">
             {donationItems.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 bg-muted/40 rounded-lg p-3 border border-border/30">
+              <div key={item.id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                 {item.image_url && (
-                  <img src={item.image_url} alt={item.title} className="w-12 h-12 rounded-lg object-cover shrink-0 shadow-sm" />
+                  <img src={item.image_url} alt={item.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 )}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-sm font-medium break-words">{item.title}</p>
-                  {item.rating && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-500 text-xs">{'★'.repeat(item.rating)}</span>
-                      <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(item.rating)}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium line-clamp-1">{item.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{item.quantity} {translateUnit(t, item.quantity_unit)}</span>
                     <span>•</span>
                     <span>{item.food_type}</span>
                     {item.diet_type && (
-                      <span className={`inline-flex items-center gap-1 ${
-                        item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <span>{item.diet_type === 'veg' ? t('donate.dietTypes.veg') : t('donate.dietTypes.nonVeg')}</span>
-                      </span>
+                      <>
+                        <span>•</span>
+                        <span className={`inline-flex items-center gap-1 ${
+                          item.diet_type === 'veg' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.diet_type === 'veg' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          {item.diet_type === 'veg' ? t('donate.dietTypes.veg') : t('donate.dietTypes.nonVeg')}
+                        </span>
+                      </>
                     )}
                   </div>
-                  {item.expiry_date && (
-                    <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      <span>{new Date(item.expiry_date).toLocaleDateString()} {new Date(item.expiry_date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                    </div>
-                  )}
                 </div>
+                {item.rating && (
+                  <span className="text-yellow-500 text-xs shrink-0">{'★'.repeat(item.rating)}</span>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 text-sm bg-muted/40 rounded-lg px-3 py-2 border border-border/30">
-              <div className="flex items-center gap-1.5">
-                <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium">{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
-              </div>
-              <span className="text-muted-foreground">•</span>
-              <Badge variant="secondary" className="text-xs">{request.food_donations.food_type}</Badge>
-              {request.food_donations.rating && (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-yellow-500 text-xs">{'★'.repeat(request.food_donations.rating)}</span>
-                  <span className="text-[10px] text-muted-foreground">{getFreshnessLabel(request.food_donations.rating)}</span>
-                </>
-              )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Package className="h-4 w-4" />
+              <span>{request.food_donations.quantity} {translateUnit(t, request.food_donations.quantity_unit)}</span>
             </div>
+            {request.food_donations.rating && (
+              <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-500">{'★'.repeat(request.food_donations.rating)}</span>
+                  <span className="text-muted-foreground">{'★'.repeat(5 - request.food_donations.rating)}</span>
+                </div>
+              </div>
+            )}
           </>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

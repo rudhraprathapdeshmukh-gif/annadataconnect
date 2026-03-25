@@ -185,12 +185,10 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Title *</Label>
               <Input
                 value={item.title}
-                onChange={(e) => onChange({ ...item, title: e.target.value.slice(0, 20) })}
+                onChange={(e) => onChange({ ...item, title: e.target.value })}
                 placeholder="e.g., Fresh vegetables"
-                maxLength={20}
                 className="h-11"
               />
-              <span className="text-[11px] text-muted-foreground text-right">{item.title.length}/20</span>
             </div>
 
             {/* Description */}
@@ -198,13 +196,11 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Description</Label>
               <Textarea
                 value={item.description}
-                onChange={(e) => onChange({ ...item, description: e.target.value.slice(0, 30) })}
+                onChange={(e) => onChange({ ...item, description: e.target.value })}
                 placeholder="Details about this item..."
-                maxLength={30}
                 rows={2}
                 className="resize-none"
               />
-              <span className="text-[11px] text-muted-foreground text-right">{item.description.length}/30</span>
             </div>
 
             {/* Quantity */}
@@ -215,16 +211,14 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                   <div className="flex-1 flex gap-2">
                     <Input
                       type="number"
-                      min={item.quantity_unit === 'grams' ? '100' : '1'}
-                      max={item.quantity_unit === 'grams' ? '1000' : '100'}
+                      min="1"
+                      max="99"
                       value={item.quantity}
                       onChange={(e) => {
-                        const minVal = item.quantity_unit === 'grams' ? 100 : 1;
-                        const maxVal = item.quantity_unit === 'grams' ? 1000 : 100;
-                        const val = Math.min(maxVal, Math.max(minVal, parseInt(e.target.value) || minVal));
+                        const val = Math.min(99, Math.max(1, parseInt(e.target.value) || 0));
                         onChange({ ...item, quantity: val.toString() });
                       }}
-                      placeholder="Custom"
+                      placeholder="10-99"
                       className="flex-1 h-11"
                     />
                     <Button
@@ -233,7 +227,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                       className="h-11 text-xs"
                       onClick={() => {
                         setIsCustomQuantity(false);
-                        onChange({ ...item, quantity: item.quantity_unit === 'grams' ? '100' : '1' });
+                        onChange({ ...item, quantity: '1' });
                       }}
                     >
                       Presets
@@ -255,25 +249,16 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {item.quantity_unit === 'grams' 
-                        ? [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map((n) => (
-                            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                          ))
-                        : Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-                            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                          ))
-                      }
-                      <SelectItem value="custom">Custom...</SelectItem>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom (10-99)...</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
                 <Select
                   value={item.quantity_unit}
-                  onValueChange={(value) => {
-                    const newQuantity = value === 'grams' ? '100' : '1';
-                    setIsCustomQuantity(false);
-                    onChange({ ...item, quantity_unit: value, quantity: newQuantity });
-                  }}
+                  onValueChange={(value) => onChange({ ...item, quantity_unit: value })}
                 >
                   <SelectTrigger className="w-[110px] h-11">
                     <SelectValue />
@@ -294,10 +279,7 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
               <Label className="text-sm font-semibold">Food Type *</Label>
               <Select
                 value={item.food_type}
-                onValueChange={(value) => {
-                  const vegOnly = ['Vegetables', 'Fruits', 'Grains', 'Dairy'];
-                  onChange({ ...item, food_type: value, ...(vegOnly.includes(value) ? { diet_type: 'veg' } : {}) });
-                }}
+                onValueChange={(value) => onChange({ ...item, food_type: value })}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Select food type" />
@@ -314,15 +296,11 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
             </div>
 
             {/* Diet Type */}
-            {(() => {
-              const vegOnlyTypes = ['Vegetables', 'Fruits', 'Grains', 'Dairy'];
-              const isVegOnly = vegOnlyTypes.includes(item.food_type);
-              return (
             <div className="space-y-1">
               <Label className="text-sm font-semibold">Diet Type *</Label>
               <RadioGroup
                 value={item.diet_type}
-                onValueChange={(value) => !isVegOnly && onChange({ ...item, diet_type: value })}
+                onValueChange={(value) => onChange({ ...item, diet_type: value })}
                 className="grid grid-cols-2 gap-2"
               >
                 <Label
@@ -341,23 +319,18 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 <Label
                   htmlFor={`non-veg-${item.id}`}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all",
-                    isVegOnly
-                      ? "opacity-40 cursor-not-allowed border-muted"
-                      : "cursor-pointer",
-                    !isVegOnly && item.diet_type === 'non-veg'
+                    "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                    item.diet_type === 'non-veg'
                       ? "border-red-500 bg-red-50 dark:bg-red-950"
-                      : !isVegOnly ? "border-muted hover:border-red-300" : ""
+                      : "border-muted hover:border-red-300"
                   )}
                 >
-                  <RadioGroupItem value="non-veg" id={`non-veg-${item.id}`} className="sr-only" disabled={isVegOnly} />
+                  <RadioGroupItem value="non-veg" id={`non-veg-${item.id}`} className="sr-only" />
                   <span className="w-5 h-5 rounded-full bg-red-500 border-2 border-red-700" />
                   <span className="text-xs font-medium">Non-Veg</span>
                 </Label>
               </RadioGroup>
             </div>
-              );
-            })()}
 
             {/* Expiry Date & Time */}
             <div className="space-y-2">
@@ -366,10 +339,6 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 <Label className="text-sm font-semibold">Approx Expiry Date & Time *</Label>
               </div>
 
-              {!item.food_type ? (
-                <p className="text-xs text-muted-foreground italic py-2">Please select a food type first to set expiry date</p>
-              ) : (
-              <>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -436,8 +405,6 @@ export function DonationItemCard({ item, index, totalItems, onChange, onRemove }
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">{getDateHelpText()}</p>
-              </>
-              )}
             </div>
 
             {/* Rating */}

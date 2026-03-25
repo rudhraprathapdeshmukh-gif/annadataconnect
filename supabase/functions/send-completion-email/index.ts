@@ -220,15 +220,16 @@ const handler = async (req: Request): Promise<Response> => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user: callerUser }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !callerUser) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = callerUser.id;
+    const userId = claimsData.claims.sub;
 
     const { requestId }: EmailRequest = await req.json();
     console.log("Processing completion email for request:", requestId, "by user:", userId);
