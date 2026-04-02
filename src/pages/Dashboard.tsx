@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -397,6 +397,29 @@ export default function Dashboard() {
   };
 
 
+  // Debounced realtime refresh to prevent cascading refetches
+  const realtimeRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRefreshes = useRef<Set<string>>(new Set());
+
+  // Use refs to always call the latest versions of fetch functions
+  const fetchRequestsRef = useRef<() => void>(() => {});
+  const fetchMyRequestsRef = useRef<() => void>(() => {});
+  const fetchMyDonationsRef = useRef<() => void>(() => {});
+  const fetchDonationsRef = useRef<() => void>(() => {});
+
+  const scheduleRefresh = useCallback((targets: string[]) => {
+    targets.forEach(t => pendingRefreshes.current.add(t));
+    if (realtimeRefreshTimer.current) clearTimeout(realtimeRefreshTimer.current);
+    realtimeRefreshTimer.current = setTimeout(() => {
+      const pending = new Set(pendingRefreshes.current);
+      pendingRefreshes.current.clear();
+      if (pending.has('requests')) fetchRequestsRef.current();
+      if (pending.has('myRequests')) fetchMyRequestsRef.current();
+      if (pending.has('myDonations')) fetchMyDonationsRef.current();
+      if (pending.has('donations')) fetchDonationsRef.current();
+    }, 300);
+  }, []);
+
   // Real-time subscription for food_requests updates
   useEffect(() => {
     if (!user) return;
@@ -411,23 +434,17 @@ export default function Dashboard() {
           table: 'food_requests'
         },
         (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('Real-time request update:', payload);
-          }
-          
           // Show toast when request becomes completed
           if (payload.eventType === 'UPDATE' && 
               payload.new && 
               payload.old && 
-              payload.new.status === 'completed' && 
-              payload.old.status === 'approved') {
+              (payload.new as any).status === 'completed' && 
+              (payload.old as any).status === 'approved') {
             toast.success('Pickup completed! Please rate your experience.');
           }
           
-          // Refresh requests when any change occurs
-          fetchRequests();
-          fetchMyRequests();
-          fetchMyDonations();
+          // Debounced refresh
+          scheduleRefresh(['requests', 'myRequests', 'myDonations']);
         }
       )
       .subscribe();
@@ -435,7 +452,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(requestsChannel);
     };
-  }, [user]);
+  }, [user, scheduleRefresh]);
 
   // Real-time subscription for food_donations updates
   useEffect(() => {
@@ -450,13 +467,8 @@ export default function Dashboard() {
           schema: 'public',
           table: 'food_donations'
         },
-        (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('Real-time donation update:', payload);
-          }
-          // Refresh all donation lists when any donation changes
-          fetchDonations();
-          fetchMyDonations();
+        () => {
+          scheduleRefresh(['donations', 'myDonations']);
         }
       )
       .subscribe();
@@ -464,7 +476,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(donationsChannel);
     };
-  }, [user]);
+  }, [user, scheduleRefresh]);
 
   // Refetch donations when location becomes available
   useEffect(() => {
@@ -730,6 +742,12 @@ export default function Dashboard() {
     }
   };
 
+  // Keep refs updated so scheduleRefresh always calls latest versions
+  fetchRequestsRef.current = fetchRequests;
+  fetchMyRequestsRef.current = fetchMyRequests;
+  fetchMyDonationsRef.current = fetchMyDonations;
+  fetchDonationsRef.current = fetchDonations;
+
   const requestFood = async (donationId: string) => {
     if (!user) return;
 
@@ -866,6 +884,7 @@ export default function Dashboard() {
     fetchRequests();
     fetchMyRequests();
     fetchMyDonations();
+    fetchDonations();
   };
 
   const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {

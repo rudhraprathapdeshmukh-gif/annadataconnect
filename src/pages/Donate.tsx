@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { compressImage } from '@/lib/imageCompression';
 import { addYears, isAfter, isBefore } from 'date-fns';
 
 import { DonateStepIndicator } from '@/components/DonateStepIndicator';
@@ -247,11 +248,15 @@ export default function Donate() {
         return;
       }
 
-      // Upload all images in parallel
-      const imageUploadPromises = items.map(async (item) => {
-        const file = item.imageFile!;
+      // Compress all images in parallel first
+      const compressedFiles = await Promise.all(
+        items.map((item) => compressImage(item.imageFile!))
+      );
+
+      // Upload all compressed images in parallel
+      const imageUploadPromises = compressedFiles.map(async (file, idx) => {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}-${item.id}.${fileExt}`;
+        const fileName = `${user.id}-${Date.now()}-${items[idx].id}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('food-images')
           .upload(fileName, file);
@@ -310,7 +315,11 @@ export default function Donate() {
 
       if (error) throw error;
 
-      // Insert individual items into donation_items
+      // Show success and navigate immediately — insert items in background
+      toast.success(t('donate.donationCreated'));
+      navigate('/dashboard');
+
+      // Insert individual items in background (non-blocking)
       if (donationData) {
         const itemsToInsert = items.map((item, idx) => ({
           donation_id: donationData.id,
@@ -325,17 +334,13 @@ export default function Donate() {
           expiry_date: itemExpiryDates[idx].toISOString(),
         }));
 
-        const { error: itemsError } = await supabase
+        supabase
           .from('donation_items' as any)
-          .insert(itemsToInsert);
-
-        if (itemsError) {
-          console.error('Failed to insert donation items:', itemsError);
-        }
+          .insert(itemsToInsert)
+          .then(({ error: itemsError }) => {
+            if (itemsError) console.error('Failed to insert donation items:', itemsError);
+          });
       }
-
-      toast.success(t('donate.donationCreated'));
-      navigate('/dashboard');
     } catch (error) {
       toast.error(t('donate.failedCreateDonation'));
       console.error(error);
