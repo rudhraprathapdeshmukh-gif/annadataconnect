@@ -2417,7 +2417,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
              {t('dashboard.reject')}
           </Button>
         </CardFooter>
-      ) : request.status === 'approved' && !countdown.expired ? (
+      request.status === 'approved' ? (
         <CardFooter className="flex flex-col gap-2">
           <div className="flex gap-2 w-full">
             <ChatDialog
