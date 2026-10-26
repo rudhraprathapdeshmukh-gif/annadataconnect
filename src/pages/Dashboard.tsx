@@ -2395,11 +2395,11 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
           </div>
         )}
       </CardContent>
-      {request.status === 'pending' ? (
+      {request.status === 'pending' && (
         <CardFooter className="flex gap-2">
-          <Button 
-            variant="default" 
-            className="flex-1 transition-all hover:scale-105 active:scale-95" 
+          <Button
+            variant="default"
+            className="flex-1 transition-all hover:scale-105 active:scale-95"
             onClick={onAccept}
             disabled={isAcceptDisabled || isActionLoading}
             title={isAcceptDisabled ? 'Another request for this donation has already been accepted' : undefined}
@@ -2407,17 +2407,18 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
             {isAcceptDisabled ? t('dynamic.alreadyAccepted') : t('dynamic.accept')}
           </Button>
-          <Button 
-            variant="destructive" 
-            className="flex-1 transition-all hover:scale-105 active:scale-95" 
+          <Button
+            variant="destructive"
+            className="flex-1 transition-all hover:scale-105 active:scale-95"
             onClick={onReject}
             disabled={isActionLoading}
           >
             {isActionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
-             {t('dashboard.reject')}
+            {t('dashboard.reject')}
           </Button>
         </CardFooter>
-      request.status === 'approved' ? (
+      )}
+      {request.status === 'approved' && (
         <CardFooter className="flex flex-col gap-2">
           <div className="flex gap-2 w-full">
             <ChatDialog
@@ -2429,20 +2430,21 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
               buttonSize="default"
               buttonText={t('dynamic.chat')}
             />
-            <Button 
-              variant="default" 
-              className="flex-1 transition-all hover:scale-105 active:scale-95" 
+            <Button
+              variant="default"
+              className="flex-1 transition-all hover:scale-105 active:scale-95"
               onClick={() => setShowOtpDialog(true)}
             >
               <KeyRound className="h-4 w-4 mr-2" />
-               {t('dynamic.verifyPickupOTP')}
+              {t('dynamic.verifyPickupOTP')}
             </Button>
           </div>
           <p className="text-xs text-center text-muted-foreground">
             {t('dynamic.enterOTPFromReceiver')}
           </p>
         </CardFooter>
-      ) : request.status === 'completed' ? (
+      )}
+      {request.status === 'completed' && (
         <CardFooter>
           <ChatDialog
             donationId={request.donation_id}
@@ -2454,7 +2456,7 @@ function DonorRequestCard({ request, expiryTime, onAccept, onReject, onRefresh, 
             buttonText={t('dynamic.viewChatHistory')}
           />
         </CardFooter>
-      ) : null}
+      )}
     </Card>
 
     <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
