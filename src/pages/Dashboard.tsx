@@ -887,154 +887,177 @@ export default function Dashboard() {
     fetchDonations();
   };
 
-  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
-    if (actionLoadingIds.has(requestId)) return;
-    setActionLoadingIds(prev => new Set(prev).add(requestId));
-    
-    const actionLabel = action === 'rejected' ? 'reject' : 'approve';
-    const successMsg = action === 'rejected' ? 'Request rejected successfully!' : 'Request approved successfully! Timer: 30 minutes';
-    
-    try {
-      console.log(`[ReqAction] ${action} request ${requestId}`);
-      
-      // Primary path: RPC call
-      const { data, error } = await supabase.rpc('donor_set_request_status', {
-        _request_id: requestId,
-        _new_status: action,
-        _timer_duration: 30,
-      });
+const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
+  if (actionLoadingIds.has(requestId)) return;
+  setActionLoadingIds(prev => new Set(prev).add(requestId));
 
-      console.log(`[ReqAction] RPC result:`, { data, error: error?.message });
+  const actionLabel = action === 'rejected' ? 'reject' : 'approve';
+  const successMsg = action === 'rejected' ? 'Request rejected successfully!' : 'Request approved successfully! Timer: 30 minutes';
 
-      if (!error) {
-        const result = parseDonorActionResult(data);
-        console.log(`[ReqAction] Parsed result:`, result);
+  try {
+    console.log(`[ReqAction] ${action} request ${requestId}`);
 
-        if (result.success === true) {
+    // Primary path: RPC call
+    const { data, error } = await supabase.rpc('donor_set_request_status', {
+      _request_id: requestId,
+      _new_status: action,
+      _timer_duration: 30,
+    });
+
+    console.log(`[ReqAction] RPC result:`, { data, error: error?.message });
+
+    if (!error) {
+      const result = parseDonorActionResult(data);
+      console.log(`[ReqAction] Parsed result:`, result);
+
+      if (result.success === true) {
+        toast.success(successMsg);
+        refreshRequestState();
+        return;
+      }
+
+      // RPC returned success=false with a reason
+      const reason = result.reason;
+
+      if (reason === 'already_handled') {
+        if (result.current_status === action) {
           toast.success(successMsg);
-          refreshRequestState();
-          return;
+        } else {
+          toast.info(`This request was already ${result.current_status || 'processed'}.`);
         }
-
-        // RPC returned success=false with a reason
-        const reason = result.reason;
-        if (reason === 'already_handled') {
-          if (result.current_status === action) {
-            toast.success(successMsg);
-          } else {
-            toast.info(`This request was already ${result.current_status || 'processed'}.`);
-          }
-          refreshRequestState();
-          return;
-        } else if (reason === 'not_found') {
-          toast.error('Request not found. It may have been removed.');
-          refreshRequestState();
-          return;
-        } else if (reason === 'not_authorized') {
-          toast.error('You are not authorized to update this request.');
-          refreshRequestState();
-          return;
-        }
-        // For update_failed, exception, or unknown reasons — fall through to read-back + fallback
-      }
-
-      // Read-back verification
-      const currentStatus = await verifyRequestStatus(requestId);
-      console.log(`[ReqAction] Read-back status: ${currentStatus}`);
-      
-      if (currentStatus === action) {
-        toast.success(successMsg);
+        refreshRequestState();
+        return;
+      } else if (reason === 'not_found') {
+        toast.error('Request not found. It may have been removed.');
+        refreshRequestState();
+        return;
+      } else if (reason === 'not_authorized') {
+        toast.error('You are not authorized to update this request.');
         refreshRequestState();
         return;
       }
-      if (currentStatus && currentStatus !== 'pending') {
-        toast.info(`This request was already ${currentStatus}.`);
-        refreshRequestState();
-        return;
-      }
+      // For update_failed, exception, or unknown reasons — fall through to read-back + fallback
+    }
 
-      // Emergency fallback: direct update (RLS enforces donor ownership)
-      console.log(`[ReqAction] Attempting direct update fallback for ${requestId}`);
-      const { error: fallbackError } = await supabase
-        .from('food_requests')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', requestId)
-        .eq('status', 'pending');
+    const currentStatus = await verifyRequestStatus(requestId);
+    console.log(`[ReqAction] Read-back status: ${currentStatus}`);
 
-      if (fallbackError) {
-        console.error(`[ReqAction] Fallback error:`, fallbackError);
-      }
-
-      // Final read-back after fallback
-      const finalStatus = await verifyRequestStatus(requestId);
-      console.log(`[ReqAction] Final status after fallback: ${finalStatus}`);
-      
-      if (finalStatus === action) {
-        toast.success(successMsg);
-      } else if (finalStatus && finalStatus !== 'pending') {
-        toast.info(`This request was already ${finalStatus}.`);
-      } else {
-        toast.error(`Failed to ${actionLabel} request. Please try again.`);
-      }
+    if (currentStatus === action) {
+      toast.success(successMsg);
       refreshRequestState();
-    } catch (error: any) {
-      console.error(`[ReqAction] Exception:`, error);
-      // Last-chance read-back even on exception
-      try {
-        const catchStatus = await verifyRequestStatus(requestId);
-        if (catchStatus === action) {
-          toast.success(successMsg);
-          refreshRequestState();
-          return;
-        }
-      } catch {}
-      toast.error(`Failed to ${actionLabel} request. Please try again.`);
-    } finally {
-      setActionLoadingIds(prev => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
+      return;
     }
-  };
 
+    if (currentStatus && currentStatus !== 'pending') {
+      toast.info(`This request was already ${currentStatus}.`);
+      refreshRequestState();
+      return;
+    }
 
-  const handleGrantExtension = async (requestId: string) => {
+    // Emergency fallback: use the action selected by the donor
+    console.log(`[ReqAction] Attempting direct update fallback for ${requestId}`);
+
+    const fallbackUpdate: {
+      status: 'approved' | 'rejected';
+      updated_at: string;
+      accepted_at?: string;
+      timer_duration?: number;
+    } = {
+      status: action,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (action === 'approved') {
+      fallbackUpdate.accepted_at = new Date().toISOString();
+      fallbackUpdate.timer_duration = 30;
+    }
+
+    const { error: fallbackError } = await supabase
+      .from('food_requests')
+      .update(fallbackUpdate)
+      .eq('id', requestId)
+      .eq('status', 'pending');
+
+    if (fallbackError) {
+      console.error(`[ReqAction] Fallback error:`, fallbackError);
+    }
+
+    // Final read-back after fallback
+    const finalStatus = await verifyRequestStatus(requestId);
+    console.log(`[ReqAction] Final status after fallback: ${finalStatus}`);
+
+    if (finalStatus === action) {
+      toast.success(successMsg);
+    } else if (finalStatus && finalStatus !== 'pending') {
+      toast.info(`This request was already ${finalStatus}.`);
+    } else {
+      toast.error(`Failed to ${actionLabel} request. Please try again.`);
+    }
+
+    refreshRequestState();
+  } catch (error: any) {
+    console.error(`[ReqAction] Exception:`, error);
+
+    // Last-chance read-back even on exception
     try {
-      const request = requests.find(r => r.id === requestId);
-      if (!request) return;
-
-      const currentExtensionCount = request.extension_count || 0;
-      
-      if (currentExtensionCount >= 3) {
-        toast.error('Maximum extensions (3) already granted');
+      const catchStatus = await verifyRequestStatus(requestId);
+      if (catchStatus === action) {
+        toast.success(successMsg);
+        refreshRequestState();
         return;
       }
+    } catch {}
 
-      // Update the request to grant extension and increment count
-      const { error: updateError } = await supabase
-        .from('food_requests')
-        .update({ 
-          extension_granted: true,
-          extension_requested_at: null,
-          timer_duration: (request.timer_duration || 30) + 10,
-          extension_count: currentExtensionCount + 1
-        })
-        .eq('id', requestId);
+    toast.error(`Failed to ${actionLabel} request. Please try again.`);
+  } finally {
+    setActionLoadingIds(prev => {
+      const next = new Set(prev);
+      next.delete(requestId);
+      return next;
+    });
+  }
+};
 
-      if (updateError) throw updateError;
+const handleGrantExtension = async (requestId: string) => {
+  try {
+    const request = requests.find(r => r.id === requestId);
 
-      const remainingExtensions = 2 - currentExtensionCount;
-      toast.success(`Extension granted - Timer extended by 10 minutes (${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining)`);
-      
-      // Notification for receiver is handled by DB trigger
-      
-      fetchRequests();
-    } catch (error) {
-      console.error('Error granting extension:', error);
-      toast.error('Failed to grant extension');
+    if (!request) {
+      toast.error('Request not found');
+      return;
     }
-  };
+
+    const currentExtensionCount = request.extension_count || 0;
+
+    if (currentExtensionCount >= 2) {
+      toast.error('Maximum number of extensions reached');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('food_requests')
+      .update({
+        extension_granted: true,
+        extension_requested_at: null,
+        timer_duration: (request.timer_duration || 30) + 10,
+        extension_count: currentExtensionCount + 1,
+      })
+      .eq('id', requestId);
+
+    if (error) throw error;
+
+    const remainingExtensions = 2 - (currentExtensionCount + 1);
+
+    toast.success(
+      `Extension granted - Timer extended by 10 minutes (${remainingExtensions} extension${remainingExtensions !== 1 ? 's' : ''} remaining)`
+    );
+
+    fetchRequests();
+  } catch (error) {
+    console.error('Error granting extension:', error);
+    toast.error('Failed to grant extension');
+  }
+};
 
   const handleRejectExtension = async (requestId: string) => {
     try {
