@@ -241,37 +241,26 @@ export default function Auth() {
   };
 
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { lovable } = await import("@/integrations/lovable/index");
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/callback`,
-      });
-      
-      if (error) {
-        let errorMessage = error.message;
-        
-        if (error.message.includes('existing accounts') || 
-            error.message.includes('sign up first') ||
-            error.message.includes('access_denied')) {
-          errorMessage = t('auth.googleOnlyExistingAccounts');
-        } else if (error.message.includes('not enabled') || error.message.includes('not configured')) {
-          errorMessage = t('auth.googleNotConfigured');
-        }
-        
-        toast.error(errorMessage, { duration: 6000 });
-      }
-    } catch (error: any) {
-      const errorMessage = 
-        error?.message?.includes('existing accounts') || 
-        error?.message?.includes('sign up first') ||
-        error?.message?.includes('access_denied')
-          ? t('auth.googleOnlyExistingAccounts')
-          : t('auth.anError');
-      
-      toast.error(errorMessage, { duration: 6000 });
+
+const handleGoogleSignIn = async () => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      toast.error(error.message, { duration: 6000 });
     }
-  };
+} catch (error: unknown) {
+ toast.error(error instanceof Error ? error.message : t('auth.anError'), {
+      duration: 6000,
+    });
+  }
+};
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {

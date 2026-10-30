@@ -25,6 +25,7 @@ export default function AuthCallback() {
       const errorDescription = pick('error_description') || pick('error');
       const accessToken = pick('access_token');
       const refreshToken = pick('refresh_token');
+      const code = query.get('code');
 
       // Clean sensitive params out of the URL right away
       window.history.replaceState(null, '', '/auth/callback');
@@ -34,6 +35,21 @@ export default function AuthCallback() {
         navigate('/auth', { replace: true });
         return;
       }
+      if (code) {
+  const { error } = await supabase.auth.exchangeCodeForSession(
+    window.location.href
+  );
+
+  if (error) {
+    toast.error(error.message, { duration: 6000 });
+    navigate('/auth', { replace: true });
+    return;
+  }
+
+  window.history.replaceState(null, '', '/auth/callback');
+  navigate('/dashboard', { replace: true });
+  return;
+}
 
       if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({
